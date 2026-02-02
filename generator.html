@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フッターメニュー生成ツール | 管理画面</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #8ace36;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --text-color: #212529;
+            --dark-bg: #2d2d2d;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding-bottom: 50px;
+        }
+        header {
+            background: #fff;
+            padding: 10px 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        header img { height: 30px; margin-right: 15px; }
+        
+        /* レイアウト */
+        .main-wrapper {
+            display: flex;
+            max-width: 1200px;
+            margin: 30px auto;
+            gap: 30px;
+            padding: 0 20px;
+        }
+        .config-side { flex: 1; min-width: 0; }
+        .preview-side { width: 320px; position: sticky; top: 80px; height: fit-content; }
+
+        .card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-bottom: 25px; }
+        .card-title { 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+            border-left: 4px solid var(--primary-color); 
+            padding-left: 10px; 
+            font-size: 1.1rem;
+        }
+        
+        /* フォーム要素 */
+        .menu-item { background: #fdfdfd; border: 1px solid #eee; padding: 15px; border-radius: 5px; margin-bottom: 15px; position: relative; }
+        .menu-item-header { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 0.8rem; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #495057; }
+        input, select { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; outline: none; }
+        input:focus { border-color: var(--primary-color); }
+        input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
+        .full-width { grid-column: span 2; }
+
+        /* カラーピッカー周り */
+        .color-picker-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            width: fit-content;
+        }
+        .color-picker-group input[type="color"] {
+            width: 32px;
+            height: 32px;
+            border: none;
+            padding: 0;
+            background: none;
+            cursor: pointer;
+        }
+        .color-picker-group input[type="text"] {
+            width: 80px;
+            border: none;
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 0;
+        }
+
+        /* プレビュー表示 */
+        .phone-mock { 
+            width: 300px; 
+            height: 550px; 
+            background: #fff; 
+            border: 12px solid #333; 
+            border-radius: 35px; 
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15); 
+        }
+        .mock-screen { padding: 20px; height: 100%; box-sizing: border-box; background: #fafafa; }
+        .mock-nav { height: 20px; background: #eee; margin-bottom: 15px; border-radius: 4px; }
+        .mock-text { height: 10px; background: #eee; margin-bottom: 8px; border-radius: 2px; width: 80%; }
+
+        /* プレビュー内の実際のフッター再現 */
+        #preview-footer { position: absolute; bottom: 0; left: 0; width: 100%; height: 65px; z-index: 10; }
+        #preview-footer ul { 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: flex-end; 
+            margin: 0; 
+            padding: 0 0 5px 0; 
+            list-style: none; 
+            height: 80%; 
+        }
+        #preview-footer li { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            font-size: 8px; 
+            text-align: center;
+        }
+        .prev-icon { width: 28px; height: 28px; background-size: contain; background-repeat: no-repeat; background-position: center; margin-bottom: 2px; }
+        .prev-user-btn { 
+            position: relative; 
+            top: -10px; 
+            width: 65px; 
+            height: 65px; 
+            border-radius: 50%; 
+            border: 3px solid #fff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            padding-bottom: 4px;
+        }
+
+        /* ボタン */
+        .btn { padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
+        .btn-add { background: #fff; border: 1px dashed var(--primary-color); color: var(--primary-color); width: 100%; margin-top: 10px; }
+        .btn-add:hover { background: #f0f9e8; }
+        .btn-generate { background: var(--primary-color); color: #fff; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 20px; }
+        .btn-copy { background: #6c757d; color: #fff; font-size: 0.75rem; padding: 5px 12px; float: right; margin-bottom: 5px; }
+        .btn-remove { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #dc3545; cursor: pointer; }
+
+        .output-area { 
+            width: 100%; 
+            height: 180px; 
+            font-family: 'Courier New', monospace; 
+            font-size: 0.8rem; 
+            background: var(--dark-bg); 
+            color: #f8f8f2; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 4px; 
+            resize: vertical; 
+            box-sizing: border-box; 
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div style="font-weight: bold;">フッターメニュージェネレーター</div>
+</header>
+
+<div class="main-wrapper">
+    <div class="config-side">
+        <div class="card">
+            <div class="card-title">メニュー構成設定</div>
+            <div id="menu-list">
+                </div>
+            <button class="btn btn-add" id="add-item"><i class="fa fa-plus"></i> 項目を追加する (最大5個)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">デザイン設定</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>背景色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-bg" value="#f4c940">
+                        <input type="text" id="cfg-bg-val" value="#f4c940">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>文字色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-txt" value="#ffffff">
+                        <input type="text" id="cfg-txt-val" value="#ffffff">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>MY PAGE色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-user-bg" value="#503b34">
+                        <input type="text" id="cfg-user-bg-val" value="#503b34">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>公式サイトアイコンURL</label>
+                    <input type="text" id="cfg-official-url" value="https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png">
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-generate" id="generate-btn">配布用コードを生成する</button>
+
+        <div style="margin-top: 40px;">
+            <div style="overflow: hidden;">
+                <label style="font-weight: bold; color: var(--primary-color);">【1】JavaScriptコード</label>
+                <button class="btn btn-copy" onclick="copyText('out-js')">コピー</button>
+            </div>
+            <textarea id="out-js" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
+
+            <div style="overflow: hidden; margin-top: 25px;">
+                <label style="font-weight: bold; color: var(--primary-color);">【2】CSSコード (styleタグ付)</label>
+                <button class="btn btn-copy" onclick="copyText('out-css')">コピー</button>
+            </div>
+            <textarea id="out-css" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
+        </div>
+    </div>
+
+    <div class="preview-side">
+        <div style="font-weight: bold; margin-bottom: 15px; text-align: center;">UIプレビュー</div>
+        <div class="phone-mock">
+            <div class="mock-screen">
+                <div class="mock-nav"></div>
+                <div class="mock-text" style="width: 50%;"></div>
+                <div class="mock-text"></div>
+                <div class="mock-text"></div>
+                <div style="margin-top: 30px; height: 150px; background: #f0f0f0; border-radius: 10px;"></div>
+            </div>
+            <div id="preview-footer">
+                <ul id="preview-ul"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // アイコン画像の定義
+    const iconImages = {
+        home: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/G7NN1cykJDexyrf7W3sY.png",
+        stamp: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/11vmbKPoZKbaDsS6AnC8.png",
+        user: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/E3WFqdsnqvH99pgwlK5L.png",
+        ticket: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/qwb7BN3RXESAD0krnj5v.png",
+        history: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/s1WjgAYhCT5YkwteDBW1.png",
+        ec: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
+        map: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/l8lm4e55dWmksNmI67cP.png",
+        official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
+    };
+
+    const menuList = document.getElementById('menu-list');
+    const previewUl = document.getElementById('preview-ul');
+
+    // プレビューのリアルタイム更新
+    function updatePreview() {
+        previewUl.innerHTML = '';
+        const bgColor = document.getElementById('cfg-bg-val').value;
+        const txtColor = document.getElementById('cfg-txt-val').value;
+        const userBg = document.getElementById('cfg-user-bg-val').value;
+        const officialUrl = document.getElementById('cfg-official-url').value;
+        
+        document.getElementById('preview-footer').style.backgroundColor = bgColor;
+
+        document.querySelectorAll('.menu-item').forEach(el => {
+            const cls = el.querySelector('.field-class').value;
+            const label = el.querySelector('.field-label').value;
+            const li = document.createElement('li');
+            
+            let iconUrl = iconImages[cls];
+            if(cls === 'official') iconUrl = officialUrl;
+
+            if(cls === 'user') {
+                li.innerHTML = `
+                    <div class="prev-user-btn" style="background:${userBg}">
+                        <div class="prev-icon" style="background-image:url('${iconUrl}'); filter: brightness(0) invert(1);"></div>
+                        <span style="color:#fff">${label}</span>
+                    </div>`;
+            } else {
+                li.innerHTML = `
+                    <div class="prev-icon" style="background-image:url('${iconUrl}'); filter: brightness(0) invert(1);"></div>
+                    <span style="color:${txtColor}">${label}</span>`;
+            }
+            previewUl.appendChild(li);
+        });
+    }
+
+    // クラス変更時のルール適用
+    window.handleClassChange = function(select) {
+        const item = select.closest('.menu-item');
+        const href = item.querySelector('.field-href');
+        const aclass = item.querySelector('.field-aclass');
+        const label = item.querySelector('.field-label');
+
+        if(select.value === 'map') {
+            href.value = '#'; href.disabled = true;
+            aclass.value = 'open-reserve'; aclass.disabled = true;
+            label.value = '近くの店舗';
+        } else {
+            if(href.value === '#') href.value = '';
+            href.disabled = false;
+            aclass.value = ''; aclass.disabled = true;
+        }
+        updatePreview();
+    };
+
+    // 項目追加
+    function createItem(isFirst = false) {
+        if (!isFirst && menuList.children.length >= 5) return alert("最大5個までです");
+        const div = document.createElement('div');
+        div.className = 'menu-item';
+        div.innerHTML = `
+            ${isFirst ? '' : '<button class="btn-remove" onclick="this.parentElement.remove();updatePreview();"><i class="fa fa-times"></i></button>'}
+            <div class="menu-item-header">ITEM ${menuList.children.length + 1}</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>アイコン</label>
+                    <select class="field-class" onchange="handleClassChange(this)">
+                        <option value="home">home</option><option value="stamp">stamp</option>
+                        <option value="user">user (マイページ)</option><option value="ticket">ticket</option>
+                        <option value="history">history</option><option value="ec">ec</option>
+                        <option value="official">official</option><option value="map">map</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>ラベル名</label><input type="text" class="field-label" oninput="updatePreview()" value="${isFirst?'ホーム':''}"></div>
+                <div class="form-group full-width"><label>URL</label><input type="text" class="field-href" oninput="updatePreview()" placeholder="https://"></div>
+                <div class="form-group"><label>aclass (固定)</label><input type="text" class="field-aclass" disabled></div>
+                <div class="form-group" style="flex-direction:row; align-items:center; gap:8px; margin-top:20px;">
+                    <input type="checkbox" class="field-ext" onchange="updatePreview()"> <label style="margin:0;">別タブ</label>
+                </div>
+            </div>`;
+        menuList.appendChild(div);
+        updatePreview();
+    }
+
+    // カラーピッカー同期
+    function setupColorSync(pId, tId) {
+        const p = document.getElementById(pId);
+        const t = document.getElementById(tId);
+        p.oninput = () => { t.value = p.value.toUpperCase(); updatePreview(); };
+        t.oninput = () => { if(/^#[0-9A-F]{6}$/i.test(t.value)) { p.value = t.value; updatePreview(); } };
+    }
+
+    // 初期化
+    document.getElementById('add-item').onclick = () => createItem();
+    setupColorSync('cfg-bg', 'cfg-bg-val');
+    setupColorSync('cfg-txt', 'cfg-txt-val');
+    setupColorSync('cfg-user-bg', 'cfg-user-bg-val');
+    document.getElementById('cfg-official-url').oninput = updatePreview;
+    createItem(true);
+
+    // 生成
+    document.getElementById('generate-btn').onclick = () => {
+        const items = [];
+        document.querySelectorAll('.menu-item').forEach(el => {
+            items.push({
+                class: el.querySelector('.field-class').value,
+                href: el.querySelector('.field-href').value,
+                aclass: el.querySelector('.field-aclass').value,
+                icon: "<span class='icon'></span>",
+                label: el.querySelector('.field-label').value,
+                external: el.querySelector('.field-ext').checked
+            });
+        });
+
+        const bg = document.getElementById('cfg-bg-val').value;
+        const txt = document.getElementById('cfg-txt-val').value;
+        const uBg = document.getElementById('cfg-user-bg-val').value;
+        const offUrl = document.getElementById('cfg-official-url').value;
+
+        document.getElementById('out-js').value = `<script>
+window.onload = () => {
+    const menuItems = ${JSON.stringify(items, null, 8)};
+    const listItems = menuItems.map(item => {
+        const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+        return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`;
+    }).join('');
+    const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
+    document.body.insertAdjacentHTML('beforeend', footerHTML);
+};
+<\/script>`;
+
+        document.getElementById('out-css').value = `<style type="text/css">
+#sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${bg}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
+#sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
+#sp-fixed-menu ul li { flex: 1; text-align: center; }
+#sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${txt}; }
+#sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: brightness(0) invert(1); }
+li.home .icon { background-image: url("${iconImages.home}"); }
+li.stamp .icon { background-image: url("${iconImages.stamp}"); }
+li.ticket .icon { background-image: url("${iconImages.ticket}"); }
+li.user .icon { background-image: url("${iconImages.user}"); }
+li.history .icon { background-image: url("${iconImages.history}"); }
+li.ec .icon { background-image: url("${iconImages.ec}"); }
+li.map .icon { background-image: url("${iconImages.map}"); }
+li.official .icon { background-image: url("${offUrl}"); }
+#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${uBg}; box-shadow: 0 3px 6px rgba(0,0,0,0.25); z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
+#sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
+#sp-fixed-menu li.official .icon { width: 35px; height: 35px; margin-bottom: -2px; }
+<\/style>`;
+        alert("コードを生成しました！");
+    };
+
+    window.copyText = (id) => {
+        const el = document.getElementById(id);
+        el.select();
+        document.execCommand('copy');
+        alert("コピーしました");
+    };
+</script>
+
+</body>
+</html>
