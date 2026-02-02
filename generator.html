@@ -389,7 +389,8 @@
         const iconChoice = document.getElementById('cfg-icon-choice').value;
         const filterVal = iconChoice === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
 
-        document.getElementById('out-js').value = `<script>
+        document.getElementById('out-js').value = `<!-- フッター固定メニュー -->
+        <script>
 window.onload = () => {
     const menuItems = ${JSON.stringify(items, null, 8)};
     const listItems = menuItems.map(item => {
