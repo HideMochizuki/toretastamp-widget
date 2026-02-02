@@ -146,7 +146,7 @@
         .btn-add:hover { background: #f0f9e8; }
         .btn-generate { background: var(--primary-color); color: #fff; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 20px; }
         .btn-copy { background: #6c757d; color: #fff; font-size: 0.75rem; padding: 5px 12px; float: right; margin-bottom: 5px; }
-        .btn-remove { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #dc3545; cursor: pointer; }
+        .btn-remove { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666666; cursor: pointer; }
 
         .output-area { 
             width: 100%; 
@@ -259,7 +259,7 @@
         user: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/E3WFqdsnqvH99pgwlK5L.png",
         ticket: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/qwb7BN3RXESAD0krnj5v.png",
         history: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/s1WjgAYhCT5YkwteDBW1.png",
-        ec: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
+        reservation: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
         map: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/l8lm4e55dWmksNmI67cP.png",
         official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
     };
@@ -337,7 +337,7 @@
                     <select class="field-class" onchange="handleClassChange(this)">
                         <option value="home">home</option><option value="stamp">stamp</option>
                         <option value="user">user (マイページ)</option><option value="ticket">ticket</option>
-                        <option value="history">history</option><option value="ec">ec</option>
+                        <option value="history">history</option><option value="reservation">reservation</option>
                         <option value="official">official</option><option value="map">map</option>
                     </select>
                 </div>
@@ -412,7 +412,7 @@ li.stamp .icon { background-image: url("${iconImages.stamp}"); }
 li.ticket .icon { background-image: url("${iconImages.ticket}"); }
 li.user .icon { background-image: url("${iconImages.user}"); }
 li.history .icon { background-image: url("${iconImages.history}"); }
-li.ec .icon { background-image: url("${iconImages.ec}"); }
+li.reservation .icon { background-image: url("${iconImages.reservation}"); }
 li.map .icon { background-image: url("${iconImages.map}"); }
 li.official .icon { background-image: url("${offUrl}"); }
 #sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${uBg}; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25); z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
