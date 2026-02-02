@@ -390,7 +390,7 @@
         const filterVal = iconChoice === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
 
         document.getElementById('out-js').value = `<!-- フッター固定メニュー -->
-        <script>
+<script>
 window.onload = () => {
     const menuItems = ${JSON.stringify(items, null, 8)};
     const listItems = menuItems.map(item => {
