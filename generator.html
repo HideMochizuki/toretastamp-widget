@@ -197,13 +197,20 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>アイコン色</label>
+                    <select id="cfg-icon-choice" onchange="updatePreview()">
+                        <option value="white" selected>白色 (#FFFFFF)</option>
+                        <option value="black">黒色 (#000000)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>MY PAGE色</label>
                     <div class="color-picker-group">
                         <input type="color" id="cfg-user-bg" value="#503b34">
                         <input type="text" id="cfg-user-bg-val" value="#503b34">
                     </div>
                 </div>
-                <div class="form-group">
+                <div class="form-group full-width">
                     <label>公式サイトアイコンURL</label>
                     <input type="text" id="cfg-official-url" value="https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png">
                 </div>
@@ -267,7 +274,11 @@
         const txtColor = document.getElementById('cfg-txt-val').value;
         const userBg = document.getElementById('cfg-user-bg-val').value;
         const officialUrl = document.getElementById('cfg-official-url').value;
+        const iconChoice = document.getElementById('cfg-icon-choice').value;
         
+        // 白黒フィルタ
+        const filterVal = iconChoice === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
+
         document.getElementById('preview-footer').style.backgroundColor = bgColor;
 
         document.querySelectorAll('.menu-item').forEach(el => {
@@ -286,7 +297,7 @@
                     </div>`;
             } else {
                 li.innerHTML = `
-                    <div class="prev-icon" style="background-image:url('${iconUrl}'); filter: brightness(0) invert(1);"></div>
+                    <div class="prev-icon" style="background-image:url('${iconUrl}'); filter: ${filterVal};"></div>
                     <span style="color:${txtColor}">${label}</span>`;
             }
             previewUl.appendChild(li);
@@ -375,6 +386,8 @@
         const txt = document.getElementById('cfg-txt-val').value;
         const uBg = document.getElementById('cfg-user-bg-val').value;
         const offUrl = document.getElementById('cfg-official-url').value;
+        const iconChoice = document.getElementById('cfg-icon-choice').value;
+        const filterVal = iconChoice === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
 
         document.getElementById('out-js').value = `<script>
 window.onload = () => {
@@ -393,7 +406,7 @@ window.onload = () => {
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
 #sp-fixed-menu ul li { flex: 1; text-align: center; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${txt}; }
-#sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: brightness(0) invert(1); }
+#sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${filterVal}; }
 li.home .icon { background-image: url("${iconImages.home}"); }
 li.stamp .icon { background-image: url("${iconImages.stamp}"); }
 li.ticket .icon { background-image: url("${iconImages.ticket}"); }
@@ -402,8 +415,9 @@ li.history .icon { background-image: url("${iconImages.history}"); }
 li.ec .icon { background-image: url("${iconImages.ec}"); }
 li.map .icon { background-image: url("${iconImages.map}"); }
 li.official .icon { background-image: url("${offUrl}"); }
-#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${uBg}; box-shadow: 0 3px 6px rgba(0,0,0,0.25); z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
+#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${uBg}; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25); z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
 #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
+#sp-fixed-menu .user .icon { width: 32px; height: 32px; filter: brightness(0) invert(1); }
 #sp-fixed-menu li.official .icon { width: 35px; height: 35px; margin-bottom: -2px; }
 <\/style>`;
         alert("コードを生成しました！");
