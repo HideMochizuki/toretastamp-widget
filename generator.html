@@ -252,7 +252,7 @@
 </div>
 
 <script>
-    // アイコン画像の定義
+    // 通常画像とON画像の定義
     const iconImages = {
         home: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/G7NN1cykJDexyrf7W3sY.png",
         stamp: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/11vmbKPoZKbaDsS6AnC8.png",
@@ -264,10 +264,17 @@
         official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
     };
 
+    const iconOnImages = {
+        home: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/Rhn5Vvjh2SP38NF1xIwr.png",
+        stamp: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/JHgPi2AKawTsS4JmquNG.png",
+        ticket: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/HW3t7RIX70B8ZS3NCBSy.png",
+        user: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/dfXYpacHjwLUuVQ7Eg8k.png",
+        history: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/VZ0tdfcpyCzlV8HRACZJ.png"
+    };
+
     const menuList = document.getElementById('menu-list');
     const previewUl = document.getElementById('preview-ul');
 
-    // プレビューのリアルタイム更新
     function updatePreview() {
         previewUl.innerHTML = '';
         const bgColor = document.getElementById('cfg-bg-val').value;
@@ -276,7 +283,6 @@
         const officialUrl = document.getElementById('cfg-official-url').value;
         const iconChoice = document.getElementById('cfg-icon-choice').value;
         
-        // 白黒フィルタ
         const filterVal = iconChoice === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
 
         document.getElementById('preview-footer').style.backgroundColor = bgColor;
@@ -304,7 +310,6 @@
         });
     }
 
-    // クラス変更時のルール適用
     window.handleClassChange = function(select) {
         const item = select.closest('.menu-item');
         const href = item.querySelector('.field-href');
@@ -323,7 +328,6 @@
         updatePreview();
     };
 
-    // 項目追加
     function createItem(isFirst = false) {
         if (!isFirst && menuList.children.length >= 5) return alert("最大5個までです");
         const div = document.createElement('div');
@@ -352,7 +356,6 @@
         updatePreview();
     }
 
-    // カラーピッカー同期
     function setupColorSync(pId, tId) {
         const p = document.getElementById(pId);
         const t = document.getElementById(tId);
@@ -360,7 +363,6 @@
         t.oninput = () => { if(/^#[0-9A-F]{6}$/i.test(t.value)) { p.value = t.value; updatePreview(); } };
     }
 
-    // 初期化
     document.getElementById('add-item').onclick = () => createItem();
     setupColorSync('cfg-bg', 'cfg-bg-val');
     setupColorSync('cfg-txt', 'cfg-txt-val');
@@ -368,7 +370,6 @@
     document.getElementById('cfg-official-url').oninput = updatePreview;
     createItem(true);
 
-    // 生成
     document.getElementById('generate-btn').onclick = () => {
         const items = [];
         document.querySelectorAll('.menu-item').forEach(el => {
@@ -390,7 +391,7 @@
         const filterVal = iconChoice === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
 
         document.getElementById('out-js').value = `<!-- フッター固定メニュー -->
-<script>
+        <script>
 window.onload = () => {
     const menuItems = ${JSON.stringify(items, null, 8)};
     const listItems = menuItems.map(item => {
@@ -402,12 +403,15 @@ window.onload = () => {
 };
 <\/script>`;
 
+        // ON状態（bodyのclassによる判定）を含むCSSを生成
         document.getElementById('out-css').value = `<style type="text/css">
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${bg}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
 #sp-fixed-menu ul li { flex: 1; text-align: center; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${txt}; }
 #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${filterVal}; }
+
+/* --- 通常アイコン（OFF状態） --- */
 li.home .icon { background-image: url("${iconImages.home}"); }
 li.stamp .icon { background-image: url("${iconImages.stamp}"); }
 li.ticket .icon { background-image: url("${iconImages.ticket}"); }
@@ -416,10 +420,32 @@ li.history .icon { background-image: url("${iconImages.history}"); }
 li.reservation .icon { background-image: url("${iconImages.reservation}"); }
 li.map .icon { background-image: url("${iconImages.map}"); }
 li.official .icon { background-image: url("${offUrl}"); }
+
+/* --- ON状態（ハイライト）の設定 --- */
+body.WdH9AXg5dB2GLVPRMiiqi2 #sp-fixed-menu .home a,
+body.stamp #sp-fixed-menu .stamp a,
+body.stamp_card #sp-fixed-menu .stamp a,
+body.coupon #sp-fixed-menu .ticket a,
+body.change #sp-fixed-menu .user a,
+body.stamp_history #sp-fixed-menu .history a {
+    color: ${txt} !important; font-weight: 600;
+}
+
+/* --- ON用アイコンへの切り替え --- */
+body.WdH9AXg5dB2GLVPRMiiqi2 .home .icon { background-image: url("${iconOnImages.home}"); }
+body.stamp .stamp .icon, body.stamp_card .stamp .icon { background-image: url("${iconOnImages.stamp}"); }
+body.coupon .ticket .icon { background-image: url("${iconOnImages.ticket}"); }
+body.change .user .icon { background-image: url("${iconOnImages.user}"); }
+body.stamp_history .history .icon { background-image: url("${iconOnImages.history}"); }
+
+/* --- MY PAGE 特殊スタイル --- */
 #sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${uBg}; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25); z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
 #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
 #sp-fixed-menu .user .icon { width: 32px; height: 32px; filter: brightness(0) invert(1); }
+body.change #sp-fixed-menu .user .icon { background-image: url("${iconOnImages.user}"); }
+
 #sp-fixed-menu li.official .icon { width: 35px; height: 35px; margin-bottom: -2px; }
+body.official_page .official .icon { filter: brightness(0) invert(1); }
 <\/style>`;
         alert("コードを生成しました！");
     };
