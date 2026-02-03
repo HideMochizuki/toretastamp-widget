@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>トレタスタンプ TOPジェネレーター</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+
+<header class="admin-header">
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div class="admin-title">トレタスタンプ TOPジェネレーター</div>
+</header>
+
+<div class="app-container">
+    <main class="main-wrapper">
+        <div class="config-side">
+            <div class="card">
+                <div class="card-title">① 全体・ヘッダーデザイン</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ヘッダー背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-h-bg" value="#ffffff">
+                            <input type="text" id="cfg-h-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>メインボタン背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-btn-bg" value="#ffffff">
+                            <input type="text" id="cfg-btn-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">② フッターメニュー（最大5個）</div>
+                <div id="menu-list"></div>
+                <button class="btn btn-add" id="add-item"><i class="fa fa-plus"></i> 項目を追加</button>
+            </div>
+
+            <button class="btn btn-generate" id="generate-btn">配布用コードを生成</button>
+
+            <div class="output-area-container">
+                <label class="output-label">JavaScript (共通処理)</label>
+                <textarea id="out-js" class="output-code" readonly></textarea>
+                <label class="output-label">CSS (スタイル調整)</label>
+                <textarea id="out-css" class="output-code" readonly></textarea>
+            </div>
+        </div>
+
+        <div class="preview-side">
+            <div class="preview-label">UIプレビュー</div>
+            <div class="phone-mock">
+                <div class="mock-screen" id="mock-screen">
+                    <header class="top" id="prev-header">
+                        <h1 class="top"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/mBZlX5MLzWD2BISCQrHO.png"></h1>
+                    </header>
+                    
+                    <div class="top_button">
+                        <ul>
+                            <li><div class="mock-btn" id="prev-btn1"><i class="fa fa-stamp" style="font-size:24px;color:#333;"></i><br>スタンプ帳</div></li>
+                            <li><div class="mock-btn" id="prev-btn2"><i class="fa fa-ticket" style="font-size:24px;color:#333;"></i><br>チケット一覧</div></li>
+                        </ul>
+                    </div>
+
+                    <div class="menu-sublist">
+                        <ul>
+                            <li>スタンプ履歴</li>
+                            <li>スタンプ/チケットの使い方</li>
+                            <li>スタンプ/チケット利用規約</li>
+                        </ul>
+                    </div>
+
+                    <div id="preview-footer"><ul id="preview-ul"></ul></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
