@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>トレタスタンプ TOPジェネレーター</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+
+<header class="admin-header">
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div class="admin-title">トレタスタンプ TOPジェネレーター</div>
+</header>
+
+<div class="app-container">
+    <main class="main-wrapper">
+        <div class="config-side">
+            <div class="card">
+                <div class="card-title">① ヘッダー・メインボタン設定</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ヘッダー背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-h-bg" value="#ffffff">
+                            <input type="text" id="cfg-h-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>メインボタン背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-btn-bg" value="#ffffff">
+                            <input type="text" id="cfg-btn-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-generate" id="generate-btn">CSSコードを生成</button>
+
+            <div class="output-area-container">
+                <label class="output-label">生成されたCSS（独自CSS欄へ貼り付け）</label>
+                <textarea id="out-css" class="output-code" readonly placeholder="生成ボタンを押してください"></textarea>
+            </div>
+        </div>
+
+        <div class="preview-side">
+            <div class="preview-label">UIプレビュー（実構造反映）</div>
+            <div class="phone-mock">
+                <div class="mock-screen" id="mock-screen">
+                    <header class="top">
+                        <h1 class="top">
+                            <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/mBZlX5MLzWD2BISCQrHO.png">
+                            <span>レストラントレタ（STG環境）</span>
+                        </h1>
+                    </header>
+                    <section class="content">
+                        <div class="top_button">
+                            <ul>
+                                <li>
+                                    <a href="#">
+                                        <div class="button_img">
+                                            <img src="https://toretastamp-stg.s3.amazonaws.com/static/front/images/stamp.svg">
+                                        </div>
+                                        <div class="button_info">スタンプ帳</div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#">
+                                        <div class="button_img">
+                                            <img src="https://toretastamp-stg.s3.amazonaws.com/static/front/images/ticket.svg">
+                                        </div>
+                                        <div class="button_info">チケット一覧</div>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="menu-sublist">
+                            <ul>
+                                <li><a href="#">スタンプ履歴</a></li>
+                                <li><a href="#">スタンプ/チケットの使い方</a></li>
+                                <li><a href="#">スタンプ/チケット利用規約</a></li>
+                            </ul>
+                        </div>
+                    </section>
+                </div>
+                </div>
+        </div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
