@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <title>トレタスタンプ TOPジェネレーター</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    
+    <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/all.min.css" rel="stylesheet" />
+    <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/style_default.css?2026020323" rel="stylesheet" />
+    <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/common.css?2026020323" rel="stylesheet" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 </head>
-<body>
+<body id="generator-app">
 
 <header class="admin-header">
     <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
@@ -18,7 +23,7 @@
     <main class="main-wrapper">
         <div class="config-side">
             <div class="card">
-                <div class="card-title">① ヘッダー・メインボタン設定</div>
+                <div class="card-title">ヘッダー・メインボタン設定</div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>ヘッダー背景色</label>
@@ -28,7 +33,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>メインボタン背景色</label>
+                        <label>ボタン背景色</label>
                         <div class="color-picker-group">
                             <input type="color" id="cfg-btn-bg" value="#ffffff">
                             <input type="text" id="cfg-btn-bg-val" value="#FFFFFF">
@@ -37,16 +42,15 @@
                 </div>
             </div>
 
-            <button class="btn btn-generate" id="generate-btn">CSSコードを生成</button>
+            <button class="btn-generate-code" id="generate-btn">CSSコードを生成</button>
 
-            <div class="output-area-container">
-                <label class="output-label">生成されたCSS（独自CSS欄へ貼り付け）</label>
-                <textarea id="out-css" class="output-code" readonly placeholder="生成ボタンを押してください"></textarea>
+            <div class="output-container">
+                <label>生成されたCSS</label>
+                <textarea id="out-css" readonly placeholder="生成ボタンを押してください"></textarea>
             </div>
         </div>
 
         <div class="preview-side">
-            <div class="preview-label">UIプレビュー（実構造反映）</div>
             <div class="phone-mock">
                 <div class="mock-screen" id="mock-screen">
                     <header class="top">
@@ -81,11 +85,12 @@
                                 <li><a href="#">スタンプ履歴</a></li>
                                 <li><a href="#">スタンプ/チケットの使い方</a></li>
                                 <li><a href="#">スタンプ/チケット利用規約</a></li>
+                                <li><a href="#">自由にメニューを追加できます！</a></li>
                             </ul>
                         </div>
                     </section>
                 </div>
-                </div>
+            </div>
         </div>
     </main>
 </div>
