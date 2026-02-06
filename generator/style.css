@@ -1,0 +1,175 @@
+/* ==========================================
+   1. 変数とベース（基本設定）
+   ========================================== */
+   :root {
+    --primary-color: #8ace36;
+    --bg-color: #f8f9fa;
+    --border-color: #dee2e6;
+    --text-color: #212529;
+    --dark-bg: #2d2d2d;
+    --sidebar-width: 200px;
+}
+
+html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+body {
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==========================================
+   2. レイアウト（ヘッダー・サイドバー・メイン）
+   ========================================== */
+header.generator {
+    background: #fff;
+    padding: 10px 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 50px;
+    flex-shrink: 0;
+    z-index: 1000;
+}
+header.generator img { height: 30px; margin-right: 15px; }
+
+.app-container { display: flex; flex: 1; overflow: hidden; }
+
+/* サイドバー */
+.sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border-color);
+    padding-top: 20px;
+    flex-shrink: 0;
+}
+.nav-item {
+    display: flex; align-items: center; padding: 12px 20px;
+    color: #212529; text-decoration: none; font-size: 0.9rem; border-left: 4px solid transparent;
+}
+.nav-item i { margin-right: 10px; width: 20px; text-align: center; color: #6c757d; }
+.nav-item.active {
+    background: #f0f9e8; color: var(--primary-color); font-weight: bold; border-left-color: var(--primary-color);
+}
+
+/* コンテンツエリア */
+.main-wrapper { flex: 1; display: flex; padding: 30px; gap: 30px; overflow-y: auto; }
+.config-side { flex: 1; min-width: 0; }
+.preview-side { width: 320px; position: sticky; top: 0; height: fit-content; }
+
+/* ==========================================
+   3. コンポーネント（カード・フォーム・ボタン）
+   ========================================== */
+/* カード */
+.card-wrapper {
+    background: #fff; border-radius: 8px; border: 1px solid var(--border-color);
+    padding: 25px; margin-bottom: 20px; width: 100%; display: inline-table;
+}
+.card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-bottom: 25px; }
+
+/* タイトル */
+h2.card-title { 
+    font-weight: bold; margin-bottom: 20px; border-left: 4px solid var(--primary-color); padding-left: 10px; font-size: 1.1rem;
+}
+.card-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
+.column-label { font-size: 18px; font-weight: 700; margin: 0 0 15px 0; color: var(--primary-color); }
+
+/* フォーム部品 */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.form-group { display: flex; flex-direction: column; margin-bottom: 20px; }
+.form-group label { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #666; }
+.full-width { grid-column: span 2; }
+
+input, select { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; outline: none; }
+input:focus { border-color: var(--primary-color); }
+input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
+
+/* カラーピッカー設定 */
+.color-picker-group {
+    display: flex; align-items: center; gap: 8px; background: #fff;
+    border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; width: fit-content; min-width: 160px;
+}
+.color-picker-group input[type="text"] { width: 80px; border: none; font-family: monospace; font-size: 0.9rem; padding: 0; }
+.color-picker-group input[type="color"] { width: 32px; height: 32px; border: none; padding: 0; background: none; cursor: pointer; }
+
+/* 正方形の「□」カラーピッカー用 */
+.custom-color-input {
+    width: 30px !important; height: 30px !important; padding: 0 !important;
+    border: 1px solid #dee2e6 !important; border-radius: 4px !important; cursor: pointer;
+}
+.custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.custom-color-input::-webkit-color-swatch { border: none; border-radius: 3px; }
+
+/* ボタン類 */
+.btn { padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
+.btn-add { background: #fff; border: 1px dashed var(--primary-color); color: var(--primary-color); width: 100%; margin-top: 10px; }
+.btn-generate { background: var(--primary-color); color: #fff; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 20px; }
+.btn-copy { background: #6c757d; color: #fff; font-size: 0.75rem; padding: 5px 12px; float: right; margin-bottom: 5px; }
+.btn-remove { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666666; cursor: pointer; }
+.mock-screen.pattern-A .top_button ul li .button_img { width: 50%;}
+.mock-screen.pattern-B .top_button ul li .button_img { width: 30%;}
+.mock-screen.pattern-B .button_info { padding: 0;}
+/* Bパターン: 疑似要素の共通土台 */
+.mock-screen.pattern-B .top_button ul li {
+    position: relative; /* これがないと :before が表示されません */
+    overflow: hidden;
+}
+.mock-screen.pattern-B .top_button ul li:before {
+    content: ""; /* これがないと表示されません */
+    position: absolute;
+    right: 10px;
+    top: 46%;
+    width: 7px;
+    height: 7px;
+    z-index: 1;
+    transform: rotateZ(-45deg);
+}
+/* Bパターン: レイアウトを横並びにする */
+.mock-screen.pattern-B .top_button ul li a {
+    display: flex;
+    flex-direction: row; /* 横並び */
+    align-items: center;
+    padding: 15px 10px;
+}
+/* 出力エリア */
+.output-area { 
+    width: 100%; height: 180px !important; display: block; font-family: 'Courier New', monospace; 
+    font-size: 0.8rem; background: var(--dark-bg); color: #f8f8f2; padding: 15px; border-radius: 4px; resize: vertical; box-sizing: border-box; 
+}
+
+/* ==========================================
+   4. フッターメニュー編集（Sortable用）
+   ========================================== */
+.menu-item { background: #fdfdfd; border: 1px solid #eee; padding: 15px 15px 15px 40px; border-radius: 5px; margin-bottom: 15px; position: relative; }
+.sortable-ghost { opacity: 0.4; background: #e9ecef; border: 1px dashed var(--primary-color); }
+.drag-handle { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); cursor: grab; color: #ccc; font-size: 1.2rem; padding: 10px 5px; }
+.menu-item-header { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 0.8rem; }
+
+/* ==========================================
+   5. パターン別詳細設定（レイアウト用）
+   ========================================== */
+.pattern-fields {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    margin-top: 15px; border-top: 1px dashed #dee2e6; padding-top: 20px;
+}
+.setting-column {
+    background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #eee;
+}
+.setting-column:nth-child(1) { background-color: #f9fff0; } /* 左: 薄緑 */
+.setting-column:nth-child(2) { background-color: #f0f7ff; } /* 右: 薄青 */
+
+
+
+/* ==========================================
+   6. UIプレビュー専用（mock-screen内）
+   ========================================== */
+.phone-mock { 
+    width: 300px; height: 550px; background: #fff; border: 12px solid #333; border-radius: 35px; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); 
+}
+.mock-screen { padding: 0; height: 100%; box-sizing: border-box; background: #fff; overflow-y: auto; }
+.mock-screen header.top img { height: auto; max-width: 80%; }
+.mock-screen .top_button ul { padding: 0 10px; }
+.mock-screen a { pointer-events: none; } /* クリック無効化 */
+.mock-screen section.content { padding-top: 10px; }

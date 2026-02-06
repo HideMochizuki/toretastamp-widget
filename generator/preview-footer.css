@@ -1,0 +1,108 @@
+/* プレビューエリア専用の基本レイアウト */
+#preview-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 65px;
+    z-index: 10;
+}
+
+#preview-footer ul {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    margin: 0;
+    padding: 0 0 5px 0;
+    list-style: none;
+    height: 100%;
+}
+
+#preview-footer li {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 8px;
+    text-align: center;
+}
+
+/* アイコン基本設定 */
+.prev-icon {
+    width: 28px;
+    height: 28px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin-bottom: 2px;
+}
+
+/* USER（MY PAGE）特殊ボタン */
+.prev-user-btn {
+    position: relative;
+    top: -10px;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    padding-bottom: 4px;
+}
+
+
+/* プレビュー内のフッターが最前面に来るように */
+#preview-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 65px;
+    z-index: 100; /* 重なり順を上げる */
+    box-shadow: 0px -2px 10px rgba(0,0,0,0.1);
+}
+
+/* リストアイテムの微調整 */
+#preview-footer ul {
+    background: inherit; /* 親の背景色を引き継ぐ */
+    padding: 7px 0 5px;
+}
+
+/* アイコンとラベルのフォントサイズ */
+#preview-footer span {
+    font-size: 9px;
+    margin-top: 2px;
+}
+
+
+img:not([alt]) {
+    filter: none;
+}
+/* TOPメインボタン */
+.button_info {
+    font-size: 12px;
+}
+
+/* --- Aパターンのスタイル (既存) --- */
+.mock-screen.pattern-A .top_button > ul {
+    display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px;
+}
+.mock-screen.pattern-A .top_button li {
+    width: calc(48% - 5px); border-radius: 15px; box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+}
+
+/* --- Bパターンのスタイル --- */
+.mock-screen.pattern-B .top_button > ul > li > a {
+    display: flex; flex-direction: initial; align-items: center; padding: 15px 10px;
+}
+
+/* --- Cパターンのスタイル --- */
+.mock-screen.pattern-C .top_button > ul > li::after {
+    content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%;
+    background: #fff; clip-path: ellipse(70% 90% at 50% 100%);
+}
+/* Cパターンはliの中に::afterを入れるため position: relative が必要 */
+.mock-screen.pattern-C .top_button li { position: relative; overflow: hidden; }
