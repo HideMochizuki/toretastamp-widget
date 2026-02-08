@@ -1,3 +1,25 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. サイドバーの開閉トグル ---
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    // --- 2. カードエリアの開閉トグル（H2クリック） ---
+    const cardWrappers = document.querySelectorAll('.card-wrapper');
+    cardWrappers.forEach(wrapper => {
+        const title = wrapper.querySelector('h2.card-title');
+        if (title) {
+            title.addEventListener('click', () => {
+                wrapper.classList.toggle('collapsed');
+            });
+        }
+    });
+});
+
 // --- 設定データ ---
 const iconImages = {
     home: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/G7NN1cykJDexyrf7W3sY.png",
@@ -36,6 +58,7 @@ const setupSync = (p, t) => {
 };
 
 const syncPairs = [
+    // 共通・Aパターン・Bパターン（既存分）
     ['cfg-body-bg', 'cfg-body-bg-val'], ['cfg-btn-area-bg', 'cfg-btn-area-bg-val'],
     ['cfg-btn1-bg', 'cfg-btn1-bg-val'], ['cfg-btn2-bg', 'cfg-btn2-bg-val'],
     ['cfg-btn1-border-c', 'cfg-btn1-border-c-val'], ['cfg-btn2-border-c', 'cfg-btn2-border-c-val'],
@@ -44,7 +67,19 @@ const syncPairs = [
     ['cfg-b-btn1-border-c', 'cfg-b-btn1-border-c-val'], ['cfg-b-btn2-border-c', 'cfg-b-btn2-border-c-val'],
     ['cfg-b-btn1-txt', 'cfg-b-btn1-txt-val'], ['cfg-b-btn2-txt', 'cfg-b-btn2-txt-val'],
     ['cfg-b-btn1-bef-c', 'cfg-b-btn1-bef-c-val'], ['cfg-b-btn2-bef-c', 'cfg-b-btn2-bef-c-val'],
-    ['cfg-bg', 'cfg-bg-val'], ['cfg-txt', 'cfg-txt-val'], ['cfg-user-bg', 'cfg-user-bg-val']
+    ['cfg-bg', 'cfg-bg-val'], ['cfg-txt', 'cfg-txt-val'], ['cfg-user-bg', 'cfg-user-bg-val'],
+
+    // ★Cパターン用を追加
+    ['cfg-c-btn1-bg', 'cfg-c-btn1-bg-val'], 
+    ['cfg-c-btn2-bg', 'cfg-c-btn2-bg-val'],
+    ['cfg-c-btn1-border-c', 'cfg-c-btn1-border-c-val'], 
+    ['cfg-c-btn2-border-c', 'cfg-c-btn2-border-c-val'],
+    ['cfg-c-btn1-bef-c', 'cfg-c-btn1-bef-c-val'], 
+    ['cfg-c-btn2-bef-c', 'cfg-c-btn2-bef-c-val'],
+    ['cfg-c-btn1-after', 'cfg-c-btn1-after-val'], 
+    ['cfg-c-btn2-after', 'cfg-c-btn2-after-val'],
+    ['cfg-c-btn1-txt', 'cfg-c-btn1-txt-val'], 
+    ['cfg-c-btn2-txt', 'cfg-c-btn2-txt-val']
 ];
 syncPairs.forEach(pair => setupSync(pair[0], pair[1]));
 
@@ -82,17 +117,70 @@ function updatePreview() {
             const c = cols[idx];
             const allTxt = c.querySelectorAll('input[type="text"]');
             return {
-                bg: allTxt[0].value, on: c.querySelector('input[type="checkbox"]').checked,
-                bw: allTxt[1].value, bc: allTxt[2].value,
-                befW: allTxt[3].value, befC: allTxt[4].value, tx: allTxt[5].value
+                bg: allTxt[0].value, 
+                on: c.querySelector('input[type="checkbox"]').checked,
+                bw: allTxt[1].value, 
+                bc: allTxt[2].value,
+                radius: allTxt[3].value, // ★追加：角丸
+                befW: allTxt[4].value, 
+                befC: allTxt[5].value, 
+                tx: allTxt[6].value
             };
         };
         const d1 = getBData(0); const d2 = getBData(1);
         apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-btn1-filter'));
+        btn1.style.borderRadius = d1.radius; // ★角丸を適用
+        
         apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-btn2-filter'));
+        btn2.style.borderRadius = d2.radius; // ★角丸を適用
+
+
+
         updateDynamicStyle(`
             .mock-screen.pattern-B .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
             .mock-screen.pattern-B .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
+        `);
+    } 
+    else if (selected === 'C') {
+        const cArea = document.getElementById('pattern-settings-C');
+        const cols = cArea.querySelectorAll('.setting-column');
+
+        const getCData = (idx) => {
+            const c = cols[idx];
+            const allTxt = c.querySelectorAll('input[type="text"]');
+            const chk = c.querySelector('input[type="checkbox"]');
+            return {
+                bg: allTxt[0].value,
+                on: chk.checked,
+                bw: allTxt[1].value,
+                bc: allTxt[2].value,
+                radius: allTxt[3].value,
+                befW: allTxt[4].value, // ★角装飾太さ
+                befC: allTxt[5].value, // ★角装飾色
+                afterC: allTxt[6].value, // 下部曲線の色
+                tx: allTxt[7].value
+            };
+        };
+
+        const d1 = getCData(0); const d2 = getCData(1);
+
+        apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-btn1-filter'));
+        btn1.style.borderRadius = d1.radius;
+        apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-btn2-filter'));
+        btn2.style.borderRadius = d2.radius;
+
+        updateDynamicStyle(`
+            /* Cパターン共通の装飾土台 */
+            .mock-screen.pattern-C .top_button ul li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
+            .mock-screen.pattern-C .top_button ul li:after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; clip-path: ellipse(70% 90% at 50% 100%); z-index: 0; }
+            
+            /* 個別設定: Before線 */
+            .mock-screen.pattern-C .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
+            .mock-screen.pattern-C .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
+            
+            /* 個別設定: After曲線 */
+            .mock-screen.pattern-C .top_button ul li:nth-child(1):after { background: ${d1.afterC} !important; }
+            .mock-screen.pattern-C .top_button ul li:nth-child(2):after { background: ${d2.afterC} !important; }
         `);
     }
 
@@ -160,8 +248,9 @@ function handleClassChange(select) {
 }
 
 // --- 3. 生成ロジック ---
+// --- 3. 生成ロジック (最終補強版) ---
 document.getElementById('generate-btn').onclick = () => {
-    updatePreview(); // 生成前に最新状態を反映
+    updatePreview(); // 生成前に最新状態を強制反映
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
     const selected = document.querySelector('input[name="btn-pattern"]:checked').value;
@@ -169,7 +258,7 @@ document.getElementById('generate-btn').onclick = () => {
     // --- CSSパーツの組み立て ---
     let patternCSS = "";
     
-    // AパターンのCSS
+    // 【Aパターン】のCSS生成
     if(selected === 'A') {
         const b1on = getC('cfg-btn1-border-on');
         const b2on = getC('cfg-btn2-border-on');
@@ -189,40 +278,87 @@ document.getElementById('generate-btn').onclick = () => {
 .top_button > ul > li:nth-child(1) .button_img img { filter: ${getV('cfg-btn1-filter')} !important; }
 .top_button > ul > li:nth-child(2) .button_img img { filter: ${getV('cfg-btn2-filter')} !important; }`;
     } 
-    // BパターンのCSS
+    // 【Bパターン】のCSS生成 (角丸 radius 対応)
     else if(selected === 'B') {
         const bArea = document.getElementById('pattern-settings-B');
         const cols = bArea.querySelectorAll('.setting-column');
-        const getB = (idx) => {
-            const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
-            return { bg: allTxt[0].value, on: c.querySelector('input[type="checkbox"]').checked, bw: allTxt[1].value, bc: allTxt[2].value, befW: allTxt[3].value, befC: allTxt[4].value, tx: allTxt[5].value };
+        
+        // 物理位置からデータを取得するヘルパー
+        const getBDataForCode = (idx) => {
+            const c = cols[idx]; 
+            const allTxt = c.querySelectorAll('input[type="text"]');
+            return { 
+                bg: allTxt[0].value, 
+                on: c.querySelector('input[type="checkbox"]').checked, 
+                bw: allTxt[1].value, 
+                bc: allTxt[2].value, 
+                radius: allTxt[3].value, 
+                befW: allTxt[4].value, 
+                befC: allTxt[5].value, 
+                tx: allTxt[6].value 
+            };
         };
-        const b1 = getB(0); const b2 = getB(1);
-        const b1Border = b1.on ? `${b1.bw} solid ${b1.bc}` : 'none';
-        const b2Border = b2.on ? `${b2.bw} solid ${b2.bc}` : 'none';
+        const b1 = getBDataForCode(0); 
+        const b2 = getBDataForCode(1);
 
         patternCSS = `
 /* --- Bパターン専用 --- */
-.top_button > ul > li { position: relative; width: calc(48% - 5px); border-radius: 10px; margin-bottom: 10px; overflow: hidden; list-style: none; }
+.top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
 .top_button > ul > li > a { display: flex; align-items: center; padding: 15px 10px; text-decoration: none; }
 .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; }
+/* 角の装飾線 */
 .top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
 .top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
 .button_img { height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; }
 .button_info { font-size: 13px; font-weight: 700; padding-left: 10px; }
-.top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1Border} !important; }
-.top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2Border} !important; }
+/* 個別設定反映 */
+.top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
+.top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
 .top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
 .top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }`;
     }
-    // CパターンのCSS (シンプル版)
+    // 【Cパターン】のCSS生成
+    // generate-btn.onclick 内の selected === 'C' の箇所
     else if(selected === 'C') {
+        const cArea = document.getElementById('pattern-settings-C');
+        const cols = cArea.querySelectorAll('.setting-column');
+        const getC = (idx) => {
+            const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
+            return { 
+                bg: allTxt[0].value, 
+                on: c.querySelector('input[type="checkbox"]').checked, 
+                bw: allTxt[1].value, 
+                bc: allTxt[2].value, 
+                radius: allTxt[3].value, 
+                befW: allTxt[4].value, // ★追加
+                befC: allTxt[5].value, // ★追加
+                afterC: allTxt[6].value, 
+                tx: allTxt[7].value 
+            };
+        };
+        const b1 = getC(0); const b2 = getC(1);
+
         patternCSS = `
 /* --- Cパターン専用 --- */
-.top_button { padding: 20px 0; }
-.top_button > ul { display: flex; justify-content: space-around; }
-.top_button > ul > li { width: 45%; list-style: none; border-radius: 50px; overflow: hidden; background: #eee; }
-.top_button > ul > li > a { display: block; padding: 15px; text-align: center; text-decoration: none; color: #333; }`;
+.top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
+.top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 15px 20px 0px; text-decoration: none; font-weight: bold; position: relative; z-index: 2; }
+.button_info { width: 100%; text-align: center; padding: 25px 0 5px; font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
+
+/* 装飾要素 */
+.top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
+.top_button > ul > li::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; z-index: 0; clip-path: ellipse(70% 90% at 50% 100%); }
+
+/* 左ボタン設定 */
+.top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
+.top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
+.top_button > ul > li:nth-child(1)::after { background: ${b1.afterC} !important; }
+.top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
+
+/* 右ボタン設定 */
+.top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
+.top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
+.top_button > ul > li:nth-child(2)::after { background: ${b2.afterC} !important; }
+.top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }`;
     }
 
     // --- メニュー項目のデータ抽出 ---
@@ -237,7 +373,7 @@ document.getElementById('generate-btn').onclick = () => {
         });
     });
 
-    // --- 【1】JavaScript出力の作成 ---
+    // --- 【1】JavaScript出力の作成 (シンプルな window.onload 形式) ---
     const jsOutput = `<script>
 window.onload = () => {
     const menuItems = ${JSON.stringify(items.map(item => ({
@@ -259,12 +395,11 @@ window.onload = () => {
 };
 <\/script>`;
 
-    // --- 【2】CSS出力の作成 ---
+    // --- 【2】CSS出力の作成 (styleタグ付) ---
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
     const cssOutput = `<style type="text/css">
-/* --- 全体・基本設定 --- */
+/* --- 全体デザイン --- */
 html, body { background-color: ${getV('cfg-body-bg-val')} !important; }
-header.top { background-color: ${getV('cfg-h-bg-val')} !important; }
 .top_button { background-color: ${getV('cfg-btn-area-bg-val')} !important; }
 .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
 
@@ -273,7 +408,7 @@ ${patternCSS}
 /* --- フッター固定メニュー --- */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
-#sp-fixed-menu ul li { flex: 1; text-align: center; }
+#sp-fixed-menu ul li { flex: 1; text-align: center; list-style: none; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
 #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
 
@@ -287,7 +422,7 @@ ${patternCSS}
     document.getElementById('out-js').value = jsOutput;
     document.getElementById('out-css').value = cssOutput;
 
-    alert("A・B・Cパターンおよびフッター対応の配布用コードを生成しました！");
+    alert("配布用コードを生成しました！");
 };
 
 
