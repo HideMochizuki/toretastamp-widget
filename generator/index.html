@@ -313,9 +313,6 @@
                 </div><!-- pattern-settings-C -->
             </div>
         </div>
-            
-        
-
 
         <div class="card-wrapper">
             <h2 class="card-title">フッターメニュー</h2>
@@ -337,6 +334,41 @@
             </div>
         </div>
 
+        <div class="card-wrapper">
+            <h2 class="card-title">コンテンツ内リストメニュー</h2>
+            <div class="card">
+                <div class="card-sub-title">メニューリスト設定 (.menu-sublist)</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>リスト背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-list-bg" value="#ffffff">
+                            <input type="text" id="cfg-list-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-list-txt" value="#333333">
+                            <input type="text" id="cfg-list-txt-val" value="#333333">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>フォントサイズ</label>
+                        <input type="text" id="cfg-list-size" value="13px" style="width:60px;" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>区切り線 (border-top)</label>
+                        <div class="color-picker-group">
+                            <input type="checkbox" id="cfg-list-border-on" checked onchange="updatePreview()">
+                            <input type="text" id="cfg-list-border-w" value="2px" style="width:40px;">
+                            <input type="color" id="cfg-list-border-c" value="#a9a9a9">
+                            <input type="text" id="cfg-list-border-c-val" value="#A9A9A92B">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
 

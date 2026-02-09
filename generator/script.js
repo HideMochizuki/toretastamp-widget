@@ -27,7 +27,7 @@ const iconImages = {
     user: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/E3WFqdsnqvH99pgwlK5L.png",
     ticket: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/qwb7BN3RXESAD0krnj5v.png",
     history: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/s1WjgAYhCT5YkwteDBW1.png",
-    reservation: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
+    ec: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
     map: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/l8lm4e55dWmksNmI67cP.png",
     official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
 };
@@ -79,7 +79,11 @@ const syncPairs = [
     ['cfg-c-btn1-after', 'cfg-c-btn1-after-val'], 
     ['cfg-c-btn2-after', 'cfg-c-btn2-after-val'],
     ['cfg-c-btn1-txt', 'cfg-c-btn1-txt-val'], 
-    ['cfg-c-btn2-txt', 'cfg-c-btn2-txt-val']
+    ['cfg-c-btn2-txt', 'cfg-c-btn2-txt-val'],
+    // ★フッター用を追加
+    ['cfg-list-bg', 'cfg-list-bg-val'],
+    ['cfg-list-txt', 'cfg-list-txt-val'],
+    ['cfg-list-border-c', 'cfg-list-border-c-val']
 ];
 syncPairs.forEach(pair => setupSync(pair[0], pair[1]));
 
@@ -201,6 +205,30 @@ function updatePreview() {
         }
         previewUl.appendChild(li);
     });
+
+    // updatePreview() 内
+    const listArea = mock.querySelector('.menu-sublist');
+    if (listArea) {
+        listArea.style.backgroundColor = getV('cfg-list-bg-val');
+        
+        const listLinks = listArea.querySelectorAll('ul li a');
+        const borderOn = document.getElementById('cfg-list-border-on').checked;
+        const borderW = getV('cfg-list-border-w');
+        const borderC = getV('cfg-list-border-c-val');
+        const listTextColor = getV('cfg-list-txt-val');
+        const listFontSize = getV('cfg-list-size'); // ★追加
+
+        listLinks.forEach((a) => {
+            a.style.color = listTextColor;
+            a.style.fontSize = listFontSize; // ★追加：プレビューに反映
+            
+            if (borderOn) {
+                a.style.borderTop = `${borderW} solid ${borderC}`;
+            } else {
+                a.style.borderTop = 'none';
+            }
+        });
+    }
 }
 
 function apply(el, bg, on, bw, bc, tx, flt) {
@@ -248,6 +276,7 @@ function handleClassChange(select) {
 }
 
 // --- 3. 生成ロジック ---
+// --- 3. 生成ロジック (完成版) ---
 document.getElementById('generate-btn').onclick = () => {
     updatePreview(); // 生成前に最新状態を強制反映
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
@@ -282,7 +311,6 @@ document.getElementById('generate-btn').onclick = () => {
         const bArea = document.getElementById('pattern-settings-B');
         const cols = bArea.querySelectorAll('.setting-column');
         
-        // 物理位置からデータを取得するヘルパー
         const getBDataForCode = (idx) => {
             const c = cols[idx]; 
             const allTxt = c.querySelectorAll('input[type="text"]');
@@ -305,23 +333,18 @@ document.getElementById('generate-btn').onclick = () => {
 .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
 .top_button > ul > li > a { display: flex; align-items: center; padding: 15px 10px; text-decoration: none; }
 .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; }
-/* 角の装飾線 */
 .top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
 .top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
-.button_img { height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; }
-.button_info { font-size: 13px; font-weight: 700; padding-left: 10px; }
-/* 個別設定反映 */
 .top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
 .top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
 .top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
 .top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }`;
     }
     // 【Cパターン】のCSS生成
-    // generate-btn.onclick 内の selected === 'C' の箇所
     else if(selected === 'C') {
         const cArea = document.getElementById('pattern-settings-C');
         const cols = cArea.querySelectorAll('.setting-column');
-        const getC = (idx) => {
+        const getCDataForCode = (idx) => {
             const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
             return { 
                 bg: allTxt[0].value, 
@@ -329,35 +352,29 @@ document.getElementById('generate-btn').onclick = () => {
                 bw: allTxt[1].value, 
                 bc: allTxt[2].value, 
                 radius: allTxt[3].value, 
-                befW: allTxt[4].value, // ★追加
-                befC: allTxt[5].value, // ★追加
+                befW: allTxt[4].value, 
+                befC: allTxt[5].value, 
                 afterC: allTxt[6].value, 
                 tx: allTxt[7].value 
             };
         };
-        const b1 = getC(0); const b2 = getC(1);
+        const c1 = getCDataForCode(0); const c2 = getCDataForCode(1);
 
         patternCSS = `
 /* --- Cパターン専用 --- */
 .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
 .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 15px 20px 0px; text-decoration: none; font-weight: bold; position: relative; z-index: 2; }
 .button_info { width: 100%; text-align: center; padding: 25px 0 5px; font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
-
-/* 装飾要素 */
 .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
 .top_button > ul > li::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; z-index: 0; clip-path: ellipse(70% 90% at 50% 100%); }
-
-/* 左ボタン設定 */
-.top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
-.top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
-.top_button > ul > li:nth-child(1)::after { background: ${b1.afterC} !important; }
-.top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
-
-/* 右ボタン設定 */
-.top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
-.top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
-.top_button > ul > li:nth-child(2)::after { background: ${b2.afterC} !important; }
-.top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }`;
+.top_button > ul > li:nth-child(1) { background-color: ${c1.bg} !important; border: ${c1.on ? c1.bw+' solid '+c1.bc : 'none'} !important; border-radius: ${c1.radius} !important; }
+.top_button > ul > li:nth-child(1):before { border-bottom: ${c1.befW} solid ${c1.befC}; border-right: ${c1.befW} solid ${c1.befC}; }
+.top_button > ul > li:nth-child(1)::after { background: ${c1.afterC} !important; }
+.top_button > ul > li:nth-child(1) .button_info { color: ${c1.tx} !important; }
+.top_button > ul > li:nth-child(2) { background-color: ${c2.bg} !important; border: ${c2.on ? c2.bw+' solid '+c2.bc : 'none'} !important; border-radius: ${c2.radius} !important; }
+.top_button > ul > li:nth-child(2):before { border-bottom: ${c2.befW} solid ${c2.befC}; border-right: ${c2.befW} solid ${c2.befC}; }
+.top_button > ul > li:nth-child(2)::after { background: ${c2.afterC} !important; }
+.top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }`;
     }
 
     // --- メニュー項目のデータ抽出 ---
@@ -372,7 +389,7 @@ document.getElementById('generate-btn').onclick = () => {
         });
     });
 
-    // --- 【1】JavaScript出力の作成 (シンプルな window.onload 形式) ---
+    // --- 【1】JavaScript出力の作成 ---
     const jsOutput = `<script>
 window.onload = () => {
     const menuItems = ${JSON.stringify(items.map(item => ({
@@ -383,44 +400,42 @@ window.onload = () => {
         label: item.label,
         external: item.external
     })), null, 8)};
-
     const listItems = menuItems.map(item => {
         const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : "";
         return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`;
     }).join('');
-
     const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
     document.body.insertAdjacentHTML('beforeend', footerHTML);
 };
 <\/script>`;
 
-    // --- 【2】CSS出力の作成 (styleタグ付) ---
+    // --- 【2】CSS出力の作成 ---
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
+    const listBorderOn = document.getElementById('cfg-list-border-on').checked; // ★修正：追加
+
     const cssOutput = `<style type="text/css">
-/* --- 全体デザイン --- */
 html, body { background-color: ${getV('cfg-body-bg-val')} !important; }
 .top_button { background-color: ${getV('cfg-btn-area-bg-val')} !important; }
 .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
-
 ${patternCSS}
-
-/* --- フッター固定メニュー --- */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
-#sp-fixed-menu ul li { flex: 1; text-align: center; list-style: none; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
 #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
-
-/* ユーザーボタン（中央の丸いボタン） */
-#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; box-shadow: 0 3px 6px rgba(0,0,0,0.25); z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
+#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
 #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
 #sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
-<\/style>`;
+.menu-sublist { background: ${getV('cfg-list-bg-val')} !important; }
+.menu-sublist > ul > li > a { 
+    color: ${getV('cfg-list-txt-val')} !important; 
+    border-top: ${listBorderOn ? getV('cfg-list-border-w') + ' solid ' + getV('cfg-list-border-c-val') : 'none'} !important;
+    font-size: ${getV('cfg-list-size')} !important;
+    display: block; text-decoration: none; padding: 15px;
+}
+</style>`;
 
-    // テキストエリアへ反映
     document.getElementById('out-js').value = jsOutput;
     document.getElementById('out-css').value = cssOutput;
-
     alert("配布用コードを生成しました！");
 };
 
@@ -436,7 +451,7 @@ function createItem(isFirst = false) {
         ${isFirst ? '' : '<button class="btn-remove" onclick="this.parentElement.remove();relabelItems();updatePreview();"><i class="fa fa-times"></i></button>'}
         <div class="menu-item-header">ITEM ${menuList.children.length + 1}</div>
         <div class="form-grid">
-            <div class="form-group"><label>アイコン</label><select class="field-class" onchange="handleClassChange(this)"><option value="home">home</option><option value="stamp">stamp</option><option value="user">user (マイページ)</option><option value="ticket">ticket</option><option value="history">history</option><option value="reservation">reservation</option><option value="official">official</option><option value="map">map</option></select></div>
+            <div class="form-group"><label>アイコン</label><select class="field-class" onchange="handleClassChange(this)"><option value="home">home</option><option value="stamp">stamp</option><option value="user">user (マイページ)</option><option value="ticket">ticket</option><option value="history">history</option><option value="ec">ec</option><option value="official">official</option><option value="map">map</option></select></div>
             <div class="form-group"><label>ラベル名</label><input type="text" class="field-label" oninput="updatePreview()" value="${isFirst?'ホーム':''}"></div>
             <div class="form-group full-width"><label>URL</label><input type="text" class="field-href" oninput="updatePreview()" placeholder="https://"></div>
             <div class="form-group"><label>aclass (固定)</label><input type="text" class="field-aclass" disabled style="background:#f0f0f0;"></div>
