@@ -244,8 +244,59 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     list-style: none;
     margin: 0;
 }
-.mock-screen a { pointer-events: none; text-decoration: none; }
+.mock-screen a { 
+    pointer-events: none; 
+    text-decoration: none; 
+}
+
+/* JavaScriptから操作可能にするためのクラス */
+.mock-screen a.clickable,
+.mock-screen li.clickable {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
 .mock-screen section.content { padding-top: 10px; }
+
+/* プレビュー画面内の仮想ヘッダー専用スタイル */
+.mock-header-v2 {
+    position: absolute !important; /* スマホ枠内に閉じ込める */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: #ffffff !important; /* 背景は常に白 */
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* 巨大化したロゴを適正サイズにする */
+.mock-header-v2 h1 {
+    margin: 0;
+    line-height: 0;
+}
+
+.mock-header-v2 h1 img {
+    height: 35px !important; /* 1枚目の写真に近い高さに固定 */
+    width: auto !important;   /* 横幅は自動計算 */
+    max-width: 80%;
+    object-fit: contain;
+}
+
+/* ヘッダーの後ろにコンテンツが潜り込まないための余白 */
+.mock-headermargin-v2 {
+    height: 50px;
+    width: 100%;
+}
+
+/* プレビュー内のリストメニュー（スタンプ履歴など）の基本位置調整 */
+.mock-screen .menu-sublist {
+    margin-top: 20px;
+    padding-bottom: 80px; /* 下部ボタンやメニューに被らないための余白 */
+}
+
 
 /* -------------------------------------------
    Bパターン専用: 横並び ＋ 右端矢印
@@ -381,3 +432,6 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .sidebar.collapsed + .main-wrapper {
     width: 100%;
 }
+
+
+/* ---------------------------------- */
