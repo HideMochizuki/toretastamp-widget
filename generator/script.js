@@ -18,6 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+
+    // 前回のデータを復元
+    loadFromLocal();
+    
+    // 入力があるたびに自動保存する（デバウンス処理なしの簡易版）
+    document.addEventListener('input', saveToLocal);
+    document.addEventListener('change', saveToLocal);
 });
 
 // --- 設定データ ---
@@ -276,7 +283,6 @@ function handleClassChange(select) {
 }
 
 // --- 3. 生成ロジック ---
-// --- 3. 生成ロジック (完成版) ---
 document.getElementById('generate-btn').onclick = () => {
     updatePreview(); // 生成前に最新状態を強制反映
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
@@ -464,3 +470,97 @@ function createItem(isFirst = false) {
 createItem(true);
 document.getElementById('add-item').onclick = () => createItem();
 window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.select(); document.execCommand('copy'); alert("コピーしました"); } };
+
+// --- 4. データの保存・読み込み (LocalStorage) ---
+
+// 現在のすべての設定値をオブジェクトにまとめる関数
+function getAllSettings() {
+    const settings = {};
+    const inputs = document.querySelectorAll('input, select');
+    
+    inputs.forEach(input => {
+        // IDがある通常の入力欄を保存
+        if (input.id) {
+            if (input.type === 'checkbox') {
+                settings[input.id] = input.checked;
+            } else if (input.type !== 'radio') {
+                settings[input.id] = input.value;
+            }
+        }
+        
+        // ★ラジオボタン（パターン選択）を名前で個別に保存
+        if (input.name === 'btn-pattern' && input.checked) {
+            settings['btn-pattern'] = input.value;
+        }
+    });
+
+    // メニュー項目の保存
+    const items = [];
+    document.querySelectorAll('.menu-item').forEach(el => {
+        items.push({
+            class: el.querySelector('.field-class').value,
+            label: el.querySelector('.field-label').value,
+            href: el.querySelector('.field-href').value,
+            ext: el.querySelector('.field-ext').checked,
+            aclass: el.querySelector('.field-aclass').value
+        });
+    });
+    settings['saved_menu_items'] = items;
+
+    return settings;
+}
+
+
+// 保存ボタン（または自動保存）用の関数
+function saveToLocal() {
+    const data = getAllSettings();
+    localStorage.setItem('generator_backup', JSON.stringify(data));
+    console.log("設定を保存しました");
+}
+
+// 読み込み用の関数
+function loadFromLocal() {
+    const dataStr = localStorage.getItem('generator_backup');
+    if (!dataStr) return;
+
+    const settings = JSON.parse(dataStr);
+    
+    // 1. 通常の入力欄とラジオボタンの復元
+    Object.keys(settings).forEach(key => {
+        // ★ラジオボタンの復元
+        if (key === 'btn-pattern') {
+            const val = settings[key];
+            const radio = document.querySelector(`input[name="btn-pattern"][value="${val}"]`);
+            if (radio) radio.checked = true;
+            return;
+        }
+
+        const el = document.getElementById(key);
+        if (!el) return;
+
+        if (el.type === 'checkbox') {
+            el.checked = settings[key];
+        } else {
+            el.value = settings[key];
+        }
+    });
+
+    // 2. メニュー項目の復元（変更なし）
+    if (settings['saved_menu_items'] && menuList) {
+        menuList.innerHTML = '';
+        settings['saved_menu_items'].forEach((data, idx) => {
+            createItem(idx === 0);
+            const lastItem = menuList.lastElementChild;
+            lastItem.querySelector('.field-class').value = data.class;
+            lastItem.querySelector('.field-label').value = data.label;
+            lastItem.querySelector('.field-href').value = data.href;
+            lastItem.querySelector('.field-ext').checked = data.ext;
+            handleClassChange(lastItem.querySelector('.field-class'));
+            lastItem.querySelector('.field-href').value = data.href;
+        });
+    }
+    
+    // 表示状態の最終同期
+    switchPattern(); 
+    updatePreview();
+}
