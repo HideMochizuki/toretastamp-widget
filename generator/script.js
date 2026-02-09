@@ -39,6 +39,46 @@ const iconImages = {
     official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
 };
 
+// --- 別画面のテンプレート ---
+const screens = {
+    top: "", // 初期化時に現在のHTMLを保存します
+    // screens.stamp の中身をこちらに差し替え
+    stamp: `
+    <div class="mock-header-v2">
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+    </div>    
+    <div class="mock-headermargin-v2"></div>
+    <section class="content">
+        <h3 class="titleh3"><b>スタンプ帳</b></h3>
+        <div id="stamp-list">
+            <div class="stamp_set">
+                <div class="stamp_card">
+                    <a href="#" class="clearfix">
+                        <h3 class="stamp_list_title">レストラントレタ来店スタンプ</h3>
+                        <dl class="ticket_list_bottom">
+                            <dt><span class="ticket_list_due">有効期限：なし</span></dt>
+                        </dl>
+                        <dl class="ticket_list_bottom stamp">
+                            <dt class="stampicon"><b><span></span></b> 0獲得</dt>
+                        </dl>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="stamp_button">
+            <a class="page_button back-to-top clickable" href="#"><span>トップへ戻る</span></a>
+        </div>
+        <div class="menu-sublist">
+            <ul>
+                <li><a href="#">スタンプ履歴</a></li>
+                <li><a href="#">スタンプ/チケットの使い方</a></li>
+                <li><a href="#">お問い合わせ</a></li>
+            </ul>
+        </div>
+    </section>
+    `
+};
+
 const menuList = document.getElementById('menu-list');
 const previewUl = document.getElementById('preview-ul');
 
@@ -66,7 +106,11 @@ const setupSync = (p, t) => {
 
 const syncPairs = [
     // 共通・Aパターン・Bパターン（既存分）
-    ['cfg-body-bg', 'cfg-body-bg-val'], ['cfg-btn-area-bg', 'cfg-btn-area-bg-val'],
+    ['cfg-body-bg', 'cfg-body-bg-val'],
+    // ★ヘッダー用を追加
+    ['cfg-header-bg', 'cfg-header-bg-val'],
+    ['cfg-mock-header-bg', 'cfg-mock-header-bg-val'],
+    ['cfg-btn-area-bg', 'cfg-btn-area-bg-val'],
     ['cfg-btn1-bg', 'cfg-btn1-bg-val'], ['cfg-btn2-bg', 'cfg-btn2-bg-val'],
     ['cfg-btn1-border-c', 'cfg-btn1-border-c-val'], ['cfg-btn2-border-c', 'cfg-btn2-border-c-val'],
     ['cfg-btn1-txt', 'cfg-btn1-txt-val'], ['cfg-btn2-txt', 'cfg-btn2-txt-val'],
@@ -101,23 +145,37 @@ function relabelItems() {
     });
 }
 
-// --- プレビュー更新 ---
+// --- プレビュー更新 (整理版) ---
 function updatePreview() {
+    const mock = document.querySelector('.mock-screen');
+    if (!mock) return;
+
+    // 1. もし今スタンプ画面を表示中なら、デザイン適用（色塗り）だけして終了
+    if (mock.dataset.currentScreen === 'stamp') {
+        applyCurrentDesignToMock();
+        return;
+    }
+
+    // 2. 画面を新しく作り直す（ここで古いボタンは捨てられます）
     if(!previewUl) return;
     previewUl.innerHTML = '';
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
     const selected = document.querySelector('input[name="btn-pattern"]:checked').value;
-    const mock = document.querySelector('.mock-screen');
-    if (!mock) return;
 
+    // 背景・ヘッダーの色設定
     mock.style.backgroundColor = getV('cfg-body-bg-val');
     const area = mock.querySelector('.top_button');
     if(area) area.style.backgroundColor = getV('cfg-btn-area-bg-val');
+    const headerTop = mock.querySelector('header.top');
+    if (headerTop) {
+        headerTop.style.backgroundColor = getV('cfg-header-bg-val');
+    }
 
     const btn1 = mock.querySelector('.top_button ul li:nth-child(1)');
     const btn2 = mock.querySelector('.top_button ul li:nth-child(2)');
 
+    // パターン(A/B/C)ごとの描画ロジック
     if (selected === 'A') {
         apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-filter'));
         apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-filter'));
@@ -128,73 +186,47 @@ function updatePreview() {
             const c = cols[idx];
             const allTxt = c.querySelectorAll('input[type="text"]');
             return {
-                bg: allTxt[0].value, 
-                on: c.querySelector('input[type="checkbox"]').checked,
-                bw: allTxt[1].value, 
-                bc: allTxt[2].value,
-                radius: allTxt[3].value, // ★追加：角丸
-                befW: allTxt[4].value, 
-                befC: allTxt[5].value, 
-                tx: allTxt[6].value
+                bg: allTxt[0].value, on: c.querySelector('input[type="checkbox"]').checked,
+                bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value,
+                befW: allTxt[4].value, befC: allTxt[5].value, tx: allTxt[6].value
             };
         };
         const d1 = getBData(0); const d2 = getBData(1);
         apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-btn1-filter'));
-        btn1.style.borderRadius = d1.radius; // ★角丸を適用
-        
+        btn1.style.borderRadius = d1.radius;
         apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-btn2-filter'));
-        btn2.style.borderRadius = d2.radius; // ★角丸を適用
-
-
-
+        btn2.style.borderRadius = d2.radius;
         updateDynamicStyle(`
             .mock-screen.pattern-B .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
             .mock-screen.pattern-B .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
         `);
-    } 
-    else if (selected === 'C') {
+    } else if (selected === 'C') {
         const cArea = document.getElementById('pattern-settings-C');
         const cols = cArea.querySelectorAll('.setting-column');
-
         const getCData = (idx) => {
-            const c = cols[idx];
-            const allTxt = c.querySelectorAll('input[type="text"]');
+            const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
             const chk = c.querySelector('input[type="checkbox"]');
             return {
-                bg: allTxt[0].value,
-                on: chk.checked,
-                bw: allTxt[1].value,
-                bc: allTxt[2].value,
-                radius: allTxt[3].value,
-                befW: allTxt[4].value, // ★角装飾太さ
-                befC: allTxt[5].value, // ★角装飾色
-                afterC: allTxt[6].value, // 下部曲線の色
-                tx: allTxt[7].value
+                bg: allTxt[0].value, on: chk.checked, bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value,
+                befW: allTxt[4].value, befC: allTxt[5].value, afterC: allTxt[6].value, tx: allTxt[7].value
             };
         };
-
         const d1 = getCData(0); const d2 = getCData(1);
-
         apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-btn1-filter'));
         btn1.style.borderRadius = d1.radius;
         apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-btn2-filter'));
         btn2.style.borderRadius = d2.radius;
-
         updateDynamicStyle(`
-            /* Cパターン共通の装飾土台 */
             .mock-screen.pattern-C .top_button ul li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
             .mock-screen.pattern-C .top_button ul li:after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; clip-path: ellipse(70% 90% at 50% 100%); z-index: 0; }
-            
-            /* 個別設定: Before線 */
             .mock-screen.pattern-C .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
             .mock-screen.pattern-C .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
-            
-            /* 個別設定: After曲線 */
             .mock-screen.pattern-C .top_button ul li:nth-child(1):after { background: ${d1.afterC} !important; }
             .mock-screen.pattern-C .top_button ul li:nth-child(2):after { background: ${d2.afterC} !important; }
         `);
     }
 
+    // フッターメニューの描画
     const fBg = getV('cfg-bg-val');
     const fTx = getV('cfg-txt-val');
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
@@ -208,35 +240,138 @@ function updatePreview() {
         if(cls === 'user') {
             li.innerHTML = `<div class="prev-user-btn" style="background:${getV('cfg-user-bg-val')}"><div class="prev-icon" style="background-image:url('${icon}'); filter:brightness(0) invert(1);"></div><span style="color:#fff">${lab}</span></div>`;
         } else {
-            li.innerHTML = `<div class="prev-icon" style="background-image:url('${icon}'); filter:${fFilter}"></div><span style="color:${fTx}">${lab}</span>`;
+            li.innerHTML = `<div class="prev-icon" style="background-image:url('${icon}'); filter:${fFilter}"></div><span style="color:${getV('cfg-txt-val')}">${lab}</span>`;
         }
         previewUl.appendChild(li);
     });
 
-    // updatePreview() 内
+    // 3. 全ての描画（HTMLの更新）が終わった後に、デザインを適用
+    applyCurrentDesignToMock();
+
+    // 4. 一番最後に、ボタンに対してクリック命令を登録する
+    // ★これで新しく作られたボタンに対して確実に命令が伝わります
+    attachPreviewEvents();
+}
+
+// 1. プレビュー内のボタンにクリックイベントを貼る関数
+function attachPreviewEvents() {
+    setTimeout(() => {
+        const mock = document.querySelector('.mock-screen');
+        if (!mock) return;
+
+        // ITEM 1（左ボタン）のliとaを取得
+        const leftLi = mock.querySelector('.top_button ul li:nth-child(1)');
+        const leftBtn = leftLi ? leftLi.querySelector('a') : null;
+        
+        if (leftLi && leftBtn) {
+            console.log("ITEM 1を特定しました。クリックを有効化します。");
+            
+            // CSSで有効化するためのクラスを付与
+            leftLi.classList.add('clickable');
+            leftBtn.classList.add('clickable');
+
+            // クリックイベントの設定
+            leftLi.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("遷移実行：スタンプページへ");
+                changeMockScreen('stamp');
+            };
+        } else {
+            console.error("ITEM 1が見つかりません。");
+        }
+    }, 150);
+}
+
+// 2. 画面を切り替える関数
+function changeMockScreen(screenKey) {
+    const mock = document.querySelector('.mock-screen');
+    if (!mock) return;
+
+    if (screenKey === 'stamp') {
+        // 現在のトップ画面を保存
+        if (!screens.top) screens.top = mock.innerHTML;
+
+        // 中身をスタンプ帳に書き換え
+        mock.innerHTML = screens.stamp;
+        mock.dataset.currentScreen = 'stamp'; // 目印
+
+        // スタンプ帳内の「トップへ戻る」ボタンの設定
+        const backBtn = mock.querySelector('.back-to-top');
+        if (backBtn) {
+            // CSSの pointer-events: none を突破するためにクラスを追加
+            backBtn.classList.add('clickable');
+            
+            backBtn.onclick = (e) => {
+                e.preventDefault();
+                console.log("トップ画面に戻ります");
+                
+                // 1. トップ画面のHTMLを復元
+                mock.innerHTML = screens.top;
+                
+                // 2. スタンプ画面の目印を消す
+                delete mock.dataset.currentScreen;
+                
+                // 3. プレビューを再描画（これでトップ画面のボタンにイベントが再登録される）
+                updatePreview();
+            };
+        }
+    }
+    
+    // 遷移直後に現在のデザイン設定（背景色やリストの色）を適用
+    applyCurrentDesignToMock();
+}
+
+// 3. デザイン設定を現在の画面に適用する関数
+function applyCurrentDesignToMock() {
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    const mock = document.querySelector('.mock-screen');
+    if (!mock) return;
+
+    // --- 1. 全体背景色 ---
+    if (mock.dataset.currentScreen === 'stamp') {
+        mock.style.backgroundColor = '#f5f5f5'; 
+    } else {
+        mock.style.backgroundColor = getV('cfg-body-bg-val');
+    }
+
+    // --- 2. ヘッダー色の適用（ここを入れ替え） ---
+    // スタンプ画面が表示されている場合
+    if (mock.dataset.currentScreen === 'stamp') {
+        const mockHeader = mock.querySelector('.mock-header-v2');
+        if (mockHeader) {
+            // 背景色を強制的に上書きするために setProperty を使用します
+            const color = getV('cfg-mock-header-bg-val');
+            mockHeader.style.setProperty('background-color', color, 'important');
+        }
+    } else {
+        const topHeader = mock.querySelector('header.top') || mock.querySelector('header:not(.mock-header-v2)');
+        if (topHeader) {
+            const color = getV('cfg-header-bg-val');
+            topHeader.style.setProperty('background-color', color, 'important');
+        }
+    }
+
+    // リストメニューのデザイン
     const listArea = mock.querySelector('.menu-sublist');
     if (listArea) {
         listArea.style.backgroundColor = getV('cfg-list-bg-val');
-        
         const listLinks = listArea.querySelectorAll('ul li a');
+        const listFontSize = getV('cfg-list-size');
         const borderOn = document.getElementById('cfg-list-border-on').checked;
         const borderW = getV('cfg-list-border-w');
         const borderC = getV('cfg-list-border-c-val');
-        const listTextColor = getV('cfg-list-txt-val');
-        const listFontSize = getV('cfg-list-size'); // ★追加
 
-        listLinks.forEach((a) => {
-            a.style.color = listTextColor;
-            a.style.fontSize = listFontSize; // ★追加：プレビューに反映
-            
-            if (borderOn) {
-                a.style.borderTop = `${borderW} solid ${borderC}`;
-            } else {
-                a.style.borderTop = 'none';
-            }
+        listLinks.forEach(a => {
+            a.style.color = getV('cfg-list-txt-val');
+            a.style.fontSize = listFontSize;
+            a.style.borderTop = borderOn ? `${borderW} solid ${borderC}` : 'none';
         });
     }
 }
+
+
+
 
 function apply(el, bg, on, bw, bc, tx, flt) {
     if(!el) return;
@@ -421,6 +556,12 @@ window.onload = () => {
 
     const cssOutput = `<style type="text/css">
 html, body { background-color: ${getV('cfg-body-bg-val')} !important; }
+header.top { background-color: ${getV('cfg-header-bg-val')} !important; }
+
+/* --- スタンプ帳画面用 --- */
+body.stamp { background-color: #f5f5f5 !important; }
+header { background-color: ${getV('cfg-mock-header-bg-val')} !important; } 
+
 .top_button { background-color: ${getV('cfg-btn-area-bg-val')} !important; }
 .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
 ${patternCSS}
