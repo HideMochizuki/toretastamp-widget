@@ -76,7 +76,10 @@
     font-size: 9px;
     margin-top: 2px;
 }
-
+#preview-ul li.clickable {
+    position: relative;
+    z-index: 20; /* 他の要素より前面に出す */
+}
 
 img:not([alt]) {
     filter: none;

@@ -255,7 +255,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     pointer-events: auto !important;
     cursor: pointer !important;
 }
-.mock-screen section.content { padding-top: 10px; }
+.mock-screen section.content { padding-top: 20px; }
 
 /* プレビュー画面内の仮想ヘッダー専用スタイル */
 .mock-header-v2 {
@@ -296,6 +296,52 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     margin-top: 20px;
     padding-bottom: 80px; /* 下部ボタンやメニューに被らないための余白 */
 }
+.mock-screen .menu-sublist > li:first-child > a:first-child  {
+    border-top:none ;
+}
+/* モック内スライダーの基盤 */
+.phone-mock .header-slider-wrap {
+    position: relative;
+    width: 100%;
+    z-index: 1; /* ヘッダー(z-index:20)より下に配置 */
+    overflow: hidden;
+    /* ヘッダーの下に潜り込ませるためのネガティブマージン */
+    margin-top: -50px; 
+    background-color: #eee; /* 画像読み込み前の背景色 */
+}
+
+.phone-mock .header-slider {
+    width: 100%;
+    height: 100%;
+    display: flex;
+}
+
+.phone-mock .header-slide {
+    width: 100%;
+    height: 100%;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.phone-mock header > h1 {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+/* ヘッダー文字の視認性確保（Bパターンの時用） */
+.phone-mock header.top h1 span {
+   
+}
+
+/* モック内のコンテンツエリアの重なり順調整 */
+.phone-mock .content {
+    position: relative;
+    z-index: 2; /* スライダー(z-index:1)より上に配置 */
+    background: transparent; /* 背景色は.mock-screen側で塗る */
+}
+
 
 
 /* -------------------------------------------
