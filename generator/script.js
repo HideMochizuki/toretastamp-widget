@@ -197,6 +197,7 @@ const syncPairs = [
     ['cfg-st-card-bg', 'cfg-st-card-bg-val'],
     ['cfg-st-border-c', 'cfg-st-border-c-val'],
     ['cfg-st-txt-c', 'cfg-st-txt-c-val'],
+    ['cfg-st-due-txt-c', 'cfg-st-due-txt-c-val'],
     ['cfg-st-label-bg', 'cfg-st-label-bg-val'],
     ['cfg-st-icon-border', 'cfg-st-icon-border-val']
 ];
@@ -500,12 +501,27 @@ function applyCurrentDesignToMock() {
     // --- 2. ヘッダー色の適用（条件分岐を拡張） ---
     // ★ 判定に "|| mock.dataset.currentScreen === 'ticket'" を追加しました
     if (mock.dataset.currentScreen === 'stamp' || mock.dataset.currentScreen === 'ticket') {
-        // 【スタンプ画面 または チケット画面 表示中】
         const mockHeader = mock.querySelector('.mock-header-v2');
         if (mockHeader) {
-            // どちらの画面でも「スタンプ画面ヘッダー背景色 (header)」の設定を反映
+            // 背景色の適用
             const color = getV('cfg-mock-header-bg-val');
             mockHeader.style.setProperty('background-color', color, 'important');
+    
+            // ★ ロゴ配置の適用
+            const align = document.querySelector('input[name="cfg-mock-logo-align"]:checked').value;
+            mockHeader.style.setProperty('justify-content', align, 'important');
+            
+            // 左右配置の時の余白調整
+            if (align === 'flex-start') {
+                mockHeader.style.setProperty('padding-left', '15px', 'important');
+                mockHeader.style.setProperty('padding-right', '0', 'important');
+            } else if (align === 'flex-end') {
+                mockHeader.style.setProperty('padding-right', '15px', 'important');
+                mockHeader.style.setProperty('padding-left', '0', 'important');
+            } else {
+                mockHeader.style.setProperty('padding-left', '0', 'important');
+                mockHeader.style.setProperty('padding-right', '0', 'important');
+            }
         }
     } else {
         // 【トップ画面表示中】
@@ -550,7 +566,8 @@ function applyCurrentDesignToMock() {
         const stOutlineW = getV('cfg-st-outline-w');
         
         // ★ 文字色の共通設定を変数に格納
-        const stTxtColor = getV('cfg-st-txt-c-val');
+        const stTxtColor = getV('cfg-st-txt-c-val');     // タイトル・獲得数用
+        const stDueTxtColor = getV('cfg-st-due-txt-c-val'); // ★ 有効期限専用
 
         // アイコン色のフィルター選択（白 or 黒）
         const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'white' 
@@ -592,9 +609,9 @@ function applyCurrentDesignToMock() {
                 border-bottom: 1px dashed ${stColor} !important;
             }
 
-            /* 有効期限ラベル：文字色・枠線色・背景色 */
+            /* ★ 有効期限ラベル：専用の文字色を適用 */
             .mock-screen .ticket_list_due {
-                color: ${stTxtColor} !important;
+                color: ${stDueTxtColor} !important;
                 border: ${borderOn ? `1px solid ${stColor}` : 'none'} !important;
                 border-radius: ${getV('cfg-st-label-radius')} !important;
                 background-color: ${getV('cfg-st-label-bg-val')} !important;
@@ -927,21 +944,22 @@ function getAllSettings() {
         // --- 1. IDがある通常の入力欄 (テキスト、カラー、チェックボックス、セレクト) の保存 ---
         if (input.id) {
             if (input.type === 'checkbox') {
-                // チェックボックスはON/OFFの状態を保存
                 settings[input.id] = input.checked;
             } else if (input.type !== 'radio') {
-                // テキスト、カラー、セレクトボックスは値を保存
                 settings[input.id] = input.value;
             }
         }
         
-        // --- 2. ラジオボタン (パターン選択) の保存 ---
-        // name属性で判定し、現在チェックされている値のみを保存します
-        if (input.name === 'btn-pattern' && input.checked) {
-            settings['btn-pattern'] = input.value;
-        }
-        if (input.name === 'header-pattern' && input.checked) {
-            settings['header-pattern'] = input.value;
+        // --- 2. ラジオボタン (パターン選択・ロゴ配置) の保存 ---
+        // まとめて判定するように修正しました
+        if (input.checked) {
+            if (input.name === 'btn-pattern') {
+                settings['btn-pattern'] = input.value;
+            } else if (input.name === 'header-pattern') {
+                settings['header-pattern'] = input.value;
+            } else if (input.name === 'cfg-mock-logo-align') { // ★ここをループ内に移動
+                settings['cfg-mock-logo-align'] = input.value;
+            }
         }
     });
 
@@ -979,15 +997,15 @@ function loadFromLocal() {
     const settings = JSON.parse(dataStr);
     
     Object.keys(settings).forEach(key => {
-        // --- 1. ラジオボタン（パターン選択）の復元 ---
-        // btn-pattern と header-pattern の両方に対応
-        if (key === 'btn-pattern' || key === 'header-pattern') {
+        // --- 1. ラジオボタン（パターン選択・ロゴ配置）の復元 ---
+        // ここに cfg-mock-logo-align を追加します
+        if (key === 'btn-pattern' || key === 'header-pattern' || key === 'cfg-mock-logo-align') {
             const val = settings[key];
             const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
             if (radio) {
                 radio.checked = true;
             }
-            return;
+            return; // 次のループへ
         }
 
         // --- 2. IDを持つ通常の入力欄の復元 ---
@@ -1003,28 +1021,22 @@ function loadFromLocal() {
 
     // --- 3. メニュー項目の復元 ---
     if (settings['saved_menu_items'] && menuList) {
-        menuList.innerHTML = ''; // 一旦リセット
+        menuList.innerHTML = ''; 
         settings['saved_menu_items'].forEach((data, idx) => {
-            createItem(idx === 0); // ITEMを作成
+            createItem(idx === 0);
             const lastItem = menuList.lastElementChild;
             
-            // 各フィールドに値をセット
             lastItem.querySelector('.field-class').value = data.class;
             lastItem.querySelector('.field-label').value = data.label;
             lastItem.querySelector('.field-href').value = data.href;
             lastItem.querySelector('.field-ext').checked = data.ext;
             
-            // アイコン変更に伴う付随処理（URL無効化など）を実行
             handleClassChange(lastItem.querySelector('.field-class'));
-            
-            // handleClassChangeでURLが上書きされる場合があるため、最後に再度セット
             lastItem.querySelector('.field-href').value = data.href;
         });
     }
     
     // --- 4. 最後にUIの状態を同期 ---
-    // 保存されたパターンに基づいて、設定項目の表示/非表示を切り替え
     switchPattern(); 
-    // すべての値をプレビュー（モック）に反映
     updatePreview();
 }
