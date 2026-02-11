@@ -495,6 +495,24 @@ function applyCurrentDesignToMock() {
     const mock = document.querySelector('.mock-screen');
     if (!mock) return;
 
+    // --- 1. 全体背景の設定 (色 + 画像) ---
+    const bgColor = getV('cfg-body-bg-val');
+    const bgImg = getV('cfg-body-bg-img');
+    const bgRepeat = getV('cfg-body-bg-repeat');
+    const bgSizeMode = getV('cfg-body-bg-size-mode');
+    const bgSizeVal = getV('cfg-body-bg-size-val');
+
+    mock.style.backgroundColor = bgColor;
+
+    if (bgImg) {
+        mock.style.backgroundImage = `url('${bgImg}')`;
+        mock.style.backgroundRepeat = bgRepeat;
+        mock.style.backgroundPosition = 'center top';
+        mock.style.backgroundSize = (bgSizeMode === 'custom') ? bgSizeVal : bgSizeMode;
+    } else {
+        mock.style.backgroundImage = 'none';
+    }
+
     // --- 1. 全体背景色 ---
     mock.style.backgroundColor = getV('cfg-body-bg-val');
 
@@ -507,11 +525,13 @@ function applyCurrentDesignToMock() {
             const color = getV('cfg-mock-header-bg-val');
             mockHeader.style.setProperty('background-color', color, 'important');
     
-            // ★ ロゴ配置の適用
-            const align = document.querySelector('input[name="cfg-mock-logo-align"]:checked').value;
+            // ★ ロゴ配置の適用（ラジオボタンから値を取得）
+            const alignEl = document.querySelector('input[name="cfg-mock-logo-align"]:checked');
+            const align = alignEl ? alignEl.value : 'center';
+            mockHeader.style.setProperty('display', 'flex', 'important');
             mockHeader.style.setProperty('justify-content', align, 'important');
             
-            // 左右配置の時の余白調整
+            // 左右配置の時の余白微調整（端にくっつきすぎないようにする）
             if (align === 'flex-start') {
                 mockHeader.style.setProperty('padding-left', '15px', 'important');
                 mockHeader.style.setProperty('padding-right', '0', 'important');
@@ -570,10 +590,10 @@ function applyCurrentDesignToMock() {
         const stDueTxtColor = getV('cfg-st-due-txt-c-val'); // ★ 有効期限専用
 
         // アイコン色のフィルター選択（白 or 黒）
-        const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'white' 
-            ? 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)' 
-            : 'brightness(0)';
-
+        const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'black' 
+        ? 'brightness(0)' 
+        : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
+        
         updateDynamicStyle(`
             /* カード本体の枠線と内線 */
             .mock-screen .stamp_card {
@@ -633,8 +653,6 @@ function applyCurrentDesignToMock() {
             }
         `);
     }
-
-
 }
 
 function apply(el, bg, on, bw, bc, tx, flt) {
@@ -680,17 +698,31 @@ function handleClassChange(select) {
     }
     updatePreview();
 }
-
 // --- 3. 生成ロジック ---
 document.getElementById('generate-btn').onclick = () => {
     updatePreview(); // 生成前に最新状態を強制反映
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
     const selected = document.querySelector('input[name="btn-pattern"]:checked').value;
+
+    // --- 【重要】背景画像の設定を抽出 ---
+    const bodyBgImg = getV('cfg-body-bg-img');
+    let bodyBgCSS = "";
+    if (bodyBgImg) {
+        const bgRepeat = getV('cfg-body-bg-repeat');
+        const bgSizeMode = getV('cfg-body-bg-size-mode');
+        const bgSizeVal = getV('cfg-body-bg-size-val');
+        const finalSize = (bgSizeMode === 'custom') ? bgSizeVal : bgSizeMode;
+
+        bodyBgCSS = `
+    background-image: url('${bodyBgImg}') !important;
+    background-repeat: ${bgRepeat} !important;
+    background-size: ${finalSize} !important;
+    background-position: center top !important;`;
+    }
     
     // --- CSSパーツの組み立て ---
     let patternCSS = "";
-    
     // 【Aパターン】のCSS生成
     if(selected === 'A') {
         const b1on = getC('cfg-btn1-border-on');
@@ -711,7 +743,7 @@ document.getElementById('generate-btn').onclick = () => {
 .top_button > ul > li:nth-child(1) .button_img img { filter: ${getV('cfg-btn1-filter')} !important; }
 .top_button > ul > li:nth-child(2) .button_img img { filter: ${getV('cfg-btn2-filter')} !important; }`;
     } 
-    // 【Bパターン】のCSS生成 (角丸 radius 対応)
+    // 【Bパターン】のCSS生成
     else if(selected === 'B') {
         const bArea = document.getElementById('pattern-settings-B');
         const cols = bArea.querySelectorAll('.setting-column');
@@ -794,10 +826,6 @@ document.getElementById('generate-btn').onclick = () => {
         });
     });
 
-
-
-
-    
     // --- 【1】JavaScript出力の作成 ---
     const jsOutput = `<script>
 window.onload = () => {
@@ -821,86 +849,103 @@ window.onload = () => {
     // --- 【2】CSS出力の作成 ---
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
     const listBorderOn = document.getElementById('cfg-list-border-on').checked;
+    
+    // ロゴ配置
+    const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked').value;
+    const subPageHeaderCSS = `
+.mock-header-v2 { 
+    display: flex !important; 
+    justify-content: ${mockLogoAlign} !important; 
+    ${mockLogoAlign === 'flex-start' ? 'padding-left: 15px !important;' : ''}
+    ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
+}`;
 
-    // ★ スタンプ帳デザイン用の変数抽出
+    // スタンプ帳デザイン
     const stTxtColor = getV('cfg-st-txt-c-val');
+    const stDueTxtColor = getV('cfg-st-due-txt-c-val');
     const stBorderColor = getV('cfg-st-border-c-val');
     const stBorderOn = document.getElementById('cfg-st-border-on').checked;
-    const stIconFilterCode = document.getElementById('cfg-st-icon-choice').value === 'white' 
-        ? 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)' 
-        : 'brightness(0)';
+    
+    // アイコンフィルター (定義名を stIconFilter に統一)
+    const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'black' 
+        ? 'brightness(0)' 
+        : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
 
-    // ★ ヘッダーパターンの出し分け用CSS
+    // ヘッダー出し分け
     const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
     let headerCSS = "";
     if (headerPattern === 'B') {
         headerCSS = `
-    header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: transparent !important; position: relative; z-index: 20; padding-left: 15px !important; }
-    header.top h1.top { margin: 0 !important; }
-    header.top h1.top span { display: none !important; }
-    .header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: -50px; margin-bottom: -50px; height: 380px; }
-    .header-slider, .header-slide { width: 100%; height: 100%; }
-    .header-slide { background-size: cover; background-position: center; }`;
+header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: transparent !important; position: relative; z-index: 20; padding-left: 15px !important; }
+header.top h1.top { margin: 0 !important; }
+header.top h1.top span { display: none !important; }
+.header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: -50px; margin-bottom: -50px; height: 380px; }
+.header-slider, .header-slide { width: 100%; height: 100%; }
+.header-slide { background-size: cover; background-position: center; }`;
     } else {
         headerCSS = `header.top { background-color: ${getV('cfg-header-bg-val')} !important; display: flex; justify-content: center; align-items: center; padding: 10px 0; }`;
     }
 
-    // ★ スタンプ帳専用のカスタムCSS
     const stampPageCSS = `
-    body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; }
-    #stamp-list .stamp_card {
-        background: ${getV('cfg-st-card-bg-val')} !important;
-        border-radius: ${getV('cfg-st-radius')} !important;
-        border: ${stBorderOn ? getV('cfg-st-border-w') + ' solid ' + stBorderColor : 'none'} !important;
-        outline: ${stBorderOn ? getV('cfg-st-outline-w') + ' solid ' + stBorderColor : 'none'} !important;
-        outline-offset: -7px;
-        background-blend-mode: lighten;
-        position: relative; overflow: hidden;
-    }
-    #stamp-list .stamp_card::before {
-        content: ""; position: absolute; z-index: 0; bottom: 10px; right: 10px; width: 100px; height: 60px;
-        background-image: url(${getV('cfg-st-watermark-url')});
-        background-position: center; background-size: contain; background-repeat: no-repeat; pointer-events: none;
-    }
-    .stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stBorderColor} !important; font-size: 20px; }
-    .stamp_card .ticket_list_due {
-        color: ${stTxtColor} !important;
-        border: ${stBorderOn ? '1px solid ' + stBorderColor : 'none'} !important;
-        border-radius: ${getV('cfg-st-label-radius')} !important;
-        background-color: ${getV('cfg-st-label-bg-val')} !important;
-    }
-    body.stamp .stampicon { color: ${stTxtColor} !important; }
-    body.stamp .stampicon > b { border: 2px solid ${getV('cfg-st-icon-border-val')} !important; }
-    body.stamp .stampicon > b > span { filter: ${stIconFilterCode} !important; }
-    `;
+body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; }
+#stamp-list .stamp_card {
+    background: ${getV('cfg-st-card-bg-val')} !important;
+    border-radius: ${getV('cfg-st-radius')} !important;
+    border: ${stBorderOn ? getV('cfg-st-border-w') + ' solid ' + stBorderColor : 'none'} !important;
+    outline: ${stBorderOn ? getV('cfg-st-outline-w') + ' solid ' + stBorderColor : 'none'} !important;
+    outline-offset: -7px;
+    background-blend-mode: lighten;
+    position: relative; overflow: hidden;
+}
+#stamp-list .stamp_card::before {
+    content: ""; position: absolute; z-index: 0; bottom: 10px; right: 10px; width: 100px; height: 60px;
+    background-image: url(${getV('cfg-st-watermark-url')});
+    background-position: center; background-size: contain; background-repeat: no-repeat; pointer-events: none;
+}
+.stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stBorderColor} !important; font-size: 20px; }
+.stamp_card .ticket_list_due {
+    color: ${stDueTxtColor} !important;
+    border: ${stBorderOn ? '1px solid ' + stBorderColor : 'none'} !important;
+    border-radius: ${getV('cfg-st-label-radius')} !important;
+    background-color: ${getV('cfg-st-label-bg-val')} !important;
+}
+body.stamp .stampicon { color: ${stTxtColor} !important; }
+body.stamp .stampicon > b { border: 2px solid ${getV('cfg-st-icon-border-val')} !important; }
+body.stamp .stampicon > b > span { filter: ${stIconFilter} !important; }
+`;
 
     const cssOutput = `<style type="text/css">
-    html, body { background-color: ${getV('cfg-body-bg-val')} !important; }
-    ${headerCSS}
+/* ページ全体の設定 */
+html, body { 
+    background-color: ${getV('cfg-body-bg-val')} !important;
+    ${bodyBgCSS} /* ← ここに背景画像の設定が差し込まれます */
+}
+${headerCSS}
+${subPageHeaderCSS}
 
-    /* --- スタンプ帳画面用 --- */
-    body.stamp { background-color: #f5f5f5 !important; }
-    header { background-color: ${getV('cfg-mock-header-bg-val')} !important; } 
-    ${stampPageCSS}
+/* --- スタンプ帳画面用 --- */
+body.stamp { background-color: #f5f5f5 !important; }
+header { background-color: ${getV('cfg-mock-header-bg-val')} !important; } 
+${stampPageCSS}
 
-    .top_button { background-color: ${getV('cfg-btn-area-bg-val')} !important; }
-    .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
-    ${patternCSS}
-    #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
-    #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
-    #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
-    #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
-    #sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
-    #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
-    #sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
-    .menu-sublist { background: ${getV('cfg-list-bg-val')} !important; }
-    .menu-sublist > ul > li > a { 
-        color: ${getV('cfg-list-txt-val')} !important; 
-        border-top: ${listBorderOn ? getV('cfg-list-border-w') + ' solid ' + getV('cfg-list-border-c-val') : 'none'} !important;
-        font-size: ${getV('cfg-list-size')} !important;
-        display: block; text-decoration: none; padding: 15px;
-    }
-    </style>`;
+.top_button { background-color: ${getV('cfg-btn-area-bg-val')} !important; }
+.top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
+${patternCSS}
+#sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
+#sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
+#sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
+#sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
+#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
+#sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
+#sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
+.menu-sublist { background: ${getV('cfg-list-bg-val')} !important; }
+.menu-sublist > ul > li > a { 
+    color: ${getV('cfg-list-txt-val')} !important; 
+    border-top: ${listBorderOn ? getV('cfg-list-border-w') + ' solid ' + getV('cfg-list-border-c-val') : 'none'} !important;
+    font-size: ${getV('cfg-list-size')} !important;
+    display: block; text-decoration: none; padding: 15px;
+}
+</style>`;
 
     document.getElementById('out-js').value = jsOutput;
     document.getElementById('out-css').value = cssOutput;
@@ -1040,3 +1085,14 @@ function loadFromLocal() {
     switchPattern(); 
     updatePreview();
 }
+
+document.getElementById('reset-btn').onclick = () => {
+    if (confirm("すべての設定を初期状態にリセットしますか？")) {
+        // 1. LocalStorageのデータを削除
+        localStorage.removeItem('generator_backup');
+        
+        // 2. ページをリロードして初期状態を反映
+        // ※これが最も確実にHTMLの初期値に戻す方法です
+        location.reload();
+    }
+};

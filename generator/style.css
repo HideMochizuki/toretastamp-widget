@@ -232,7 +232,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
    6. UIプレビュー専用（mock-screen内）
    ========================================== */
    .phone-mock { 
-    width: 300px; height: 550px; background: #fff; border: 12px solid #333; border-radius: 35px; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); 
+    width: 300px; height: 550px; background: #fff; border: 12px solid #333; border-radius: 35px; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); margin: 0 auto; 
 }
 .mock-screen { padding: 0; height: 100%; box-sizing: border-box; background: #fff; overflow-y: auto; }
 .mock-screen header.top img { height: auto; max-width: 80%; }
