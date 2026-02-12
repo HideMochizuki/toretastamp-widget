@@ -165,6 +165,12 @@ const setupSync = (p, t) => {
 const syncPairs = [
     // 共通・Aパターン・Bパターン（既存分）
     ['cfg-body-bg', 'cfg-body-bg-val'],
+    ['cfg-btn1-icon-c', 'cfg-btn1-icon-c-val'],
+    ['cfg-btn2-icon-c', 'cfg-btn2-icon-c-val'],
+    ['cfg-b-btn1-icon-c', 'cfg-b-btn1-icon-c-val'],
+    ['cfg-b-btn2-icon-c', 'cfg-b-btn2-icon-c-val'],
+    ['cfg-c-btn1-icon-c', 'cfg-c-btn1-icon-c-val'],
+    ['cfg-c-btn2-icon-c', 'cfg-c-btn2-icon-c-val'],
     // ★ヘッダー用
     ['cfg-header-bg', 'cfg-header-bg-val'],
     ['cfg-mock-header-bg', 'cfg-mock-header-bg-val'],
@@ -314,12 +320,9 @@ function updatePreview() {
             area.style.backgroundColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
         }
 
-
-
-
         if (selected === 'A') {
-            apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-filter'));
-            apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-filter'));
+            apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'));
+            apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-icon-c-val'));
         } else if (selected === 'B') {
             const bArea = document.getElementById('pattern-settings-B');
             const cols = bArea.querySelectorAll('.setting-column');
@@ -333,10 +336,14 @@ function updatePreview() {
                 };
             };
             const d1 = getBData(0); const d2 = getBData(1);
-            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-btn1-filter'));
+            
+            // ★最後の引数を、B用のアイコン色IDに変更
+            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-b-btn1-icon-c-val'));
             btn1.style.borderRadius = d1.radius;
-            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-btn2-filter'));
+            
+            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-b-btn2-icon-c-val'));
             btn2.style.borderRadius = d2.radius;
+            
             updateDynamicStyle(`
                 .mock-screen.pattern-B .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
                 .mock-screen.pattern-B .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
@@ -353,10 +360,14 @@ function updatePreview() {
                 };
             };
             const d1 = getCData(0); const d2 = getCData(1);
-            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-btn1-filter'));
+            
+            // ★最後の引数を、C用のアイコン色IDに変更
+            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-c-btn1-icon-c-val'));
             btn1.style.borderRadius = d1.radius;
-            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-btn2-filter'));
+            
+            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-c-btn2-icon-c-val'));
             btn2.style.borderRadius = d2.radius;
+            
             updateDynamicStyle(`
                 .mock-screen.pattern-C .top_button ul li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
                 .mock-screen.pattern-C .top_button ul li:after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; clip-path: ellipse(70% 90% at 50% 100%); z-index: 0; }
@@ -644,8 +655,9 @@ function applyCurrentDesignToMock() {
     }
 
     // --- 3. リストメニューのデザイン ---
-    const menuSublist = mock.querySelector('.menu-sublist');
-    if (menuSublist) {
+    // ★修正ポイント1：変数名を 'menuSublist' から 'listArea' に変更して重複を回避
+    const listArea = mock.querySelector('.menu-sublist');
+    if (listArea) {
         const listBg = getV('cfg-list-bg-val');
         const listTxt = getV('cfg-list-txt-val');
         const listFontSize = getV('cfg-list-size');
@@ -654,10 +666,10 @@ function applyCurrentDesignToMock() {
         const borderC = getV('cfg-list-border-c-val');
 
         // ★重要：透過を完全に排除して不透明(1)にする
-        menuSublist.style.setProperty('background-color', listBg, 'important');
-        menuSublist.style.setProperty('opacity', '1', 'important');
+        listArea.style.setProperty('background-color', listBg, 'important');
+        listArea.style.setProperty('opacity', '1', 'important');
 
-        const listLinks = menuSublist.querySelectorAll('ul li a');
+        const listLinks = listArea.querySelectorAll('ul li a');
         listLinks.forEach((a, index) => {
             a.style.color = listTxt;
             a.style.fontSize = listFontSize;
@@ -685,7 +697,7 @@ function applyCurrentDesignToMock() {
                 position: relative; overflow: hidden;
             }
             .mock-screen .stamp_card::before {
-                content: ""; position: absolute; bottom: 10px; right: 10px; width: 100px; height: 60px;
+                content: ""; position: absolute; bottom: 5px; right: 5px; width: 100px; height: 50px;
                 background-image: url(${getV('cfg-st-watermark-url')}) !important;
                 background-size: contain; background-repeat: no-repeat; pointer-events: none;
             }
@@ -698,40 +710,43 @@ function applyCurrentDesignToMock() {
         if (typeof updateDynamicStyle === 'function') {
             updateDynamicStyle(dynamicStyles);
         }
-
-        // ★★★ ここを追加：共通ボタン (.page_button) の反映 ★★★
-        const pgBtns = mock.querySelectorAll('.page_button');
-        if (pgBtns.length > 0) {
-            const pgBg = getV('cfg-pgbtn-bg-val');
-            const pgTxt = getV('cfg-pgbtn-txt-val');
-            const pgRadius = getV('cfg-pgbtn-radius');
-            const pgBorderOn = document.getElementById('cfg-pgbtn-border-on') ? document.getElementById('cfg-pgbtn-border-on').checked : false;
-            const pgBorderW = getV('cfg-pgbtn-border-w');
-            const pgBorderC = getV('cfg-pgbtn-border-c-val');
-
-            pgBtns.forEach(btn => {
-                btn.style.setProperty('background-color', pgBg, 'important');
-                btn.style.setProperty('border-radius', pgRadius, 'important');
-                
-                if (pgBorderOn) {
-                    btn.style.setProperty('border', `${pgBorderW} solid ${pgBorderC}`, 'important');
-                } else {
-                    btn.style.setProperty('border', 'none', 'important');
-                }
-
-                // 中のspan（文字色）
-                const span = btn.querySelector('span');
-                if (span) {
-                    span.style.setProperty('color', pgTxt, 'important');
-                }
-            });
-        }
     }
 
-    // --- 5. ハンバーガーメニュー(パターンB)の制御 ---
+    // --- 5. 共通ボタン (.page_button) の反映 ---
+    // ★修正ポイント2：if (stamp) の外に出したので、チケット画面でも効くようになります
+    const pgBtns = mock.querySelectorAll('.page_button');
+    if (pgBtns.length > 0) {
+        const pgBg = getV('cfg-pgbtn-bg-val');
+        const pgTxt = getV('cfg-pgbtn-txt-val');
+        const pgRadius = getV('cfg-pgbtn-radius');
+        const pgBorderOn = document.getElementById('cfg-pgbtn-border-on') ? document.getElementById('cfg-pgbtn-border-on').checked : false;
+        const pgBorderW = getV('cfg-pgbtn-border-w');
+        const pgBorderC = getV('cfg-pgbtn-border-c-val');
+
+        pgBtns.forEach(btn => {
+            btn.style.setProperty('background-color', pgBg, 'important');
+            btn.style.setProperty('border-radius', pgRadius, 'important');
+            
+            if (pgBorderOn) {
+                btn.style.setProperty('border', `${pgBorderW} solid ${pgBorderC}`, 'important');
+            } else {
+                btn.style.setProperty('border', 'none', 'important');
+            }
+
+            const span = btn.querySelector('span');
+            if (span) {
+                span.style.setProperty('color', pgTxt, 'important');
+            }
+        });
+    }
+
+    // --- 6. ハンバーガーメニュー(パターンB)の制御 ---
     const listPatternEl = document.querySelector('input[name="list-pattern"]:checked');
     const listPattern = listPatternEl ? listPatternEl.value : 'A';
     
+    // ★修正ポイント3：変数名を再宣言せず、querySelectorで再取得して使う
+    const menuSublist = mock.querySelector('.menu-sublist');
+
     // ★重要：既存のボタンとオーバーレイを「すべて」削除（ループで完全に消す）
     const allBtns = phoneContainer.querySelectorAll('.hamburger-btn');
     const allOverlays = phoneContainer.querySelectorAll('.menu-overlay');
@@ -744,6 +759,7 @@ function applyCurrentDesignToMock() {
         menuSublist.style.removeProperty('display'); 
     }
 
+    // ★ここでエラーが出なくなります
     if (listPattern === 'B' && menuSublist) {
         menuSublist.classList.add('pattern-B');
 
@@ -777,8 +793,7 @@ function applyCurrentDesignToMock() {
                 overlay.classList.add('show');
             }
             
-            // ★重要：開いている時(active)は「×」印を白くする（元のCSSに合わせる）
-            // 閉じている時はCSSの指定（黒など）に戻す
+            // ×印の色調整
             const spans = hamBtn.querySelectorAll('span');
             spans.forEach(s => s.style.backgroundColor = isActive ? '' : '#ffffff'); 
         };
@@ -797,19 +812,48 @@ function applyCurrentDesignToMock() {
             spans.forEach(s => s.style.backgroundColor = '');
         };
     }
-
 }
 
-
-function apply(el, bg, on, bw, bc, tx, flt) {
+function apply(el, bg, on, bw, bc, tx, iconColor) {
     if(!el) return;
+    
+    // ボタン自体のスタイル
     el.style.backgroundColor = bg;
     el.style.setProperty('border', on ? `${bw} solid ${bc}` : 'none', 'important');
+    
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
+
+    // ★アイコンの色変更 (Drop-shadow Hack)
+    // 画像を横にずらして、その「影」を指定した色で元の位置に落とすテクニックです。
+    // これならS3などの外部画像でもCORS制限にかからず色を変えられます。
+    const imgDiv = el.querySelector('.button_img');
     const img = el.querySelector('img');
-    if(img) img.style.filter = flt;
+
+    if (imgDiv && img) {
+        // 親枠の設定：はみ出した「元の画像」を隠すために overflow: hidden
+        imgDiv.style.width = '60px';
+        imgDiv.style.height = '60px';
+        imgDiv.style.overflow = 'hidden';
+        imgDiv.style.backgroundColor = 'transparent'; // 背景色は消す
+        imgDiv.style.webkitMask = 'none'; // マスク設定を解除
+        imgDiv.style.mask = 'none';
+
+        // 画像の設定：元の画像を左(-60px)に飛ばし、右(+60px)に色付きの影を落とす
+        img.style.width = '60px';
+        img.style.height = '60px';
+        img.style.opacity = '1';
+        
+        // 指定した色（iconColor）の影を作る
+        const filterVal = `drop-shadow(60px 0 0 ${iconColor})`;
+        img.style.filter = filterVal;
+        img.style.webkitFilter = filterVal; // Safari/Chrome用
+        
+        // 位置をずらす（元の画像は見えなくなり、影だけが中央に来る）
+        img.style.transform = 'translateX(-60px)';
+    }
 }
+
 
 function updateDynamicStyle(css) {
     let s = document.getElementById('dyn-style');
@@ -871,31 +915,57 @@ function getBodyBgCSS() {
 
 // 2. メインボタン（A/B/Cパターン）のCSSを生成する関数
 function getButtonPatternCSS(selectedPattern) {
-    if (selectedPattern === 'A') {
-        const b1on = getC('cfg-btn1-border-on');
-        const b2on = getC('cfg-btn2-border-on');
-        const b1Border = b1on ? `${getV('cfg-btn1-border-w')} solid ${getV('cfg-btn1-border-c-val')}` : 'none';
-        const b2Border = b2on ? `${getV('cfg-btn2-border-w')} solid ${getV('cfg-btn2-border-c-val')}` : 'none';
+    // AパターンのCSS生成部分
+// AパターンのCSS生成部分
+if (selectedPattern === 'A') {
+    const b1on = getC('cfg-btn1-border-on');
+    const b2on = getC('cfg-btn2-border-on');
+    const b1Border = b1on ? `${getV('cfg-btn1-border-w')} solid ${getV('cfg-btn1-border-c-val')}` : 'none';
+    const b2Border = b2on ? `${getV('cfg-btn2-border-w')} solid ${getV('cfg-btn2-border-c-val')}` : 'none';
+    
+    // アイコン色を取得
+    const icon1 = getV('cfg-btn1-icon-c-val');
+    const icon2 = getV('cfg-btn2-icon-c-val');
 
-        return `
+    return `
 /* --- Aパターン専用 --- */
 .top_button > ul > li { width: calc(48% - 5px); border-radius: 15px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); margin-bottom: 10px; list-style: none; }
 .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 20px; text-decoration: none; }
-.button_img { height: 60px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .button_info { width: 100%; font-size: 14px; font-weight: 700; padding: 10px 0 0; text-align: center; }
+
+/* 左ボタン */
 .top_button > ul > li:nth-child(1) { background-color: ${getV('cfg-btn1-bg-val')} !important; border: ${b1Border} !important; }
-.top_button > ul > li:nth-child(2) { background-color: ${getV('cfg-btn2-bg-val')} !important; border: ${b2Border} !important; }
 .top_button > ul > li:nth-child(1) .button_info { color: ${getV('cfg-btn1-txt-val')} !important; }
+/* 左アイコン (Drop Shadow Hack) */
+.top_button > ul > li:nth-child(1) .button_img {
+    width: 60px; height: 60px; overflow: hidden;
+}
+.top_button > ul > li:nth-child(1) .button_img img {
+    width: 60px; height: 60px;
+    transform: translateX(-60px);
+    filter: drop-shadow(60px 0 0 ${icon1}) !important;
+    -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
+}
+
+/* 右ボタン */
+.top_button > ul > li:nth-child(2) { background-color: ${getV('cfg-btn2-bg-val')} !important; border: ${b2Border} !important; }
 .top_button > ul > li:nth-child(2) .button_info { color: ${getV('cfg-btn2-txt-val')} !important; }
-.top_button > ul > li:nth-child(1) .button_img img { filter: ${getV('cfg-btn1-filter')} !important; }
-.top_button > ul > li:nth-child(2) .button_img img { filter: ${getV('cfg-btn2-filter')} !important; }`;
-    } 
+/* 右アイコン (Drop Shadow Hack) */
+.top_button > ul > li:nth-child(2) .button_img {
+    width: 60px; height: 60px; overflow: hidden;
+}
+.top_button > ul > li:nth-child(2) .button_img img {
+    width: 60px; height: 60px;
+    transform: translateX(-60px);
+    filter: drop-shadow(60px 0 0 ${icon2}) !important;
+    -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
+}
+`;
+}
     
     if (selectedPattern === 'B') {
         const bArea = document.getElementById('pattern-settings-B');
         const cols = bArea.querySelectorAll('.setting-column');
-        
-        // パターンB用のデータ取得ヘルパー
         const getBData = (idx) => {
             const c = cols[idx]; 
             const allTxt = c.querySelectorAll('input[type="text"]');
@@ -908,25 +978,43 @@ function getButtonPatternCSS(selectedPattern) {
         };
         const b1 = getBData(0); 
         const b2 = getBData(1);
+        
+        // ★アイコン色取得
+        const icon1 = getV('cfg-b-btn1-icon-c-val');
+        const icon2 = getV('cfg-b-btn2-icon-c-val');
 
         return `
-/* --- Bパターン専用 --- */
-.top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
-.top_button > ul > li > a { display: flex; align-items: center; padding: 15px 10px; text-decoration: none; }
-.top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; }
-.top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
-.top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
-.top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
-.top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
-.top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
-.top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }`;
+    /* --- Bパターン専用 --- */
+    .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
+    .top_button > ul > li > a { display: flex; align-items: center; padding: 15px 10px; text-decoration: none; }
+    .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; }
+    .top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
+    .top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
+
+    /* 左ボタン */
+    .top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
+    .top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
+    /* 左アイコン (Drop Shadow Hack) */
+    .top_button > ul > li:nth-child(1) .button_img { width: 60px; height: 60px; overflow: hidden; }
+    .top_button > ul > li:nth-child(1) .button_img img {
+    width: 60px; height: 60px; transform: translateX(-60px);
+    filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
+    }
+
+    /* 右ボタン */
+    .top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
+    .top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }
+    /* 右アイコン (Drop Shadow Hack) */
+    .top_button > ul > li:nth-child(2) .button_img { width: 60px; height: 60px; overflow: hidden; }
+    .top_button > ul > li:nth-child(2) .button_img img {
+    width: 60px; height: 60px; transform: translateX(-60px);
+    filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
+    }`;
     }
 
     if (selectedPattern === 'C') {
         const cArea = document.getElementById('pattern-settings-C');
         const cols = cArea.querySelectorAll('.setting-column');
-        
-        // パターンC用のデータ取得ヘルパー
         const getCData = (idx) => {
             const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
             return { 
@@ -937,6 +1025,10 @@ function getButtonPatternCSS(selectedPattern) {
             };
         };
         const c1 = getCData(0); const c2 = getCData(1);
+        
+        // ★アイコン色取得
+        const icon1 = getV('cfg-c-btn1-icon-c-val');
+        const icon2 = getV('cfg-c-btn2-icon-c-val');
 
         return `
 /* --- Cパターン専用 --- */
@@ -945,14 +1037,30 @@ function getButtonPatternCSS(selectedPattern) {
 .button_info { width: 100%; text-align: center; padding: 25px 0 5px; font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
 .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
 .top_button > ul > li::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; z-index: 0; clip-path: ellipse(70% 90% at 50% 100%); }
+
+/* 左ボタン */
 .top_button > ul > li:nth-child(1) { background-color: ${c1.bg} !important; border: ${c1.on ? c1.bw+' solid '+c1.bc : 'none'} !important; border-radius: ${c1.radius} !important; }
 .top_button > ul > li:nth-child(1):before { border-bottom: ${c1.befW} solid ${c1.befC}; border-right: ${c1.befW} solid ${c1.befC}; }
 .top_button > ul > li:nth-child(1)::after { background: ${c1.afterC} !important; }
 .top_button > ul > li:nth-child(1) .button_info { color: ${c1.tx} !important; }
+/* 左アイコン (Drop Shadow Hack) */
+.top_button > ul > li:nth-child(1) .button_img { width: 60px; height: 60px; overflow: hidden; }
+.top_button > ul > li:nth-child(1) .button_img img {
+    width: 60px; height: 60px; transform: translateX(-60px);
+    filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
+}
+
+/* 右ボタン */
 .top_button > ul > li:nth-child(2) { background-color: ${c2.bg} !important; border: ${c2.on ? c2.bw+' solid '+c2.bc : 'none'} !important; border-radius: ${c2.radius} !important; }
 .top_button > ul > li:nth-child(2):before { border-bottom: ${c2.befW} solid ${c2.befC}; border-right: ${c2.befW} solid ${c2.befC}; }
 .top_button > ul > li:nth-child(2)::after { background: ${c2.afterC} !important; }
-.top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }`;
+.top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }
+/* 右アイコン (Drop Shadow Hack) */
+.top_button > ul > li:nth-child(2) .button_img { width: 60px; height: 60px; overflow: hidden; }
+.top_button > ul > li:nth-child(2) .button_img img {
+    width: 60px; height: 60px; transform: translateX(-60px);
+    filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
+}`;
     }
     return "";
 }
