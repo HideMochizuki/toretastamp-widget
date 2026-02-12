@@ -137,7 +137,6 @@ const screens = {
     `
 };
 
-
 const menuList = document.getElementById('menu-list');
 const previewUl = document.getElementById('preview-ul');
 
@@ -199,7 +198,12 @@ const syncPairs = [
     ['cfg-st-txt-c', 'cfg-st-txt-c-val'],
     ['cfg-st-due-txt-c', 'cfg-st-due-txt-c-val'],
     ['cfg-st-label-bg', 'cfg-st-label-bg-val'],
-    ['cfg-st-icon-border', 'cfg-st-icon-border-val']
+    ['cfg-st-icon-border', 'cfg-st-icon-border-val'],
+    // ★追加：共通ボタン用
+    ['cfg-pgbtn-bg', 'cfg-pgbtn-bg-val'],
+    ['cfg-pgbtn-txt', 'cfg-pgbtn-txt-val'],
+    ['cfg-pgbtn-border-c', 'cfg-pgbtn-border-c-val']
+
 ];
 syncPairs.forEach(pair => setupSync(pair[0], pair[1]));
 
@@ -213,32 +217,31 @@ function relabelItems() {
 // --- プレビュー更新 (整理版) ---
 function updatePreview() {
     const mock = document.querySelector('.mock-screen');
-    if (!mock) return;
+    // ★重要：ここで phoneContainer を定義しないと、後の処理ですべてエラーになります
+    const phoneContainer = document.querySelector('.phone-mock');
+
+    // どちらかが無ければ処理を中止（エラー防止）
+    if (!mock || !phoneContainer) return;
 
     // 1. デザインの即時適用（ヘッダー背景色などの塗り直し）
-    // ★ 最初に実行することで、どの画面にいてもピッカーの変更が即座に反映されます
     applyCurrentDesignToMock();
 
     // 2. 状態の判定
     const isSubScreen = mock.dataset.currentScreen === 'stamp' || mock.dataset.currentScreen === 'ticket';
+    
+    // フッターの入れ物があるか確認
+    const previewUl = document.getElementById('preview-ul');
     if(!previewUl) return;
     
-    // フッターの中身を一旦空にする（この後のループで再描画するため）
+    // フッターの中身をリセット
     previewUl.innerHTML = '';
     
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
 
-
-
-
-
     // --- 3. トップ画面専用の描画ロジック ---
-    // スタンプ画面やチケット画面の時は、メインエリアのHTML書き換えをスキップする
     if (!isSubScreen) {
-
-        // --- 1. 変数と要素の取得 ---
-        const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+        // --- 変数と要素の取得 ---
         const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
         const bSettings = document.getElementById('header-b-settings');
         const headerTop = mock.querySelector('header.top');
@@ -246,10 +249,8 @@ function updatePreview() {
         const headerSpan = headerH1?.querySelector('span');
         let sliderWrap = mock.querySelector('.header-slider-wrap');
 
-        // --- 2. ヘッダーパターンの切り替えロジック ---
-        // --- 2. ヘッダーパターンの切り替えロジック ---
+        // --- ヘッダーパターンの切り替え ---
         if (headerPattern === 'B') {
-            // 【パターンB: メイン画像あり + ロゴ左寄せ + 店名なし】
             if(bSettings) bSettings.style.display = 'block';
             if(headerSpan) headerSpan.style.display = 'none';
 
@@ -262,13 +263,13 @@ function updatePreview() {
             }
             if(headerH1) {
                 headerH1.style.setProperty('margin', '20px 0 0 0', 'important');
-                headerH1.style.setProperty('width', '50px', 'important'); // Bは幅を制限
+                headerH1.style.setProperty('width', '50px', 'important');
             }
             
             if (!sliderWrap && headerTop) {
                 const wrap = document.createElement('div');
                 wrap.className = 'header-slider-wrap';
-                wrap.style.height = '250px'; // モックで見やすい高さ
+                wrap.style.height = '250px';
                 wrap.innerHTML = `<div class="header-slider"><div class="header-slide"></div></div>`;
                 headerTop.after(wrap);
                 sliderWrap = wrap;
@@ -277,7 +278,6 @@ function updatePreview() {
             if(slide) slide.style.backgroundImage = `url('${getV('cfg-header-main-img')}')`;
 
         } else {
-            // 【パターンA: 標準（JSによるレイアウト調整を全消去）】
             if(bSettings) bSettings.style.display = 'none';
 
             if(headerTop) {
@@ -289,28 +289,34 @@ function updatePreview() {
             }
             if(headerH1) {
                 headerH1.style.margin = '';
-                headerH1.style.width = ''; // ★ ここを追記：Bで付けた幅を消去
+                headerH1.style.width = '';
             }
             if(headerSpan) {
-                headerSpan.style.display = ''; // 店名を再表示
-                headerSpan.style.color = '';   // 万が一スタイルが残っていてもクリア
+                headerSpan.style.display = '';
+                headerSpan.style.color = '';
             }
             if (sliderWrap) sliderWrap.remove();
         }
 
-        // --- 3. ボタンエリア等の共通デザイン適用 ---
+        // --- ボタンエリア等の共通デザイン適用 ---
         const selected = document.querySelector('input[name="btn-pattern"]:checked').value;
         const btn1 = mock.querySelector('.top_button ul li:nth-child(1)');
         const btn2 = mock.querySelector('.top_button ul li:nth-child(2)');
 
-        // 背景色の適用（ページ全体）
-        mock.style.backgroundColor = getV('cfg-body-bg-val');
+        // 1. 全体背景色の適用（チェックがあれば transparent）
+        const isBodyBgNone = document.getElementById('cfg-body-bg-none').checked;
+        mock.style.backgroundColor = isBodyBgNone ? 'transparent' : getV('cfg-body-bg-val');
         
-        // ボタンエリアの背景色
+        // 2. ボタンエリアの背景色（チェックがあれば transparent）
         const area = mock.querySelector('.top_button');
-        if(area) area.style.backgroundColor = getV('cfg-btn-area-bg-val');
+        if(area) {
+            const isBtnAreaNone = document.getElementById('cfg-btn-area-bg-none').checked;
+            area.style.backgroundColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
+        }
 
-        // パターン(A/B/C)ごとの描画ロジック
+
+
+
         if (selected === 'A') {
             apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-filter'));
             apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-filter'));
@@ -362,7 +368,36 @@ function updatePreview() {
         }
     }
 
-    // --- 4. フッターメニューの描画（全画面共通・常に実行） ---
+    // .page_button のプレビュー反映
+    const pgBtns = mock.querySelectorAll('.page_button');
+    if (pgBtns.length > 0) {
+        const pgBg = getV('cfg-pgbtn-bg-val');
+        const pgTxt = getV('cfg-pgbtn-txt-val');
+        const pgRadius = getV('cfg-pgbtn-radius');
+        const pgBorderOn = document.getElementById('cfg-pgbtn-border-on').checked;
+        const pgBorderW = getV('cfg-pgbtn-border-w');
+        const pgBorderC = getV('cfg-pgbtn-border-c-val');
+
+        pgBtns.forEach(btn => {
+            btn.style.setProperty('background-color', pgBg, 'important');
+            btn.style.setProperty('border-radius', pgRadius, 'important');
+            
+            if (pgBorderOn) {
+                btn.style.setProperty('border', `${pgBorderW} solid ${pgBorderC}`, 'important');
+            } else {
+                btn.style.setProperty('border', 'none', 'important'); // または元が2px solidならそれを消す
+            }
+
+            // 中のspan（文字色）
+            const span = btn.querySelector('span');
+            if (span) {
+                span.style.setProperty('color', pgTxt, 'important');
+            }
+        });
+    }
+
+
+    // --- 4. フッターメニューの描画 ---
     const fBg = getV('cfg-bg-val');
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
     document.getElementById('preview-footer').style.backgroundColor = fBg;
@@ -379,7 +414,6 @@ function updatePreview() {
             li.innerHTML = `<div class="prev-icon" style="background-image:url('${icon}'); filter:${fFilter}"></div><span style="color:${getV('cfg-txt-val')}">${lab}</span>`;
         }
 
-        // クリックイベントの紐付け
         if (cls === 'stamp') {
             li.classList.add('clickable');
             li.style.cursor = 'pointer';
@@ -388,12 +422,83 @@ function updatePreview() {
             li.classList.add('clickable');
             li.style.cursor = 'pointer';
             li.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
+        } else if (cls === 'home') {
+            li.onclick = (e) => { 
+                e.preventDefault(); 
+                const mock = document.querySelector('.mock-screen');
+                if (mock && screens.top) {
+                    mock.innerHTML = screens.top;
+                    delete mock.dataset.currentScreen;
+                    updatePreview();
+                }
+            };
         }
 
         previewUl.appendChild(li);
     });
 
-    // 5. ボタンに対してクリック命令を登録する
+    // --- 5. ハンバーガーメニュー(パターンB)の制御 ---
+    const listPatternEl = document.querySelector('input[name="list-pattern"]:checked');
+    const listPattern = listPatternEl ? listPatternEl.value : 'A';
+    const menuSublist = mock.querySelector('.menu-sublist');
+
+    // ★重要：既存パーツを全削除（重複防止）
+    const allBtns = phoneContainer.querySelectorAll('.hamburger-btn');
+    const allOverlays = phoneContainer.querySelectorAll('.menu-overlay');
+    allBtns.forEach(el => el.remove());
+    allOverlays.forEach(el => el.remove());
+
+    // クラスのリセット
+    if (menuSublist) {
+        menuSublist.classList.remove('pattern-B', 'open');
+        menuSublist.style.removeProperty('display'); 
+    }
+
+    if (listPattern === 'B' && menuSublist) {
+        menuSublist.classList.add('pattern-B');
+
+        // 1. パーツ作成
+        const hamBtn = document.createElement('div');
+        hamBtn.className = 'hamburger-btn';
+        hamBtn.innerHTML = '<span></span><span></span><span></span>';
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'menu-overlay';
+        
+        // 2. 配置
+        phoneContainer.appendChild(hamBtn);
+        phoneContainer.appendChild(overlay);
+
+        // 3. クリックイベント
+        const toggleMenu = (e) => {
+            e.stopPropagation();
+            const isActive = hamBtn.classList.contains('active');
+            if (isActive) {
+                hamBtn.classList.remove('active');
+                menuSublist.classList.remove('open');
+                overlay.classList.remove('show');
+            } else {
+                hamBtn.classList.add('active');
+                menuSublist.classList.add('open');
+                overlay.classList.add('show');
+            }
+            // ×印の色調整
+            const spans = hamBtn.querySelectorAll('span');
+            spans.forEach(s => s.style.backgroundColor = isActive ? '' : '#ffffff'); 
+        };
+
+        hamBtn.onclick = toggleMenu;
+        overlay.onclick = (e) => {
+            e.stopPropagation();
+            hamBtn.classList.remove('active');
+            menuSublist.classList.remove('open');
+            overlay.classList.remove('show');
+            const spans = hamBtn.querySelectorAll('span');
+            spans.forEach(s => s.style.backgroundColor = '');
+        };
+    }
+
+    // 6. ボタンに対してクリック命令を登録する
     attachPreviewEvents();
 }
 
@@ -436,64 +541,73 @@ function attachPreviewEvents() {
     }, 150);
 }
 
-// 2. 画面を切り替える関数
+// 2. 画面を切り替える関数（決定版：ロゴクリックを確実に動かす）
 function changeMockScreen(screenKey) {
     const mock = document.querySelector('.mock-screen');
     if (!mock) return;
 
-    // 現在のトップ画面のHTMLをまだ保存していなければ保存する
+    // 現在のトップ画面のHTMLを保存（初回のみ）
     if (!screens.top) screens.top = mock.innerHTML;
 
-    // 遷移先が「stamp」または「ticket」の場合の共通処理
-    if (screenKey === 'stamp' || screenKey === 'ticket') {
-        // 1. 指定された画面（screens.stamp または screens.ticket）に書き換える
+    // 1. 画面の中身を切り替え
+    if (screens[screenKey]) {
         mock.innerHTML = screens[screenKey];
-        // 2. 今どの画面かを示す目印（dataset.currentScreen）を更新
         mock.dataset.currentScreen = screenKey;
+    }
 
-        // --- A. 「トップへ」ボタンの設定 ---
+    // --- トップ画面に戻る共通命令 ---
+    const goToTop = (e) => {
+        if(e) {
+            e.preventDefault();
+            e.stopPropagation(); // 他のイベントに邪魔されないようにする
+        }
+        console.log("トップ画面に戻ります");
+        mock.innerHTML = screens.top;
+        delete mock.dataset.currentScreen;
+        updatePreview(); // トップ画面のイベントを再登録
+    };
+
+    // 2. 遷移先がサブ画面（stamp/ticket）の場合のイベント設定
+    if (screenKey === 'stamp' || screenKey === 'ticket') {
+        
+        // 【重要：修正ポイント】
+        // <a>タグを探すのではなく、ヘッダーの塊（.mock-header-v2）全体をクリック可能にします
+        const headerBox = mock.querySelector('.mock-header-v2');
+        if (headerBox) {
+            headerBox.style.cursor = 'pointer'; // どこを触っても指マークにする
+            headerBox.onclick = goToTop;        // ヘッダーエリア全体に命令を出す
+        }
+
+        // 「トップへ戻る」ボタン
         const backBtn = mock.querySelector('.back-to-top');
         if (backBtn) {
-            backBtn.classList.add('clickable');
-            backBtn.onclick = (e) => {
-                e.preventDefault();
-                console.log("トップ画面に戻ります");
-                mock.innerHTML = screens.top; // 保存しておいたトップのHTMLを復元
-                delete mock.dataset.currentScreen; // 目印を削除
-                updatePreview(); // ボタンのイベント等を再登録
-            };
+            backBtn.onclick = goToTop;
         }
 
-        // --- B. 「チケット一覧へ」ボタンの設定（スタンプ画面内にある場合） ---
+        // スタンプ画面内の「チケット一覧へ」
         const toTicketBtn = mock.querySelector('.to-ticket');
         if (toTicketBtn) {
-            toTicketBtn.classList.add('clickable');
-            toTicketBtn.onclick = (e) => {
-                e.preventDefault();
-                changeMockScreen('ticket'); // チケット画面へ切り替え
-            };
+            toTicketBtn.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
         }
 
-        // --- C. 「スタンプ帳へ」ボタンの設定（チケット画面内にある場合） ---
+        // チケット画面内の「スタンプ帳へ」
         const toStampBtn = mock.querySelector('.to-stamp');
         if (toStampBtn) {
-            toStampBtn.classList.add('clickable');
-            toStampBtn.onclick = (e) => {
-                e.preventDefault();
-                changeMockScreen('stamp'); // スタンプ画面へ切り替え
-            };
+            toStampBtn.onclick = (e) => { e.preventDefault(); changeMockScreen('stamp'); };
         }
     }
     
-    // 遷移直後に現在のデザイン設定（背景色やヘッダーの色など）を適用
+    // デザインの反映
     applyCurrentDesignToMock();
 }
 
-// 3. デザイン設定を現在の画面に適用する関数
 function applyCurrentDesignToMock() {
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const mock = document.querySelector('.mock-screen');
-    if (!mock) return;
+    const phoneContainer = document.querySelector('.phone-mock');
+    
+    // 親要素がない場合はエラーを防ぐために何もしない
+    if (!mock || !phoneContainer) return;
 
     // --- 1. 全体背景の設定 (色 + 画像) ---
     const bgColor = getV('cfg-body-bg-val');
@@ -503,7 +617,6 @@ function applyCurrentDesignToMock() {
     const bgSizeVal = getV('cfg-body-bg-size-val');
 
     mock.style.backgroundColor = bgColor;
-
     if (bgImg) {
         mock.style.backgroundImage = `url('${bgImg}')`;
         mock.style.backgroundRepeat = bgRepeat;
@@ -513,147 +626,180 @@ function applyCurrentDesignToMock() {
         mock.style.backgroundImage = 'none';
     }
 
-    // --- 1. 全体背景色 ---
-    mock.style.backgroundColor = getV('cfg-body-bg-val');
-
-    // --- 2. ヘッダー色の適用（条件分岐を拡張） ---
-    // ★ 判定に "|| mock.dataset.currentScreen === 'ticket'" を追加しました
+    // --- 2. ヘッダー色の適用 ---
     if (mock.dataset.currentScreen === 'stamp' || mock.dataset.currentScreen === 'ticket') {
         const mockHeader = mock.querySelector('.mock-header-v2');
         if (mockHeader) {
-            // 背景色の適用
-            const color = getV('cfg-mock-header-bg-val');
-            mockHeader.style.setProperty('background-color', color, 'important');
-    
-            // ★ ロゴ配置の適用（ラジオボタンから値を取得）
-            const alignEl = document.querySelector('input[name="cfg-mock-logo-align"]:checked');
-            const align = alignEl ? alignEl.value : 'center';
-            mockHeader.style.setProperty('display', 'flex', 'important');
+            const hColor = getV('cfg-mock-header-bg-val');
+            mockHeader.style.setProperty('background-color', hColor, 'important');
+            const align = document.querySelector('input[name="cfg-mock-logo-align"]:checked')?.value || 'center';
             mockHeader.style.setProperty('justify-content', align, 'important');
-            
-            // 左右配置の時の余白微調整（端にくっつきすぎないようにする）
-            if (align === 'flex-start') {
-                mockHeader.style.setProperty('padding-left', '15px', 'important');
-                mockHeader.style.setProperty('padding-right', '0', 'important');
-            } else if (align === 'flex-end') {
-                mockHeader.style.setProperty('padding-right', '15px', 'important');
-                mockHeader.style.setProperty('padding-left', '0', 'important');
-            } else {
-                mockHeader.style.setProperty('padding-left', '0', 'important');
-                mockHeader.style.setProperty('padding-right', '0', 'important');
-            }
+            mockHeader.style.setProperty('padding', (align === 'center' ? '0' : '0 15px'), 'important');
         }
     } else {
-        // 【トップ画面表示中】
         const topHeader = mock.querySelector('header.top') || mock.querySelector('header:not(.mock-header-v2)');
         if (topHeader) {
-            // 「ヘッダー背景色 (header.top)」の設定を反映
-            const color = getV('cfg-header-bg-val');
-            topHeader.style.setProperty('background-color', color, 'important');
+            topHeader.style.setProperty('background-color', getV('cfg-header-bg-val'), 'important');
         }
     }
 
-    // --- 3. リストメニューのデザイン（スタンプ・チケット画面共通） ---
-    const listArea = mock.querySelector('.menu-sublist');
-    if (listArea) {
-        listArea.style.backgroundColor = getV('cfg-list-bg-val');
-        const listLinks = listArea.querySelectorAll('ul li a');
+    // --- 3. リストメニューのデザイン ---
+    const menuSublist = mock.querySelector('.menu-sublist');
+    if (menuSublist) {
+        const listBg = getV('cfg-list-bg-val');
+        const listTxt = getV('cfg-list-txt-val');
         const listFontSize = getV('cfg-list-size');
-        const borderOn = document.getElementById('cfg-list-border-on').checked;
+        const borderOn = document.getElementById('cfg-list-border-on')?.checked;
         const borderW = getV('cfg-list-border-w');
         const borderC = getV('cfg-list-border-c-val');
 
+        // ★重要：透過を完全に排除して不透明(1)にする
+        menuSublist.style.setProperty('background-color', listBg, 'important');
+        menuSublist.style.setProperty('opacity', '1', 'important');
+
+        const listLinks = menuSublist.querySelectorAll('ul li a');
         listLinks.forEach((a, index) => {
-            a.style.color = getV('cfg-list-txt-val');
+            a.style.color = listTxt;
             a.style.fontSize = listFontSize;
-            
-            // ★ 修正：indexが0（最初の項目）の場合はボーダーを 'none' にする
-            if (index === 0) {
-                a.style.borderTop = 'none';
-            } else {
-                a.style.borderTop = borderOn ? `${borderW} solid ${borderC}` : 'none';
-            }
+            if (index === 0) a.style.borderTop = 'none';
+            else a.style.borderTop = borderOn ? `${borderW} solid ${borderC}` : 'none';
         });
     }
 
+    // --- 4. スタンプ帳デザイン ---
     if (mock.dataset.currentScreen === 'stamp') {
-        const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
-        const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
+        const stColor = getV('cfg-st-border-c-val');
+        const borderOn = document.getElementById('cfg-st-border-on')?.checked;
+        const stTxtColor = getV('cfg-st-txt-c-val');
+        const stDueTxtColor = getV('cfg-st-due-txt-c-val');
+        const stIconChoice = document.getElementById('cfg-st-icon-choice')?.value;
+        const stIconFilter = stIconChoice === 'black' ? 'brightness(0)' : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
 
-        const stColor = getV('cfg-st-border-c-val'); // 枠線・装飾の共通色
-        const borderOn = getC('cfg-st-border-on');
-        const stBorderW = getV('cfg-st-border-w');
-        const stOutlineW = getV('cfg-st-outline-w');
-        
-        // ★ 文字色の共通設定を変数に格納
-        const stTxtColor = getV('cfg-st-txt-c-val');     // タイトル・獲得数用
-        const stDueTxtColor = getV('cfg-st-due-txt-c-val'); // ★ 有効期限専用
-
-        // アイコン色のフィルター選択（白 or 黒）
-        const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'black' 
-        ? 'brightness(0)' 
-        : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
-        
-        updateDynamicStyle(`
-            /* カード本体の枠線と内線 */
+        const dynamicStyles = `
             .mock-screen .stamp_card {
                 background-color: ${getV('cfg-st-card-bg-val')} !important;
                 border-radius: ${getV('cfg-st-radius')} !important;
-                border: ${borderOn ? `${stBorderW} solid ${stColor}` : 'none'} !important;
-                outline: ${borderOn ? `${stOutlineW} solid ${stColor}` : 'none'} !important;
+                border: ${borderOn ? `${getV('cfg-st-border-w')} solid ${stColor}` : 'none'} !important;
+                outline: ${borderOn ? `${getV('cfg-st-outline-w')} solid ${stColor}` : 'none'} !important;
                 outline-offset: -7px;
-                background-blend-mode: lighten;
-                position: relative;
-                overflow: hidden;
+                position: relative; overflow: hidden;
             }
-
-            /* 右下の透かしロゴ */
             .mock-screen .stamp_card::before {
-                content: "";
-                position: absolute;
-                z-index: 0;
-                bottom: 10px;
-                right: 10px;
-                width: 100px;
-                height: 60px;
+                content: ""; position: absolute; bottom: 10px; right: 10px; width: 100px; height: 60px;
                 background-image: url(${getV('cfg-st-watermark-url')}) !important;
-                background-position: center;
-                background-size: contain;
-                background-repeat: no-repeat;
-                pointer-events: none;
+                background-size: contain; background-repeat: no-repeat; pointer-events: none;
             }
+            .mock-screen .stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stColor} !important; }
+            .mock-screen .ticket_list_due { color: ${stDueTxtColor} !important; border: ${borderOn ? '1px solid ' + stColor : 'none'} !important; border-radius: ${getV('cfg-st-label-radius')} !important; background-color: ${getV('cfg-st-label-bg-val')} !important; }
+            .mock-screen .stampicon { color: ${stTxtColor} !important; }
+            .mock-screen .stampicon > b { border: 2px solid ${getV('cfg-st-icon-border-val')} !important; }
+            .mock-screen .stampicon > b > span { filter: ${stIconFilter} !important; }
+        `;
+        if (typeof updateDynamicStyle === 'function') {
+            updateDynamicStyle(dynamicStyles);
+        }
 
-            /* タイトル：文字色と下線色 */
-            .mock-screen .stamp_list_title {
-                color: ${stTxtColor} !important;
-                border-bottom: 1px dashed ${stColor} !important;
-            }
+        // ★★★ ここを追加：共通ボタン (.page_button) の反映 ★★★
+        const pgBtns = mock.querySelectorAll('.page_button');
+        if (pgBtns.length > 0) {
+            const pgBg = getV('cfg-pgbtn-bg-val');
+            const pgTxt = getV('cfg-pgbtn-txt-val');
+            const pgRadius = getV('cfg-pgbtn-radius');
+            const pgBorderOn = document.getElementById('cfg-pgbtn-border-on') ? document.getElementById('cfg-pgbtn-border-on').checked : false;
+            const pgBorderW = getV('cfg-pgbtn-border-w');
+            const pgBorderC = getV('cfg-pgbtn-border-c-val');
 
-            /* ★ 有効期限ラベル：専用の文字色を適用 */
-            .mock-screen .ticket_list_due {
-                color: ${stDueTxtColor} !important;
-                border: ${borderOn ? `1px solid ${stColor}` : 'none'} !important;
-                border-radius: ${getV('cfg-st-label-radius')} !important;
-                background-color: ${getV('cfg-st-label-bg-val')} !important;
-            }
+            pgBtns.forEach(btn => {
+                btn.style.setProperty('background-color', pgBg, 'important');
+                btn.style.setProperty('border-radius', pgRadius, 'important');
+                
+                if (pgBorderOn) {
+                    btn.style.setProperty('border', `${pgBorderW} solid ${pgBorderC}`, 'important');
+                } else {
+                    btn.style.setProperty('border', 'none', 'important');
+                }
 
-            /* ★ スタンプ獲得数：文字色を共通設定に連動 */
-            .mock-screen .stampicon {
-                color: ${stTxtColor} !important;
-            }
-
-            /* スタンプアイコン（丸枠の色） */
-            .mock-screen .stampicon > b {
-                border: 2px solid ${getV('cfg-st-icon-border-val')} !important;
-            }
-
-            /* スタンプアイコン（中の画像の色） */
-            .mock-screen .stampicon > b > span {
-                filter: ${stIconFilter} !important;
-            }
-        `);
+                // 中のspan（文字色）
+                const span = btn.querySelector('span');
+                if (span) {
+                    span.style.setProperty('color', pgTxt, 'important');
+                }
+            });
+        }
     }
+
+    // --- 5. ハンバーガーメニュー(パターンB)の制御 ---
+    const listPatternEl = document.querySelector('input[name="list-pattern"]:checked');
+    const listPattern = listPatternEl ? listPatternEl.value : 'A';
+    
+    // ★重要：既存のボタンとオーバーレイを「すべて」削除（ループで完全に消す）
+    const allBtns = phoneContainer.querySelectorAll('.hamburger-btn');
+    const allOverlays = phoneContainer.querySelectorAll('.menu-overlay');
+    allBtns.forEach(el => el.remove());
+    allOverlays.forEach(el => el.remove());
+
+    // クラスのリセット
+    if (menuSublist) {
+        menuSublist.classList.remove('pattern-B', 'open');
+        menuSublist.style.removeProperty('display'); 
+    }
+
+    if (listPattern === 'B' && menuSublist) {
+        menuSublist.classList.add('pattern-B');
+
+        // 1. ハンバーガーボタン作成
+        const hamBtn = document.createElement('div');
+        hamBtn.className = 'hamburger-btn';
+        hamBtn.innerHTML = '<span></span><span></span><span></span>';
+        
+        // 2. オーバーレイ作成
+        const overlay = document.createElement('div');
+        overlay.className = 'menu-overlay';
+        
+        // 3. スマホ枠(phoneContainer)の直下に追加
+        phoneContainer.appendChild(hamBtn);
+        phoneContainer.appendChild(overlay);
+
+        // 4. 開閉イベント（クリック時の挙動）
+        const toggleMenu = (e) => {
+            e.stopPropagation();
+            const isActive = hamBtn.classList.contains('active');
+            
+            if (isActive) {
+                // 閉じる
+                hamBtn.classList.remove('active');
+                menuSublist.classList.remove('open');
+                overlay.classList.remove('show');
+            } else {
+                // 開く
+                hamBtn.classList.add('active');
+                menuSublist.classList.add('open');
+                overlay.classList.add('show');
+            }
+            
+            // ★重要：開いている時(active)は「×」印を白くする（元のCSSに合わせる）
+            // 閉じている時はCSSの指定（黒など）に戻す
+            const spans = hamBtn.querySelectorAll('span');
+            spans.forEach(s => s.style.backgroundColor = isActive ? '' : '#ffffff'); 
+        };
+
+        hamBtn.onclick = toggleMenu;
+
+        // 背景クリックで閉じる
+        overlay.onclick = (e) => {
+            e.stopPropagation();
+            hamBtn.classList.remove('active');
+            menuSublist.classList.remove('open');
+            overlay.classList.remove('show');
+            
+            // 色を戻す
+            const spans = hamBtn.querySelectorAll('span');
+            spans.forEach(s => s.style.backgroundColor = '');
+        };
+    }
+
 }
+
 
 function apply(el, bg, on, bw, bc, tx, flt) {
     if(!el) return;
@@ -698,39 +844,40 @@ function handleClassChange(select) {
     }
     updatePreview();
 }
-// --- 3. 生成ロジック ---
-document.getElementById('generate-btn').onclick = () => {
-    updatePreview(); // 生成前に最新状態を強制反映
-    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
-    const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
-    const selected = document.querySelector('input[name="btn-pattern"]:checked').value;
 
-    // --- 【重要】背景画像の設定を抽出 ---
+
+// --- 3. 生成ロジック (リファクタリング版) ---
+
+// 共通ヘルパー関数：値の取得を簡単にする
+const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
+
+// 1. 全体背景画像のCSSを生成する関数
+function getBodyBgCSS() {
     const bodyBgImg = getV('cfg-body-bg-img');
-    let bodyBgCSS = "";
-    if (bodyBgImg) {
-        const bgRepeat = getV('cfg-body-bg-repeat');
-        const bgSizeMode = getV('cfg-body-bg-size-mode');
-        const bgSizeVal = getV('cfg-body-bg-size-val');
-        const finalSize = (bgSizeMode === 'custom') ? bgSizeVal : bgSizeMode;
+    if (!bodyBgImg) return "";
 
-        bodyBgCSS = `
+    const bgRepeat = getV('cfg-body-bg-repeat');
+    const bgSizeMode = getV('cfg-body-bg-size-mode');
+    const bgSizeVal = getV('cfg-body-bg-size-val');
+    const finalSize = (bgSizeMode === 'custom') ? bgSizeVal : bgSizeMode;
+
+    return `
     background-image: url('${bodyBgImg}') !important;
     background-repeat: ${bgRepeat} !important;
     background-size: ${finalSize} !important;
     background-position: center top !important;`;
-    }
-    
-    // --- CSSパーツの組み立て ---
-    let patternCSS = "";
-    // 【Aパターン】のCSS生成
-    if(selected === 'A') {
+}
+
+// 2. メインボタン（A/B/Cパターン）のCSSを生成する関数
+function getButtonPatternCSS(selectedPattern) {
+    if (selectedPattern === 'A') {
         const b1on = getC('cfg-btn1-border-on');
         const b2on = getC('cfg-btn2-border-on');
         const b1Border = b1on ? `${getV('cfg-btn1-border-w')} solid ${getV('cfg-btn1-border-c-val')}` : 'none';
         const b2Border = b2on ? `${getV('cfg-btn2-border-w')} solid ${getV('cfg-btn2-border-c-val')}` : 'none';
-        
-        patternCSS = `
+
+        return `
 /* --- Aパターン専用 --- */
 .top_button > ul > li { width: calc(48% - 5px); border-radius: 15px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); margin-bottom: 10px; list-style: none; }
 .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 20px; text-decoration: none; }
@@ -743,29 +890,26 @@ document.getElementById('generate-btn').onclick = () => {
 .top_button > ul > li:nth-child(1) .button_img img { filter: ${getV('cfg-btn1-filter')} !important; }
 .top_button > ul > li:nth-child(2) .button_img img { filter: ${getV('cfg-btn2-filter')} !important; }`;
     } 
-    // 【Bパターン】のCSS生成
-    else if(selected === 'B') {
+    
+    if (selectedPattern === 'B') {
         const bArea = document.getElementById('pattern-settings-B');
         const cols = bArea.querySelectorAll('.setting-column');
         
-        const getBDataForCode = (idx) => {
+        // パターンB用のデータ取得ヘルパー
+        const getBData = (idx) => {
             const c = cols[idx]; 
             const allTxt = c.querySelectorAll('input[type="text"]');
             return { 
                 bg: allTxt[0].value, 
                 on: c.querySelector('input[type="checkbox"]').checked, 
-                bw: allTxt[1].value, 
-                bc: allTxt[2].value, 
-                radius: allTxt[3].value, 
-                befW: allTxt[4].value, 
-                befC: allTxt[5].value, 
-                tx: allTxt[6].value 
+                bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value, 
+                befW: allTxt[4].value, befC: allTxt[5].value, tx: allTxt[6].value 
             };
         };
-        const b1 = getBDataForCode(0); 
-        const b2 = getBDataForCode(1);
+        const b1 = getBData(0); 
+        const b2 = getBData(1);
 
-        patternCSS = `
+        return `
 /* --- Bパターン専用 --- */
 .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
 .top_button > ul > li > a { display: flex; align-items: center; padding: 15px 10px; text-decoration: none; }
@@ -777,27 +921,24 @@ document.getElementById('generate-btn').onclick = () => {
 .top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
 .top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }`;
     }
-    // 【Cパターン】のCSS生成
-    else if(selected === 'C') {
+
+    if (selectedPattern === 'C') {
         const cArea = document.getElementById('pattern-settings-C');
         const cols = cArea.querySelectorAll('.setting-column');
-        const getCDataForCode = (idx) => {
+        
+        // パターンC用のデータ取得ヘルパー
+        const getCData = (idx) => {
             const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
             return { 
                 bg: allTxt[0].value, 
                 on: c.querySelector('input[type="checkbox"]').checked, 
-                bw: allTxt[1].value, 
-                bc: allTxt[2].value, 
-                radius: allTxt[3].value, 
-                befW: allTxt[4].value, 
-                befC: allTxt[5].value, 
-                afterC: allTxt[6].value, 
-                tx: allTxt[7].value 
+                bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value, 
+                befW: allTxt[4].value, befC: allTxt[5].value, afterC: allTxt[6].value, tx: allTxt[7].value 
             };
         };
-        const c1 = getCDataForCode(0); const c2 = getCDataForCode(1);
+        const c1 = getCData(0); const c2 = getCData(1);
 
-        patternCSS = `
+        return `
 /* --- Cパターン専用 --- */
 .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; }
 .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 15px 20px 0px; text-decoration: none; font-weight: bold; position: relative; z-index: 2; }
@@ -813,69 +954,14 @@ document.getElementById('generate-btn').onclick = () => {
 .top_button > ul > li:nth-child(2)::after { background: ${c2.afterC} !important; }
 .top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }`;
     }
+    return "";
+}
 
-    // --- メニュー項目のデータ抽出 ---
-    const items = [];
-    document.querySelectorAll('.menu-item').forEach(el => {
-        items.push({
-            class: el.querySelector('.field-class').value,
-            href: el.querySelector('.field-href').value,
-            label: el.querySelector('.field-label').value,
-            external: el.querySelector('.field-ext').checked,
-            aclass: el.querySelector('.field-aclass').value
-        });
-    });
-
-    // --- 【1】JavaScript出力の作成 ---
-    const jsOutput = `<script>
-window.onload = () => {
-    const menuItems = ${JSON.stringify(items.map(item => ({
-        class: item.class,
-        href: item.href,
-        aclass: item.aclass,
-        icon: "<span class='icon'></span>",
-        label: item.label,
-        external: item.external
-    })), null, 8)};
-    const listItems = menuItems.map(item => {
-        const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : "";
-        return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`;
-    }).join('');
-    const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
-    document.body.insertAdjacentHTML('beforeend', footerHTML);
-};
-<\/script>`;
-
-    // --- 【2】CSS出力の作成 ---
-    const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
-    const listBorderOn = document.getElementById('cfg-list-border-on').checked;
-    
-    // ロゴ配置
-    const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked').value;
-    const subPageHeaderCSS = `
-.mock-header-v2 { 
-    display: flex !important; 
-    justify-content: ${mockLogoAlign} !important; 
-    ${mockLogoAlign === 'flex-start' ? 'padding-left: 15px !important;' : ''}
-    ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
-}`;
-
-    // スタンプ帳デザイン
-    const stTxtColor = getV('cfg-st-txt-c-val');
-    const stDueTxtColor = getV('cfg-st-due-txt-c-val');
-    const stBorderColor = getV('cfg-st-border-c-val');
-    const stBorderOn = document.getElementById('cfg-st-border-on').checked;
-    
-    // アイコンフィルター (定義名を stIconFilter に統一)
-    const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'black' 
-        ? 'brightness(0)' 
-        : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
-
-    // ヘッダー出し分け
+// 3. ヘッダー（パターンA/B）のCSSを生成する関数
+function getHeaderCSS() {
     const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
-    let headerCSS = "";
     if (headerPattern === 'B') {
-        headerCSS = `
+        return `
 header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: transparent !important; position: relative; z-index: 20; padding-left: 15px !important; }
 header.top h1.top { margin: 0 !important; }
 header.top h1.top span { display: none !important; }
@@ -883,10 +969,23 @@ header.top h1.top span { display: none !important; }
 .header-slider, .header-slide { width: 100%; height: 100%; }
 .header-slide { background-size: cover; background-position: center; }`;
     } else {
-        headerCSS = `header.top { background-color: ${getV('cfg-header-bg-val')} !important; display: flex; justify-content: center; align-items: center; padding: 10px 0; }`;
+        return `header.top { background-color: ${getV('cfg-header-bg-val')} !important; display: flex; justify-content: center; align-items: center; padding: 10px 0; }`;
     }
+}
 
-    const stampPageCSS = `
+// 4. スタンプ帳ページのCSSを生成する関数
+function getStampPageCSS() {
+    const stTxtColor = getV('cfg-st-txt-c-val');
+    const stDueTxtColor = getV('cfg-st-due-txt-c-val');
+    const stBorderColor = getV('cfg-st-border-c-val');
+    const stBorderOn = document.getElementById('cfg-st-border-on').checked;
+    
+    // アイコンフィルター設定
+    const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'black' 
+        ? 'brightness(0)' 
+        : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
+
+    return `
 body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; }
 #stamp-list .stamp_card {
     background: ${getV('cfg-st-card-bg-val')} !important;
@@ -913,24 +1012,171 @@ body.stamp .stampicon { color: ${stTxtColor} !important; }
 body.stamp .stampicon > b { border: 2px solid ${getV('cfg-st-icon-border-val')} !important; }
 body.stamp .stampicon > b > span { filter: ${stIconFilter} !important; }
 `;
+}
 
+// 5. メニューリストの配列を取得する関数
+function getMenuItems() {
+    const items = [];
+    document.querySelectorAll('.menu-item').forEach(el => {
+        items.push({
+            class: el.querySelector('.field-class').value,
+            href: el.querySelector('.field-href').value,
+            label: el.querySelector('.field-label').value,
+            external: el.querySelector('.field-ext').checked,
+            aclass: el.querySelector('.field-aclass').value
+        });
+    });
+    return items;
+}
+
+// ★追加：共通ボタンのCSS生成関数
+function getPageBtnCSS() {
+    const bg = getV('cfg-pgbtn-bg-val');
+    const txt = getV('cfg-pgbtn-txt-val');
+    const radius = getV('cfg-pgbtn-radius');
+    const borderOn = document.getElementById('cfg-pgbtn-border-on').checked;
+    const borderW = getV('cfg-pgbtn-border-w');
+    const borderC = getV('cfg-pgbtn-border-c-val');
+
+    const borderCSS = borderOn ? `border: ${borderW} solid ${borderC} !important;` : `border: none !important;`;
+
+    return `
+/* 共通ボタン (.page_button) */
+.page_button {
+    background-color: ${bg} !important;
+    border-radius: ${radius} !important;
+    ${borderCSS}
+    text-decoration: none;
+}
+.page_button > span {
+    color: ${txt} !important;
+}
+`;
+}
+
+// --- メイン処理: 生成ボタンクリック時の動作 ---
+document.getElementById('generate-btn').onclick = () => {
+    
+    // 生成前に最新状態を強制反映
+    updatePreview(); 
+
+    // 全体背景色の判定
+    const isBodyBgNone = document.getElementById('cfg-body-bg-none').checked;
+    const bodyBgColor = isBodyBgNone ? 'transparent' : getV('cfg-body-bg-val');
+
+    // ボタンエリア背景色の判定
+    const isBtnAreaNone = document.getElementById('cfg-btn-area-bg-none').checked;
+    const btnAreaColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
+
+
+
+    // 各パーツのCSS生成
+    const bodyBgCSS = getBodyBgCSS();
+    const btnPattern = document.querySelector('input[name="btn-pattern"]:checked').value;
+    const patternCSS = getButtonPatternCSS(btnPattern);
+    const headerCSS = getHeaderCSS();
+    const stampPageCSS = getStampPageCSS();
+    const pageBtnCSS = getPageBtnCSS();
+    
+    // フッターメニュー設定
+    const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
+    const listBorderOn = document.getElementById('cfg-list-border-on').checked;
+    
+    // ロゴ配置
+    const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked').value;
+    const subPageHeaderCSS = `
+.mock-header-v2 { 
+    display: flex !important; 
+    justify-content: ${mockLogoAlign} !important; 
+    ${mockLogoAlign === 'flex-start' ? 'padding-left: 15px !important;' : ''}
+    ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
+}`;
+
+
+
+
+// --- 【1】JavaScriptコードの組み立て ---
+const menuItems = getMenuItems();
+    
+// ★追加：パターンB（ハンバーガー）が選ばれているか確認
+const listPattern = document.querySelector('input[name="list-pattern"]:checked').value;
+let hamburgerScript = "";
+
+// パターンBの場合のみ、ハンバーガーメニュー用スクリプトを追加
+if (listPattern === 'B') {
+    hamburgerScript = `
+/* ハンバーガー機能 */
+$(function() {
+// body に追加
+$('body').append('<div class="hamburger-btn"><span></span><span></span><span></span></div>');
+$('body').append('<div class="menu-overlay"></div>');
+
+// 開閉制御
+$('.hamburger-btn').on('click', function() {
+    $(this).toggleClass('active');
+    $('.menu-sublist').toggleClass('open');
+    $('.menu-overlay').toggleClass('show');
+});
+
+// 背景クリックで閉じる
+$('.menu-overlay').on('click', function() {
+    $('.hamburger-btn').removeClass('active');
+    $('.menu-sublist').removeClass('open');
+    $(this).removeClass('show');
+});
+});`;
+}
+
+const jsOutput = `<script>
+window.onload = () => {
+const menuItems = ${JSON.stringify(menuItems.map(item => ({
+    class: item.class,
+    href: item.href,
+    aclass: item.aclass,
+    icon: "<span class='icon'></span>",
+    label: item.label,
+    external: item.external
+})), null, 8)};
+const listItems = menuItems.map(item => {
+    const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+    return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`;
+}).join('');
+const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
+document.body.insertAdjacentHTML('beforeend', footerHTML);
+};
+${hamburgerScript}
+<\/script>`;
+
+
+
+
+
+
+
+
+
+    // --- 【2】CSSコードの組み立て ---
     const cssOutput = `<style type="text/css">
-/* ページ全体の設定 */
+* ページ全体の設定 */
 html, body { 
-    background-color: ${getV('cfg-body-bg-val')} !important;
-    ${bodyBgCSS} /* ← ここに背景画像の設定が差し込まれます */
+    background-color: ${bodyBgColor} !important;
+    ${bodyBgCSS} 
 }
 ${headerCSS}
 ${subPageHeaderCSS}
-
 /* --- スタンプ帳画面用 --- */
 body.stamp { background-color: #f5f5f5 !important; }
 header { background-color: ${getV('cfg-mock-header-bg-val')} !important; } 
 ${stampPageCSS}
-
-.top_button { background-color: ${getV('cfg-btn-area-bg-val')} !important; }
+.top_button { background-color: ${btnAreaColor} !important; }
 .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
 ${patternCSS}
+${headerCSS}
+${subPageHeaderCSS}
+${stampPageCSS}
+${pageBtnCSS}
+
+/* フッター固定メニュー */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
@@ -938,6 +1184,8 @@ ${patternCSS}
 #sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
 #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
 #sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
+
+/* メニューリスト */
 .menu-sublist { background: ${getV('cfg-list-bg-val')} !important; }
 .menu-sublist > ul > li > a { 
     color: ${getV('cfg-list-txt-val')} !important; 
@@ -947,10 +1195,18 @@ ${patternCSS}
 }
 </style>`;
 
+    // --- 結果を出力 ---
     document.getElementById('out-js').value = jsOutput;
     document.getElementById('out-css').value = cssOutput;
     alert("配布用コードを生成しました！");
 };
+
+
+
+
+
+
+
 
 
 
@@ -973,13 +1229,11 @@ function createItem(isFirst = false) {
     menuList.appendChild(div);
     relabelItems(); updatePreview();
 }
-
 createItem(true);
 document.getElementById('add-item').onclick = () => createItem();
 window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.select(); document.execCommand('copy'); alert("コピーしました"); } };
 
 // --- 4. データの保存・読み込み (LocalStorage) ---
-
 // 現在のすべての設定値をオブジェクトにまとめる関数
 function getAllSettings() {
     const settings = {};
@@ -996,14 +1250,14 @@ function getAllSettings() {
         }
         
         // --- 2. ラジオボタン (パターン選択・ロゴ配置) の保存 ---
-        // まとめて判定するように修正しました
         if (input.checked) {
-            if (input.name === 'btn-pattern') {
-                settings['btn-pattern'] = input.value;
-            } else if (input.name === 'header-pattern') {
-                settings['header-pattern'] = input.value;
-            } else if (input.name === 'cfg-mock-logo-align') { // ★ここをループ内に移動
-                settings['cfg-mock-logo-align'] = input.value;
+            // ★ここを変更： 'list-pattern' を追加しました
+            if (input.name === 'btn-pattern' || 
+                input.name === 'header-pattern' || 
+                input.name === 'cfg-mock-logo-align' || 
+                input.name === 'list-pattern') { 
+                
+                settings[input.name] = input.value;
             }
         }
     });
@@ -1024,7 +1278,6 @@ function getAllSettings() {
     return settings;
 }
 
-
 // 保存ボタン（または自動保存）用の関数
 function saveToLocal() {
     const data = getAllSettings();
@@ -1032,28 +1285,30 @@ function saveToLocal() {
     console.log("設定を保存しました");
 }
 
-/**
- * LocalStorageからデータを読み込み、フォームとプレビューを復元する関数
- */
+// LocalStorageからデータを読み込み、フォームとプレビューを復元する関数
 function loadFromLocal() {
     const dataStr = localStorage.getItem('generator_backup');
     if (!dataStr) return;
 
     const settings = JSON.parse(dataStr);
     
+    // 1. 各種入力項目の復元
     Object.keys(settings).forEach(key => {
-        // --- 1. ラジオボタン（パターン選択・ロゴ配置）の復元 ---
-        // ここに cfg-mock-logo-align を追加します
-        if (key === 'btn-pattern' || key === 'header-pattern' || key === 'cfg-mock-logo-align') {
+        // ラジオボタンの復元（フッターパターン含む）
+        if (key === 'btn-pattern' || 
+            key === 'header-pattern' || 
+            key === 'cfg-mock-logo-align' || 
+            key === 'list-pattern') { 
+            
             const val = settings[key];
             const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
             if (radio) {
                 radio.checked = true;
             }
-            return; // 次のループへ
+            return; 
         }
 
-        // --- 2. IDを持つ通常の入力欄の復元 ---
+        // 通常の入力欄の復元
         const el = document.getElementById(key);
         if (!el) return;
 
@@ -1064,7 +1319,7 @@ function loadFromLocal() {
         }
     });
 
-    // --- 3. メニュー項目の復元 ---
+    // 2. メニュー項目の復元
     if (settings['saved_menu_items'] && menuList) {
         menuList.innerHTML = ''; 
         settings['saved_menu_items'].forEach((data, idx) => {
@@ -1080,19 +1335,32 @@ function loadFromLocal() {
             lastItem.querySelector('.field-href').value = data.href;
         });
     }
+
+    // ★★★ ここを追加！ ★★★
+    // 3. カラーピッカーの値をテキストボックスに同期させる
+    // これをやらないと、プレビューがテキストボックスの初期値（黒など）を読み込んでしまいます
+    if (typeof syncPairs !== 'undefined') {
+        syncPairs.forEach(pair => {
+            const picker = document.getElementById(pair[0]); // カラーピッカー
+            const text = document.getElementById(pair[1]);   // テキストボックス
+            if (picker && text) {
+                text.value = picker.value.toUpperCase();
+            }
+        });
+    }
+    // ★★★ 追加ここまで ★★★
     
-    // --- 4. 最後にUIの状態を同期 ---
+    // 4. 最後にUIの状態を同期
     switchPattern(); 
+    
     updatePreview();
 }
 
+// ページをリロードして初期状態を反映
 document.getElementById('reset-btn').onclick = () => {
     if (confirm("すべての設定を初期状態にリセットしますか？")) {
         // 1. LocalStorageのデータを削除
         localStorage.removeItem('generator_backup');
-        
-        // 2. ページをリロードして初期状態を反映
-        // ※これが最も確実にHTMLの初期値に戻す方法です
         location.reload();
     }
 };

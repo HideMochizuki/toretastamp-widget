@@ -309,6 +309,13 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     margin-top: -50px; 
     background-color: #eee; /* 画像読み込み前の背景色 */
 }
+.phone-mock .menu-sublist > ul > li {
+    padding: 0 5px;
+    margin: 0;
+}
+.phone-mock .menu-sublist > ul > li a {
+    padding: 20px 5px;
+}
 
 .phone-mock .header-slider {
     width: 100%;
@@ -341,6 +348,110 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     z-index: 2; /* スライダー(z-index:1)より上に配置 */
     background: transparent; /* 背景色は.mock-screen側で塗る */
 }
+
+
+/* =================================================================
+   ★追加：ハンバーガーメニュー (パターンB) & フッター調整用スタイル
+   ================================================================= */
+
+/* --- 重要：親要素の制限解除（メニューが暗くならないように） --- */
+.phone-mock .content {
+    position: static !important;
+    z-index: auto !important;
+}
+
+/* --- 1. ハンバーガーボタン --- */
+.phone-mock .hamburger-btn {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    width: 28px !important;
+    height: 20px !important;
+    cursor: pointer;
+    z-index: 10001 !important; /* 最前面 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.phone-mock .hamburger-btn span {
+    display: block;
+    height: 3px;
+    background: #333; 
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.phone-mock .hamburger-btn.active span {
+    background: #3c3c3c !important;
+}
+.phone-mock .hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+.phone-mock .hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+.phone-mock .hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* --- 2. メニュー本体 (.menu-sublist) --- */
+.phone-mock .menu-sublist.pattern-B {
+    position: absolute !important;
+    top: 0 !important;
+    right: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 70px 20px 40px !important;
+    box-sizing: border-box !important;
+    
+    /* Overlay(9999)より上に配置 */
+    z-index: 10000 !important; 
+    
+    transition: right 0.35s ease-in-out !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow-y: auto !important;
+    
+    display: block !important; 
+    background-color: #fff !important; /* 白背景を強制 */
+}
+
+.phone-mock .menu-sublist.pattern-B.open {
+    right: 0 !important;
+}
+
+.phone-mock .menu-sublist.pattern-B ul li a {
+    border-top: 1px solid rgba(0,0,0,0.1) !important;
+}
+
+/* --- 3. フッター固定メニューの表示順序調整（重要） --- */
+/* これを追加することで、消えていたフッターが復活します */
+#preview-footer {
+    position: relative;
+    z-index: 10 !important; 
+}
+
+/* --- 4. 黒い半透明背景 (オーバーレイ) --- */
+.phone-mock .menu-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0,0,0,0.6) !important;
+    z-index: 9999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+.phone-mock .menu-overlay.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 
 
 

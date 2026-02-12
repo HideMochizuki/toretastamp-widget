@@ -42,6 +42,11 @@
                             <input type="color" id="cfg-body-bg" value="#ffffff">
                             <input type="text" id="cfg-body-bg-val" value="#FFFFFF">
                         </div>
+                        <div style="margin-top: 5px;">
+                            <label style="font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" id="cfg-body-bg-none" onchange="updatePreview()"> 背景色をなし(透明)にする
+                            </label>
+                        </div>
                     </div>
                 </div>
             
@@ -143,6 +148,11 @@
                         <div class="color-picker-group">
                             <input type="color" id="cfg-btn-area-bg" value="#ffffff">
                             <input type="text" id="cfg-btn-area-bg-val" value="#FFFFFF">
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <label style="font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" id="cfg-btn-area-bg-none" onchange="updatePreview()"> 背景色をなし(透明)にする
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -397,6 +407,7 @@
                 <div id="menu-list"></div>
                 <button class="btn btn-add" id="add-item"><i class="fa fa-plus"></i> 項目を追加する (最大5個)</button>
             </div>
+            
             <div class="card">
                 <div class="card-sub-title">デザイン設定</div>
                 <div class="form-grid">
@@ -412,6 +423,11 @@
         <div class="card-wrapper">
             <h2 class="card-title">フッターリストメニュー</h2>
             <div class="card">
+                <div class="card-sub-title">表示パターン選択</div>
+                <div class="radio-group" style="display: flex; gap: 20px; margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <label style="cursor:pointer;"><input type="radio" name="list-pattern" value="A" checked onchange="updatePreview()"> パターンA (標準・下部配置)</label>
+                    <label style="cursor:pointer;"><input type="radio" name="list-pattern" value="B" onchange="updatePreview()"> パターンB (ハンバーガーメニュー)</label>
+                </div>
                 <div class="card-sub-title">メニューリスト設定 (.menu-sublist)</div>
                 <div class="form-grid">
                     <div class="form-group">
@@ -520,6 +536,46 @@
                             <option value="white">白色 (#FFFFFF)</option>
                             <option value="black" selected>黒色 (#000000)</option>
                         </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper">
+            <h2 class="card-title">共通ボタン設定 (.page_button)</h2>
+            <div class="card">
+                <div class="card-sub-title">デザイン設定</div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ボタン背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-pgbtn-bg" value="#000000">
+                            <input type="text" id="cfg-pgbtn-bg-val" value="#000000">
+                        </div>
+                    </div>
+        
+                    <div class="form-group">
+                        <label>文字色 (span)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-pgbtn-txt" value="#ffffff">
+                            <input type="text" id="cfg-pgbtn-txt-val" value="#FFFFFF">
+                        </div>
+                    </div>
+        
+                    <div class="form-group">
+                        <label>角丸 (radius)</label>
+                        <input type="text" id="cfg-pgbtn-radius" value="50px" oninput="updatePreview()">
+                    </div>
+        
+                    <div class="form-group">
+                        <label>枠線 (width color)</label>
+                        <div class="color-picker-group">
+                            <input type="checkbox" id="cfg-pgbtn-border-on" onchange="updatePreview()">
+                            <input type="text" id="cfg-pgbtn-border-w" value="2px" style="width:40px;" placeholder="太さ">
+                            <input type="color" id="cfg-pgbtn-border-c" value="#000000">
+                            <input type="text" id="cfg-pgbtn-border-c-val" value="#000000">
+                        </div>
                     </div>
                 </div>
             </div>
