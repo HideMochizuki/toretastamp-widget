@@ -820,13 +820,15 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
     // ボタン自体のスタイル
     el.style.backgroundColor = bg;
     el.style.setProperty('border', on ? `${bw} solid ${bc}` : 'none', 'important');
-    // ★iOS対策：親要素(li)にもGPU描画を強制させる
+    
+    // ★【重要】iOS対策：親要素(li)にGPU描画を強制させる呪文
+    // これがないと、iPhoneでアイコンの影が消えてしまいます
     el.style.transform = 'translateZ(0)'; 
     
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
 
-    // ★アイコン色変更 (iOS完全対応版 Drop-shadow)
+    // ★アイコン色変更 (iOS完全対応版 Drop-shadow Hack)
     const imgDiv = el.querySelector('.button_img');
     const img = el.querySelector('img');
 
@@ -839,13 +841,13 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
         imgDiv.style.backgroundColor = 'transparent';
         imgDiv.style.webkitMask = 'none';
         imgDiv.style.mask = 'none';
-        // ここにもiOS対策
-        imgDiv.style.transform = 'translateZ(0)'; 
+        // 念のためここにも対策
+        imgDiv.style.transform = 'translateZ(0)';
 
         // 画像の設定
-        img.style.width = '100%';  // 100%にして親枠に合わせる
+        img.style.width = '100%';
         img.style.height = '100%';
-        img.style.objectFit = 'contain'; // 縦横比を維持
+        img.style.objectFit = 'contain';
         img.style.opacity = '1';
         img.style.position = 'absolute';
         img.style.top = '0';
@@ -856,6 +858,7 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
         img.style.filter = shadow;
         img.style.webkitFilter = shadow;
         
+        // 画像本体を左に飛ばす
         img.style.transform = 'translate3d(-60px, 0, 0)';
         img.style.webkitTransform = 'translate3d(-60px, 0, 0)';
     }
