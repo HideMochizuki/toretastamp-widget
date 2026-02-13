@@ -820,6 +820,8 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
     // ボタン自体のスタイル
     el.style.backgroundColor = bg;
     el.style.setProperty('border', on ? `${bw} solid ${bc}` : 'none', 'important');
+    // ★iOS対策：親要素(li)にもGPU描画を強制させる
+    el.style.transform = 'translateZ(0)'; 
     
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
@@ -832,36 +834,32 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
         // 親枠の設定
         imgDiv.style.width = '60px';
         imgDiv.style.height = '60px';
+        imgDiv.style.position = 'relative'; 
         imgDiv.style.overflow = 'hidden';
-        imgDiv.style.position = 'relative'; // 必須
         imgDiv.style.backgroundColor = 'transparent';
         imgDiv.style.webkitMask = 'none';
         imgDiv.style.mask = 'none';
+        // ここにもiOS対策
+        imgDiv.style.transform = 'translateZ(0)'; 
 
         // 画像の設定
-        img.style.width = '60px';
-        img.style.height = '60px';
+        img.style.width = '100%';  // 100%にして親枠に合わせる
+        img.style.height = '100%';
+        img.style.objectFit = 'contain'; // 縦横比を維持
         img.style.opacity = '1';
         img.style.position = 'absolute';
         img.style.top = '0';
-        img.style.left = '0'; // 枠の中に一旦置く
-        img.style.display = 'block';
+        img.style.left = '0';
         
-        // ★iOS対策の肝：GPU描画を強制し、transformで移動させる
-        // 左に60pxズラして、右に60pxの影を落とす
+        // 影を落とす（左に60px移動し、右に60pxの影）
         const shadow = `drop-shadow(60px 0 0 ${iconColor})`;
         img.style.filter = shadow;
         img.style.webkitFilter = shadow;
         
-        // 3D変換を使ってGPUレイヤーに乗せる（描画欠け防止）
         img.style.transform = 'translate3d(-60px, 0, 0)';
         img.style.webkitTransform = 'translate3d(-60px, 0, 0)';
-        
-        // ブラウザへのヒント
-        img.style.willChange = 'filter, transform';
     }
 }
-
 
 function updateDynamicStyle(css) {
     let s = document.getElementById('dyn-style');
