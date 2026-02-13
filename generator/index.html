@@ -461,9 +461,6 @@
             </div>
         </div>
 
-
-
-
         <div class="card-wrapper">
             <h2 class="card-title">フッター固定メニュー</h2>
             <div class="card">
@@ -624,45 +621,157 @@
         </div>
 
         <div class="card-wrapper">
-            <h2 class="card-title">共通ボタン設定 (.page_button)</h2>
+            <h2 class="card-title">共通ボタン設定</h2>
             <div class="card">
-                <div class="card-sub-title">デザイン設定</div>
                 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>ボタン背景色</label>
-                        <div class="color-picker-group">
-                            <input type="color" id="cfg-pgbtn-bg" value="#000000">
-                            <input type="text" id="cfg-pgbtn-bg-val" value="#000000">
-                        </div>
+                <p style="font-weight:bold; font-size:12px; margin:25px 0 10px; border-bottom:1px solid #ddd; padding-bottom:5px;">通常ボタン (.page_button)</p>
+                <div class="form-group">
+                    <label>背景色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-pgbtn-bg-c" value="#333333">
+                        <input type="text" id="cfg-pgbtn-bg-val" value="#333333">
                     </div>
-        
-                    <div class="form-group">
-                        <label>文字色 (span)</label>
-                        <div class="color-picker-group">
-                            <input type="color" id="cfg-pgbtn-txt" value="#ffffff">
-                            <input type="text" id="cfg-pgbtn-txt-val" value="#FFFFFF">
-                        </div>
+                </div>
+                <div class="form-group">
+                    <label>文字色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-pgbtn-txt-c" value="#ffffff">
+                        <input type="text" id="cfg-pgbtn-txt-val" value="#ffffff">
                     </div>
-        
-                    <div class="form-group">
-                        <label>角丸 (radius)</label>
-                        <input type="text" id="cfg-pgbtn-radius" value="50px" oninput="updatePreview()">
-                    </div>
-        
-                    <div class="form-group">
-                        <label>枠線 (width color)</label>
+                </div>
+                <div class="form-group">
+                    <label>角丸 (px)</label>
+                    <input type="text" id="cfg-pgbtn-radius" value="30px">
+                </div>
+                <div class="form-group">
+                    <label>枠線</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="checkbox" id="cfg-pgbtn-border-on">
+                        <input type="text" id="cfg-pgbtn-border-w" value="1px" style="width:50px;">
                         <div class="color-picker-group">
-                            <input type="checkbox" id="cfg-pgbtn-border-on" onchange="updatePreview()">
-                            <input type="text" id="cfg-pgbtn-border-w" value="2px" style="width:40px;" placeholder="太さ">
-                            <input type="color" id="cfg-pgbtn-border-c" value="#000000">
-                            <input type="text" id="cfg-pgbtn-border-c-val" value="#000000">
+                            <input type="color" id="cfg-pgbtn-border-c" value="#333333">
+                            <input type="text" id="cfg-pgbtn-border-c-val" value="#333333">
                         </div>
                     </div>
                 </div>
+        
+                <p style="font-weight:bold; font-size:12px; margin-top:25px; border-bottom:1px solid #ddd; padding-bottom:5px;">QR読取ボタン等 (.page_button.orange)</p>
+                <div class="form-group">
+                    <label>背景色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-pgbtn-org-bg-c" value="#ff8c00">
+                        <input type="text" id="cfg-pgbtn-org-bg-val" value="#ff8c00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>文字色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-pgbtn-org-txt-c" value="#ffffff">
+                        <input type="text" id="cfg-pgbtn-org-txt-val" value="#ffffff">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>角丸 (px)</label>
+                    <input type="text" id="cfg-pgbtn-org-radius" value="10px">
+                </div>
+                <div class="form-group">
+                    <label>枠線</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="checkbox" id="cfg-pgbtn-org-border-on">
+                        <input type="text" id="cfg-pgbtn-org-border-w" value="1px" style="width:50px;">
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-pgbtn-org-border-c" value="#000000">
+                            <input type="text" id="cfg-pgbtn-org-border-c-val" value="#0000000">
+                        </div>
+                    </div>
+                </div>
+        
             </div>
         </div>
 
+        <div class="card-wrapper">
+            <h2 class="card-title">スタンプ詳細ページ設定</h2>
+            <div class="card">
+                
+                <p style="font-weight:bold; font-size:12px; margin-top:10px; border-bottom:1px solid #ddd; padding-bottom:5px;">全体枠 (.stamp_set)</p>
+                <div class="form-group">
+                    <label>背景色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-std-bg-c" value="#ffffff">
+                        <input type="text" id="cfg-std-bg-val" value="#ffffff">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>角丸 (px)</label>
+                    <input type="text" id="cfg-std-radius" value="15px">
+                </div>
+                <div class="form-group">
+                    <label>枠線</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="checkbox" id="cfg-std-border-on" checked>
+                        <input type="text" id="cfg-std-border-w" value="1px" style="width:50px;">
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-std-border-c" value="#333333">
+                            <input type="text" id="cfg-std-border-c-val" value="#333333">
+                        </div>
+                    </div>
+                </div>
+        
+                <p style="font-weight:bold; font-size:12px; margin-top:25px; border-bottom:1px solid #ddd; padding-bottom:5px;">タイトル (.stamp_title)</p>
+                <div class="form-group">
+                    <label>文字サイズ (px等)</label>
+                    <input type="text" id="cfg-std-title-size" value="16px">
+                </div>
+                <div class="form-group">
+                    <label>文字色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-std-title-c" value="#000000">
+                        <input type="text" id="cfg-std-title-val" value="#000000">
+                    </div>
+                </div>
+        
+                <p style="font-weight:bold; font-size:12px; margin-top:25px; border-bottom:1px solid #ddd; padding-bottom:5px;">有効期限 (.stamp_due)</p>
+                <div class="form-group">
+                    <label>文字色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-std-due-txt-c" value="#000000">
+                        <input type="text" id="cfg-std-due-txt-val" value="#000000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>背景色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-std-due-bg-c" value="#E3E3E3">
+                        <input type="text" id="cfg-std-due-bg-val" value="#E3E3E3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>角丸 (px)</label>
+                    <input type="text" id="cfg-std-due-radius" value="5px">
+                </div>
+        
+                <p style="font-weight:bold; font-size:12px; margin-top:25px; border-bottom:1px solid #ddd; padding-bottom:5px;">注意事項 (.stamp_note)</p>
+                <div class="form-group">
+                    <label>文字サイズ</label>
+                    <input type="text" id="cfg-std-note-size" value="15px">
+                </div>
+                <div class="form-group">
+                    <label>文字色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-std-note-txt-c" value="#000000">
+                        <input type="text" id="cfg-std-note-txt-val" value="#000000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>下線(破線)の色</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-std-note-line-c" value="#717171">
+                        <input type="text" id="cfg-std-note-line-val" value="#717171">
+                    </div>
+                </div>
+        
+            </div>
+        </div>
 
             <div class="button-group" style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="btn btn-generate" id="generate-btn" style="flex: 1;">配布用コードを生成する</button>    
