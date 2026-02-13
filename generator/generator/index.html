@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オプション機能 | 管理画面</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="preview-footer.css">
+</head>
+<body>
+
+<header class="generator">
+    <button id="sidebar-toggle" class="sidebar-toggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div style="font-weight: bold;">オプション機能ジェネレーター</div>
+</header>
+
+
+<div class="app-container">
+    <div class="sidebar">
+        <a href="#" class="nav-item"><i class="fa fa-home"></i> ホーム</a>
+        <a href="#" class="nav-item active"><i class="fa fa-list"></i> トップページ</a>
+    </div>
+
+    <div class="main-wrapper">
+
+
+        <div class="config-side">
+        <div class="card-wrapper">
+            <h2 class="card-title">全体・ヘッダーデザイン</h2>
+
+            <div class="card">
+                <div class="card-sub-title">基本背景・ページ全体</div>
+                
+                <div class="form-grid-mini">
+                    <div class="form-group">
+                        <label>ページ背景色（body）</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-body-bg" value="#ffffff">
+                            <input type="text" id="cfg-body-bg-val" value="#FFFFFF">
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <label style="font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" id="cfg-body-bg-none" onchange="updatePreview()"> 背景色をなし(透明)にする
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="sub-config-box">
+                    <div class="form-group full-width">
+                        <label>背景画像URL</label>
+                        <input type="text" id="cfg-body-bg-img" placeholder="https://..." oninput="updatePreview()">
+                    </div>
+                    
+                    <div class="form-grid-mini">
+                        <div class="form-group">
+                            <label>背景画像リピート設定</label>
+                            <select id="cfg-body-bg-repeat" onchange="updatePreview()">
+                                <option value="no-repeat">なし</option>
+                                <option value="repeat" selected>あり</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>背景画像のサイズ</label>
+                            <div class="input-combined">
+                                <select id="cfg-body-bg-size-mode" onchange="updatePreview()">
+                                    <option value="cover">cover</option>
+                                    <option value="contain">contain</option>
+                                    <option value="custom">サイズ指定</option>
+                                </select>
+                                <input type="text" id="cfg-body-bg-size-val" value="100%" placeholder="20%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-sub-title">ヘッダー</div>
+                <div class="form-grid-mini" style="margin-top:15px;">
+                    <div class="form-group">
+                        <label>ヘッダー背景 (TOP)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-header-bg" value="#ffffff">
+                            <input type="text" id="cfg-header-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>ヘッダー背景 (TOP以外)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-mock-header-bg" value="#ffffff">
+                            <input type="text" id="cfg-mock-header-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>ロゴ配置 (TOP以外)</label>
+                        <div class="radio-tab-group">
+                            <label><input type="radio" name="cfg-mock-logo-align" value="flex-start"> 左</label>
+                            <label><input type="radio" name="cfg-mock-logo-align" value="center" checked> 中</label>
+                            <label><input type="radio" name="cfg-mock-logo-align" value="flex-end"> 右</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card">
+                <div class="card-sub-title">ヘッダーパターン選択</div>
+                <div class="form-group">
+                    <div class="radio-group" style="display: flex; gap: 20px; margin-bottom: 15px;">
+                        <label><input type="radio" name="header-pattern" value="A" checked onchange="updatePreview()"> パターンA (標準)</label>
+                        <label><input type="radio" name="header-pattern" value="B" onchange="updatePreview()"> パターンB (メイン画像あり)</label>
+                    </div>
+                </div>
+                
+                <div id="header-b-settings" style="display:none;">
+                    <div class="form-group">
+                        <label>メイン画像URL (背景)</label>
+                        <input type="text" id="cfg-header-main-img" value="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/v4AFzVlZMSCffhihwlbX.png" oninput="updatePreview()">
+                        <p style="font-size: 10px; margin-top: 3px; color: #333;">※画像は管理画面お知らせから変更が出来ます。</p>
+                    </div>
+                </div>
+            </div>
+            
+            
+        </div>
+
+        <div class="card-wrapper">           
+            <h2 class="card-title">メインボタン</h2>
+            <div class="card full-width">
+                <div class="card-sub-title">メインボタンUIパターン選択</div>
+
+                <div class="form-group full-width">
+                    <div class="radio-group" style="display: flex; gap: 20px; padding: 10px 0;">
+                        <label><input type="radio" name="btn-pattern" value="A" checked onchange="switchPattern()"> Aパターン</label>
+                        <label><input type="radio" name="btn-pattern" value="B" onchange="switchPattern()"> Bパターン</label>
+                        <label><input type="radio" name="btn-pattern" value="C" onchange="switchPattern()"> Cパターン</label>
+                    </div>
+                </div>
+            
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>ボタンエリア背景色 (.top_button)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-btn-area-bg" value="#ffffff">
+                            <input type="text" id="cfg-btn-area-bg-val" value="#FFFFFF">
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <label style="font-weight: normal; cursor: pointer;">
+                                <input type="checkbox" id="cfg-btn-area-bg-none" onchange="updatePreview()"> 背景色をなし(透明)にする
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            
+                <div id="pattern-settings-A" class="pattern-fields">
+                    <div class="setting-column">
+                        <div class="column-label">左ボタン設定</div>
+                        <div class="form-group">
+                            <label>左ボタン背景色 (1n)</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-btn1-bg" value="#ffffff">
+                                <input type="text" id="cfg-btn1-bg-val" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>左ボタン枠線 (width color)</label>
+                            <div class="color-picker-group">
+                                <input type="checkbox" id="cfg-btn1-border-on" onchange="updatePreview()">
+                                <input type="text" id="cfg-btn1-border-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-btn1-border-c" value="#eeeeee">
+                                <input type="text" id="cfg-btn1-border-c-val" value="#eeeeee">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>左ボタン文字色 (1n)</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-btn1-txt" value="#000000">
+                                <input type="text" id="cfg-btn1-txt-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>左アイコン色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-btn1-icon-c" value="#000000">
+                                <input type="text" id="cfg-btn1-icon-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="setting-column">
+                        <div class="column-label">右ボタン設定</div>
+                        <div class="form-group">
+                            <label>右ボタン背景色 (2n)</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-btn2-bg" value="#ffffff">
+                                <input type="text" id="cfg-btn2-bg-val" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>右ボタン枠線 (width color)</label>
+                            <div class="color-picker-group">
+                                <input type="checkbox" id="cfg-btn2-border-on" onchange="updatePreview()">
+                                <input type="text" id="cfg-btn2-border-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-btn2-border-c" value="#eeeeee">
+                                <input type="text" id="cfg-btn2-border-c-val" value="#eeeeee">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>右ボタン文字色 (2n)</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-btn2-txt" value="#000000">
+                                <input type="text" id="cfg-btn2-txt-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>右アイコン色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-btn2-icon-c" value="#000000">
+                                <input type="text" id="cfg-btn2-icon-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- pattern-settings-A -->
+                
+                <div id="pattern-settings-B" class="pattern-fields" style="display:none;">
+                    <div class="setting-column">
+                        <div class="column-label">左ボタン設定</div>
+                        <div class="form-group">
+                            <label>背景色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-b-btn1-bg" value="#ffffff">
+                                <input type="text" id="cfg-b-btn1-bg-val" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>枠線 (外枠)</label>
+                            <div class="color-picker-group">
+                                <input type="checkbox" id="cfg-b-btn1-border-on" onchange="updatePreview()">
+                                <input type="text" id="cfg-b-btn1-border-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-b-btn1-border-c" value="#eeeeee">
+                                <input type="text" id="cfg-b-btn1-border-c-val" value="#eeeeee">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>角丸 (radius)</label>
+                            <input type="text" id="cfg-b-btn1-radius" value="15px" style="width:60px;">
+                        </div>
+                        <div class="form-group">
+                            <label>角の装飾 (:before線)</label>
+                            <div class="color-picker-group">
+                                <input type="text" id="cfg-b-btn1-bef-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-b-btn1-bef-c" value="#000000">
+                                <input type="text" id="cfg-b-btn1-bef-c-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>文字色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-b-btn1-txt" value="#000000">
+                                <input type="text" id="cfg-b-btn1-txt-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>左アイコン色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-b-btn1-icon-c" value="#000000">
+                                <input type="text" id="cfg-b-btn1-icon-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="setting-column">
+                        <div class="column-label">右ボタン設定</div>
+                        <div class="form-group">
+                            <label>背景色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-b-btn2-bg" value="#ffffff">
+                                <input type="text" id="cfg-b-btn2-bg-val" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>枠線 (外枠)</label>
+                            <div class="color-picker-group">
+                                <input type="checkbox" id="cfg-b-btn2-border-on" onchange="updatePreview()">
+                                <input type="text" id="cfg-b-btn2-border-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-b-btn2-border-c" value="#eeeeee">
+                                <input type="text" id="cfg-b-btn2-border-c-val" value="#eeeeee">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>角丸 (radius)</label>
+                            <input type="text" id="cfg-b-btn2-radius" value="15px" style="width:60px;">
+                        </div>
+                        <div class="form-group">
+                            <label>角の装飾 (:before線)</label>
+                            <div class="color-picker-group">
+                                <input type="text" id="cfg-b-btn2-bef-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-b-btn2-bef-c" value="#000000">
+                                <input type="text" id="cfg-b-btn2-bef-c-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>文字色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-b-btn2-txt" value="#000000">
+                                <input type="text" id="cfg-b-btn2-txt-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>右アイコン色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-b-btn2-icon-c" value="#000000">
+                                <input type="text" id="cfg-b-btn2-icon-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- pattern-settings-B -->
+            
+                <div id="pattern-settings-C" class="pattern-fields" style="display:none;">
+                    <div class="setting-column">
+                        <div class="column-label">左ボタン設定 (C)</div>
+                        <div class="form-group">
+                            <label>背景色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn1-bg" value="#606060">
+                                <input type="text" id="cfg-c-btn1-bg-val" value="#606060">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>枠線 (外枠)</label>
+                            <div class="color-picker-group">
+                                <input type="checkbox" id="cfg-c-btn1-border-on">
+                                <input type="text" id="cfg-c-btn1-border-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-c-btn1-border-c" value="#eeeeee">
+                                <input type="text" id="cfg-c-btn1-border-c-val" value="#eeeeee">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>角丸 (radius)</label>
+                            <input type="text" id="cfg-c-btn1-radius" value="15px" style="width:60px;">
+                        </div>
+                        <div class="form-group">
+                            <label>角の装飾 (:before線)</label>
+                            <div class="color-picker-group">
+                                <input type="text" id="cfg-c-btn1-bef-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-c-btn1-bef-c" value="#000000">
+                                <input type="text" id="cfg-c-btn1-bef-c-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>下部曲線の色 (::after)</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn1-after" value="#ffffff">
+                                <input type="text" id="cfg-c-btn1-after-val" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>文字色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn1-txt" value="#333333">
+                                <input type="text" id="cfg-c-btn1-txt-val" value="#333333">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>左アイコン色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn1-icon-c" value="#000000">
+                                <input type="text" id="cfg-c-btn1-icon-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="setting-column">
+                        <div class="column-label">右ボタン設定 (C)</div>
+                        <div class="form-group">
+                            <label>背景色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn2-bg" value="#dedede">
+                                <input type="text" id="cfg-c-btn2-bg-val" value="#DEDEDE">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>枠線 (外枠)</label>
+                            <div class="color-picker-group">
+                                <input type="checkbox" id="cfg-c-btn2-border-on">
+                                <input type="text" id="cfg-c-btn2-border-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-c-btn2-border-c" value="#eeeeee">
+                                <input type="text" id="cfg-c-btn2-border-c-val" value="#eeeeee">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>角丸 (radius)</label>
+                            <input type="text" id="cfg-c-btn2-radius" value="15px" style="width:60px;">
+                        </div>
+                        <div class="form-group">
+                            <label>角の装飾 (:before線)</label>
+                            <div class="color-picker-group">
+                                <input type="text" id="cfg-c-btn2-bef-w" value="1px" style="width:40px;">
+                                <input type="color" id="cfg-c-btn2-bef-c" value="#000000">
+                                <input type="text" id="cfg-c-btn2-bef-c-val" value="#000000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>下部曲線の色 (::after)</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn2-after" value="#ffffff">
+                                <input type="text" id="cfg-c-btn2-after-val" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>文字色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn2-txt" value="#333333">
+                                <input type="text" id="cfg-c-btn2-txt-val" value="#333333">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>右アイコン色</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-c-btn2-icon-c" value="#000000">
+                                <input type="text" id="cfg-c-btn2-icon-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- pattern-settings-C -->
+            </div>
+        </div>
+
+        <div class="card-wrapper">
+            <h2 class="card-title">フッター固定メニュー</h2>
+            <div class="card">
+                <div class="card-sub-title">メニュー構成設定</div>
+                <p style="font-size: 0.75rem; color: #666; margin-bottom: 10px;"><i class="fa fa-grip-vertical"></i> をドラッグして順番を入れ替えられます。</p>
+                <div id="menu-list"></div>
+                <button class="btn btn-add" id="add-item"><i class="fa fa-plus"></i> 項目を追加する (最大5個)</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-sub-title">デザイン設定</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>背景色</label><div class="color-picker-group"><input type="color" id="cfg-bg" value="#f4c940"><input type="text" id="cfg-bg-val" value="#f4c940"></div></div>
+                    <div class="form-group"><label>文字色</label><div class="color-picker-group"><input type="color" id="cfg-txt" value="#ffffff"><input type="text" id="cfg-txt-val" value="#ffffff"></div></div>
+                    <div class="form-group"><label>アイコン色</label><select id="cfg-icon-choice" onchange="updatePreview()"><option value="white" selected>白色 (#FFFFFF)</option><option value="black">黒色 (#000000)</option></select></div>
+                    <div class="form-group"><label>MY PAGE色</label><div class="color-picker-group"><input type="color" id="cfg-user-bg" value="#503b34"><input type="text" id="cfg-user-bg-val" value="#503b34"></div></div>
+                    <div class="form-group full-width"><label>公式サイトアイコンURL</label><input type="text" id="cfg-official-url" value="https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/OQuGHUMzZZ3yGuhaAFVm.png"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper">
+            <h2 class="card-title">フッターリストメニュー</h2>
+            <div class="card">
+                <div class="card-sub-title">表示パターン選択</div>
+                <div class="radio-group" style="display: flex; gap: 20px; margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <label style="cursor:pointer;"><input type="radio" name="list-pattern" value="A" checked onchange="updatePreview()"> パターンA (標準・下部配置)</label>
+                    <label style="cursor:pointer;"><input type="radio" name="list-pattern" value="B" onchange="updatePreview()"> パターンB (ハンバーガーメニュー)</label>
+                </div>
+                <div id="list-pattern-B-settings" style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                    <p style="font-size:12px; font-weight:bold; margin-bottom:5px;">ハンバーガーメニュー設定 (パターンBのみ)</p>
+                    <div class="form-group">
+                        <label>線の色 (通常)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-ham-line-c" value="#333333">
+                            <input type="text" id="cfg-ham-line-val" value="#333333">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>線の色 (開いている時)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-ham-line-active-c" value="#333333">
+                            <input type="text" id="cfg-ham-line-active-val" value="#333333">
+                        </div>
+                    </div>
+                </div>
+                <h3 class="card-sub-title">メニューリスト設定 (.menu-sublist)</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>リスト背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-list-bg" value="#ffffff">
+                            <input type="text" id="cfg-list-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-list-txt" value="#333333">
+                            <input type="text" id="cfg-list-txt-val" value="#333333">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>フォントサイズ</label>
+                        <input type="text" id="cfg-list-size" value="13px" style="width:60px;" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>区切り線 (border-top)</label>
+                        <div class="color-picker-group">
+                            <input type="checkbox" id="cfg-list-border-on" checked onchange="updatePreview()">
+                            <input type="text" id="cfg-list-border-w" value="2px" style="width:40px;">
+                            <input type="color" id="cfg-list-border-c" value="#a9a9a9">
+                            <input type="text" id="cfg-list-border-c-val" value="#A9A9A92B">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper">
+            <h2 class="card-title">スタンプ帳デザイン</h2>
+            <div class="card">
+                <div class="card-sub-title">カード全体設定</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>カード背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-st-card-bg" value="#ffffff">
+                            <input type="text" id="cfg-st-card-bg-val" value="#FFFFFF">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>枠線・装飾設定 (外枠・内線・ラベル共通カラー)</label>
+                        <div class="color-picker-group">
+                            <input type="checkbox" id="cfg-st-border-on" checked onchange="updatePreview()">
+                            <input type="text" id="cfg-st-border-w" value="1px" style="width:40px;" oninput="updatePreview()">
+                            <input type="color" id="cfg-st-border-c" value="#000000">
+                            <input type="text" id="cfg-st-border-c-val" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>内線の太さ (outline)</label>
+                        <input type="text" id="cfg-st-outline-w" value="1.3px" style="width:60px;" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>角丸 (radius)</label>
+                        <input type="text" id="cfg-st-radius" value="16px" style="width:60px;" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>カード透かし画像URL (右下ロゴ)</label>
+                        <input type="text" id="cfg-st-watermark-url" value="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" oninput="updatePreview()">
+                    </div>
+                </div>
+        
+                <div class="card-sub-title" style="margin-top:20px;">テキスト・ラベル・アイコン設定</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>タイトル・スタンプ獲得数 文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-st-txt-c" value="#000000">
+                            <input type="text" id="cfg-st-txt-c-val" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>有効期限ラベル 文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-st-due-txt-c" value="#000000">
+                            <input type="text" id="cfg-st-due-txt-c-val" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>有効期限ラベル背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-st-label-bg" value="#ffffff">
+                            <input type="text" id="cfg-st-label-bg-val" value="#ffffff1c">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>有効期限ラベル角丸</label>
+                        <input type="text" id="cfg-st-label-radius" value="30px" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>獲得スタンプ枠色 (bタグ)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-st-icon-border" value="#000000">
+                            <input type="text" id="cfg-st-icon-border-val" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>スタンプアイコン色 (白・黒)</label>
+                        <select id="cfg-st-icon-choice" onchange="updatePreview()">
+                            <option value="white">白色 (#FFFFFF)</option>
+                            <option value="black" selected>黒色 (#000000)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper">
+            <h2 class="card-title">共通ボタン設定 (.page_button)</h2>
+            <div class="card">
+                <div class="card-sub-title">デザイン設定</div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ボタン背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-pgbtn-bg" value="#000000">
+                            <input type="text" id="cfg-pgbtn-bg-val" value="#000000">
+                        </div>
+                    </div>
+        
+                    <div class="form-group">
+                        <label>文字色 (span)</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-pgbtn-txt" value="#ffffff">
+                            <input type="text" id="cfg-pgbtn-txt-val" value="#FFFFFF">
+                        </div>
+                    </div>
+        
+                    <div class="form-group">
+                        <label>角丸 (radius)</label>
+                        <input type="text" id="cfg-pgbtn-radius" value="50px" oninput="updatePreview()">
+                    </div>
+        
+                    <div class="form-group">
+                        <label>枠線 (width color)</label>
+                        <div class="color-picker-group">
+                            <input type="checkbox" id="cfg-pgbtn-border-on" onchange="updatePreview()">
+                            <input type="text" id="cfg-pgbtn-border-w" value="2px" style="width:40px;" placeholder="太さ">
+                            <input type="color" id="cfg-pgbtn-border-c" value="#000000">
+                            <input type="text" id="cfg-pgbtn-border-c-val" value="#000000">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+            <div class="button-group" style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-generate" id="generate-btn" style="flex: 1;">配布用コードを生成する</button>    
+            </div>
+            <div style="margin-top: 40px;">
+                <div style="overflow: hidden;"><label style="font-weight: bold; color: var(--primary-color);">【1】JavaScriptコード</label><button class="btn btn-copy" onclick="copyText('out-js')">コピー</button></div>
+                <textarea id="out-js" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
+                <div style="overflow: hidden; margin-top: 25px;"><label style="font-weight: bold; color: var(--primary-color);">【2】CSSコード (styleタグ付)</label><button class="btn btn-copy" onclick="copyText('out-css')">コピー</button></div>
+                <textarea id="out-css" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
+            </div>
+            
+
+        </div>
+
+        <link rel="stylesheet" href="style.css">
+        <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/style_default.css" rel="stylesheet" />
+        <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/common.css" rel="stylesheet" />
+        <link rel="stylesheet" href="preview-footer.css">
+
+        <div class="preview-side">
+                <p style="font-weight: bold; margin-bottom: 15px; text-align: center;">UIプレビュー</p>
+                <div class="phone-mock">
+                    <div class="mock-screen">
+                        <header class="top">
+                            <h1 class="top">
+                                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/mBZlX5MLzWD2BISCQrHO.png" alt="Logo">
+                                <span>レストラントレタ</span>
+                            </h1>
+                        </header>
+                        <section class="content" style="margin-bottom: 0; padding-bottom: 80px;">
+                            <div class="top_button">
+                                <ul>
+                                    <li>
+                                        <a href="#">
+                                            <div class="button_img"><img src="https://toretastamp-stg.s3.amazonaws.com/static/front/images/stamp.svg"></div>
+                                            <div class="button_info">スタンプ帳</div>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#">
+                                            <div class="button_img"><img src="https://toretastamp-stg.s3.amazonaws.com/static/front/images/ticket.svg"></div>
+                                            <div class="button_info">チケット一覧</div>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="menu-sublist">
+                                <ul>
+                                    <li><a href="#">スタンプ履歴</a></li>
+                                    <li><a href="#">スタンプ/チケットの使い方</a></li>
+                                    <li><a href="#">自由にメニューを追加できます！</a></li>
+                                </ul>
+                            </div>
+                        </section>
+                    </div>
+                    <div id="preview-footer"><ul id="preview-ul"></ul></div>
+                </div>
+                <div style="margin: 10px auto 0; text-align: center;">
+                <button class="btn" id="reset-btn" style="margin: 0 auto; background-color: #6c757d; color: #fff; width: 120px; font-size: 12px;">設定リセット</button>
+                </div>
+    </div>
+
+</div><!-- main-wrapper -->
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script src="script.js"></script>
+</body>
+</html>

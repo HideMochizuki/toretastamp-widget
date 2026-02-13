@@ -1,0 +1,594 @@
+/* ==========================================
+   1. 変数とベース（基本設定）
+   ========================================== */
+   :root {
+    --primary-color: #8ace36;
+    --bg-color: #f8f9fa;
+    --border-color: #dee2e6;
+    --text-color: #212529;
+    --dark-bg: #2d2d2d;
+    --sidebar-width: 200px;
+}
+
+html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+body {
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+}
+/* トグルボタンのスタイル */
+.sidebar-toggle {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: #666;
+    cursor: pointer;
+    margin-right: 15px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+.sidebar-toggle:hover {
+    background-color: #f0f0f0;
+}
+
+/* サイドバーの初期状態とアニメーション */
+.sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border-color);
+    padding-top: 20px;
+    flex-shrink: 0;
+    transition: margin-left 0.3s ease; /* スライドのアニメーション */
+}
+
+/* サイドバーが閉じている時のスタイル */
+.sidebar.collapsed {
+    margin-left: calc(var(--sidebar-width) * -1);
+}
+
+/* ナビアイテムのテキストが折り返さないように */
+.nav-item {
+    white-space: nowrap;
+    overflow: hidden;
+}
+/* タイトルをクリック可能に */
+.card-wrapper .card-title {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none; /* テキスト選択を防止 */
+}
+
+/* 開閉の切り替え用クラス（カード本体を隠す） */
+.card-wrapper.collapsed .card {
+    display: none;
+}
+
+/* 状態を示すアイコンのスタイル */
+.card-title::after {
+    content: '\f068'; /* FontAwesome のマイナスアイコン (-) */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: #ccc;
+    transition: transform 0.3s;
+}
+
+/* 閉じている時はアイコンをプラスにする (+) */
+.card-wrapper.collapsed .card-title::after {
+    content: '\f067'; /* FontAwesome のプラスアイコン (+) */
+    color: var(--primary-color);
+}
+
+/* ==========================================
+   2. レイアウト（ヘッダー・サイドバー・メイン）
+   ========================================== */
+header.generator {
+    background: #fff;
+    padding: 10px 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 50px;
+    flex-shrink: 0;
+    z-index: 1000;
+}
+header.generator img { height: 30px; margin-right: 15px; }
+
+.app-container { display: flex; flex: 1; overflow: hidden; }
+
+/* サイドバー */
+.sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border-color);
+    padding-top: 20px;
+    flex-shrink: 0;
+}
+.nav-item {
+    display: flex; align-items: center; padding: 12px 20px;
+    color: #212529; text-decoration: none; font-size: 0.9rem; border-left: 4px solid transparent;
+}
+.nav-item i { margin-right: 10px; width: 20px; text-align: center; color: #6c757d; }
+.nav-item.active {
+    background: #f0f9e8; color: var(--primary-color); font-weight: bold; border-left-color: var(--primary-color);
+}
+
+/* コンテンツエリア */
+.main-wrapper { flex: 1; display: flex; margin-top: 50px; padding: 30px; gap: 30px; overflow-y: auto; }
+.config-side { flex: 1; min-width: 0; }
+.preview-side { width: 320px; position: sticky; top: 0; height: fit-content; }
+
+/* ==========================================
+   3. コンポーネント（カード・フォーム・ボタン）
+   ========================================== */
+/* カード */
+.card-wrapper {
+    background: #fff; border-radius: 8px; border: 1px solid var(--border-color);
+    padding: 25px; margin-bottom: 20px; width: 100%; display: inline-table;
+}
+.card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-bottom: 25px; }
+
+/* タイトル */
+h2.card-title { 
+    font-weight: bold; margin-bottom: 20px; border-left: 4px solid var(--primary-color); padding-left: 10px; font-size: 1.1rem;
+}
+.card-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
+.card-sub-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
+.column-label { font-size: 18px; font-weight: 700; margin: 0 0 15px 0; color: var(--primary-color); }
+
+/* フォーム部品 */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.form-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+.form-group label { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #666; }
+.full-width { grid-column: span 2; }
+
+input, select { padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem; outline: none; }
+input:focus { border-color: var(--primary-color); }
+input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
+
+/* カラーピッカー設定 */
+.color-picker-group {
+    display: flex; align-items: center; gap: 8px; background: #fff;
+    border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; width: fit-content; min-width: 160px;
+}
+.color-picker-group input[type="text"] { width: 80px; border: none; font-family: monospace; font-size: 0.9rem; padding: 0; }
+.color-picker-group input[type="color"] { width: 32px; height: 32px; border: none; padding: 0; background: none; cursor: pointer; }
+
+/* 正方形の「□」カラーピッカー用 */
+.custom-color-input {
+    width: 30px !important; height: 30px !important; padding: 0 !important;
+    border: 1px solid #dee2e6 !important; border-radius: 4px !important; cursor: pointer;
+}
+.custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.custom-color-input::-webkit-color-swatch { border: none; border-radius: 3px; }
+
+/* ボタン類 */
+.btn { padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
+.btn-add { background: #fff; border: 1px dashed var(--primary-color); color: var(--primary-color); width: 100%; margin-top: 10px; }
+.btn-generate { background: var(--primary-color); color: #fff; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 20px; }
+.btn-copy { background: #6c757d; color: #fff; font-size: 0.75rem; padding: 5px 12px; float: right; margin-bottom: 5px; }
+.btn-remove { position: absolute; top: 10px; right: 10px; background: none; border: none; color: #666666; cursor: pointer; }
+.top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none;}
+.mock-screen.pattern-A .top_button ul li .button_img { width: 50%;}
+.mock-screen.pattern-B .top_button ul li .button_img { width: 35%;}
+.mock-screen.pattern-B .button_info { padding: 0;}
+/* Bパターン: 疑似要素の共通土台 */
+.mock-screen.pattern-B .top_button ul li {
+    position: relative;
+}
+.mock-screen.pattern-B .top_button ul li:before {
+    content: ""; 
+    position: absolute;
+    right: 10px;
+    top: 46%;
+    width: 7px;
+    height: 7px;
+    z-index: 1;
+    transform: rotateZ(-45deg);
+}
+/* Bパターン: レイアウトを横並びにする */
+.mock-screen.pattern-B .top_button ul li a {
+    display: flex;
+    flex-direction: row; /* 横並び */
+    align-items: center;
+    padding: 15px 10px;
+}
+/* 出力エリア */
+.output-area { 
+    width: 100%; height: 180px !important; display: block; font-family: 'Courier New', monospace; 
+    font-size: 0.8rem; background: var(--dark-bg); color: #f8f8f2; padding: 15px; border-radius: 4px; resize: vertical; box-sizing: border-box; 
+}
+
+/* ==========================================
+   4. フッターメニュー編集（Sortable用）
+   ========================================== */
+.menu-item { background: #fdfdfd; border: 1px solid #eee; padding: 15px 15px 15px 40px; border-radius: 5px; margin-bottom: 15px; position: relative; }
+.sortable-ghost { opacity: 0.4; background: #e9ecef; border: 1px dashed var(--primary-color); }
+.drag-handle { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); cursor: grab; color: #ccc; font-size: 1.2rem; padding: 10px 5px; }
+.menu-item-header { font-weight: bold; margin-bottom: 10px; color: #666; font-size: 0.8rem; }
+
+/* ==========================================
+   5. パターン別詳細設定（レイアウト用）
+   ========================================== */
+.pattern-fields {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    margin-top: 15px; border-top: 1px dashed #dee2e6; padding-top: 20px;
+}
+.setting-column {
+    background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #eee;
+}
+.setting-column:nth-child(1) { background-color: #f9fff0; } /* 左: 薄緑 */
+.setting-column:nth-child(2) { background-color: #f0f7ff; } /* 右: 薄青 */
+
+/* ==========================================
+   6. UIプレビュー専用（mock-screen内）
+   ========================================== */
+   .phone-mock { 
+    width: 300px; height: 550px; background: #fff; border: 12px solid #333; border-radius: 35px; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); margin: 0 auto; 
+}
+.mock-screen { padding: 0; height: 100%; box-sizing: border-box; background: #fff; overflow-y: auto; }
+.mock-screen header.top img { height: auto; max-width: 80%; }
+.mock-screen .top_button ul { 
+    padding: 0 10px; 
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: space-between; 
+    list-style: none;
+    margin: 0;
+}
+.mock-screen a { 
+    pointer-events: none; 
+    text-decoration: none; 
+}
+
+/* JavaScriptから操作可能にするためのクラス */
+.mock-screen a.clickable,
+.mock-screen li.clickable {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+.mock-screen section.content { padding-top: 20px; }
+
+/* プレビュー画面内の仮想ヘッダー専用スタイル */
+.mock-header-v2 {
+    position: absolute !important; /* スマホ枠内に閉じ込める */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    background-color: #ffffff !important; /* 背景は常に白 */
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* 巨大化したロゴを適正サイズにする */
+.mock-header-v2 h1 {
+    margin: 0;
+    line-height: 0;
+}
+
+.mock-header-v2 h1 img {
+    height: 35px !important; /* 1枚目の写真に近い高さに固定 */
+    width: auto !important;   /* 横幅は自動計算 */
+    max-width: 80%;
+    object-fit: contain;
+}
+
+/* ヘッダーの後ろにコンテンツが潜り込まないための余白 */
+.mock-headermargin-v2 {
+    height: 50px;
+    width: 100%;
+}
+
+/* プレビュー内のリストメニュー（スタンプ履歴など）の基本位置調整 */
+.mock-screen .menu-sublist {
+    margin-top: 20px;
+    padding-bottom: 80px; /* 下部ボタンやメニューに被らないための余白 */
+}
+.mock-screen .menu-sublist > li:first-child > a:first-child  {
+    border-top:none ;
+}
+/* モック内スライダーの基盤 */
+.phone-mock .header-slider-wrap {
+    position: relative;
+    width: 100%;
+    z-index: 1; /* ヘッダー(z-index:20)より下に配置 */
+    overflow: hidden;
+    /* ヘッダーの下に潜り込ませるためのネガティブマージン */
+    margin-top: -50px; 
+    background-color: #eee; /* 画像読み込み前の背景色 */
+}
+.phone-mock .menu-sublist > ul > li {
+    padding: 0 5px;
+    margin: 0;
+}
+.phone-mock .menu-sublist > ul > li a {
+    padding: 20px 5px;
+}
+
+.phone-mock .header-slider {
+    width: 100%;
+    height: 100%;
+    display: flex;
+}
+
+.phone-mock .header-slide {
+    width: 100%;
+    height: 100%;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.phone-mock header > h1 {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+/* ヘッダー文字の視認性確保（Bパターンの時用） */
+.phone-mock header.top h1 span {
+   
+}
+
+/* モック内のコンテンツエリアの重なり順調整 */
+.phone-mock .content {
+    position: relative;
+    z-index: 2; /* スライダー(z-index:1)より上に配置 */
+    background: transparent; /* 背景色は.mock-screen側で塗る */
+}
+
+
+/* =================================================================
+   ★追加：ハンバーガーメニュー (パターンB) & フッター調整用スタイル
+   ================================================================= */
+
+/* --- 重要：親要素の制限解除（メニューが暗くならないように） --- */
+.phone-mock .content {
+    position: static !important;
+    z-index: auto !important;
+}
+
+/* --- 1. ハンバーガーボタン --- */
+.phone-mock .hamburger-btn {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    width: 28px !important;
+    height: 20px !important;
+    cursor: pointer;
+    z-index: 10001 !important; /* 最前面 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.phone-mock .hamburger-btn span {
+    display: block;
+    height: 3px;
+    background: #333; 
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.phone-mock .hamburger-btn.active span {
+    background: #3c3c3c !important;
+}
+.phone-mock .hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+.phone-mock .hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+.phone-mock .hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* --- 2. メニュー本体 (.menu-sublist) --- */
+.phone-mock .menu-sublist.pattern-B {
+    position: absolute !important;
+    top: 0 !important;
+    right: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 70px 20px 40px !important;
+    box-sizing: border-box !important;
+    
+    /* Overlay(9999)より上に配置 */
+    z-index: 10000 !important; 
+    
+    transition: right 0.35s ease-in-out !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow-y: auto !important;
+    
+    display: block !important; 
+    background-color: #fff !important; /* 白背景を強制 */
+}
+
+.phone-mock .menu-sublist.pattern-B.open {
+    right: 0 !important;
+}
+
+.phone-mock .menu-sublist.pattern-B ul li a {
+    border-top: 1px solid rgba(0,0,0,0.1) !important;
+}
+
+/* --- 3. フッター固定メニューの表示順序調整（重要） --- */
+/* これを追加することで、消えていたフッターが復活します */
+#preview-footer {
+    position: relative;
+    z-index: 10 !important; 
+}
+
+/* --- 4. 黒い半透明背景 (オーバーレイ) --- */
+.phone-mock .menu-overlay {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0,0,0,0.6) !important;
+    z-index: 9999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+.phone-mock .menu-overlay.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+
+
+/* -------------------------------------------
+   Bパターン専用: 横並び ＋ 右端矢印
+   ------------------------------------------- */
+.mock-screen.pattern-B .top_button ul li {
+    position: relative;
+}
+
+/* 矢印（＞）の定義：Bパターン専用 */
+.mock-screen.pattern-B .top_button ul li:before {
+    content: "";
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    right: 12px; /* 右端に固定 */
+    top: 50%;
+    margin-top: -4px;
+    z-index: 3;
+    left: auto; /* leftを強制リセット */
+}
+
+.mock-screen.pattern-B .top_button ul li a {
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    padding: 15px 10px;
+}
+.mock-screen.pattern-B .button_img { width: 30px; margin-right: 10px; }
+.mock-screen.pattern-B .button_info { padding: 0; text-align: left; }
+
+/* -------------------------------------------
+   Cパターン専用: 縦並び ＋ 右端矢印 ＋ 下部曲線
+   ------------------------------------------- */
+.mock-screen.pattern-C .top_button ul li {
+    position: relative;
+    overflow: hidden; /* 曲線の切り抜き */
+}
+
+/* 矢印（＞）の定義：Cパターン専用 */
+.mock-screen.pattern-C .top_button ul li:before {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    right: 15px; /* 右端に固定 */
+    top: 40%; /* 曲線とのバランスを見て配置 */
+    z-index: 3;
+    left: auto; /* leftを強制リセット */
+    transform: rotateZ(-45deg);
+}
+
+/* 下部曲線（After）：Cパターン専用 */
+.mock-screen.pattern-C .top_button ul li:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 40%;
+    clip-path: ellipse(70% 90% at 50% 100%);
+    z-index: 1;
+}
+
+.mock-screen.pattern-C .top_button ul li a {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    padding: 15px 10px 0;
+    z-index: 2; /* 曲線(1)より上で装飾(3)より下 */
+    position: relative;
+}
+
+.mock-screen.pattern-C .button_img {
+    height: 25px;
+    margin-bottom: 5px;
+}
+.mock-screen.pattern-C .button_img img {
+    width: 35px;
+}
+.mock-screen.pattern-C .top_button > ul > li:nth-child(2n) .button_img img {
+    width: 47px;
+    padding: 10px 0 0 0;
+}
+
+.mock-screen.pattern-C .button_info {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 20px 0 10px;
+    text-align: center;
+    width: 100%;
+}
+
+/* ==========================================
+   7. レスポンシブ対応（スマホ・タブレット）
+   ========================================== */
+
+/* 画面幅が1024px以下になった時の挙動 */
+@media screen and (max-width: 1024px) {
+    /* メインの包み要素を縦並びにする */
+    .main-wrapper {
+        flex-direction: column;
+        padding: 15px;
+        gap: 20px;
+        overflow-y: auto;
+    }
+
+    /* 設定側の幅を100%に */
+    .config-side {
+        width: 100%;
+        flex: none;
+    }
+
+    /* プレビュー側の固定(sticky)を解除して、下に配置する */
+    .preview-side {
+        width: 100%;
+        position: static; /* stickyを解除 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 30px;
+        border-top: 2px dashed var(--border-color);
+        margin-top: 20px;
+    }
+
+    /* スマホで見やすくするためにモックのサイズを少し調整（任意） */
+    .phone-mock {
+        margin: 0 auto;
+        zoom: 0.9; /* 画面からはみ出す場合は倍率で調整 */
+    }
+}
+
+/* サイドバー開閉時のメインエリアの挙動調整 */
+.sidebar.collapsed + .main-wrapper {
+    width: 100%;
+}
+
+
+/* ---------------------------------- */
