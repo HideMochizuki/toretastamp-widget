@@ -824,33 +824,34 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
 
-    // ★アイコンの色変更 (Drop-shadow Hack)
-    // 画像を横にずらして、その「影」を指定した色で元の位置に落とすテクニックです。
-    // これならS3などの外部画像でもCORS制限にかからず色を変えられます。
+    // ★アイコン色変更 (iOS対応版 Drop-shadow Hack)
     const imgDiv = el.querySelector('.button_img');
     const img = el.querySelector('img');
 
     if (imgDiv && img) {
-        // 親枠の設定：はみ出した「元の画像」を隠すために overflow: hidden
+        // 親枠の設定：iOSでの描画バグを防ぐため translateZ(0) を追加
         imgDiv.style.width = '60px';
         imgDiv.style.height = '60px';
+        imgDiv.style.position = 'relative'; // 基準位置にする
         imgDiv.style.overflow = 'hidden';
-        imgDiv.style.backgroundColor = 'transparent'; // 背景色は消す
-        imgDiv.style.webkitMask = 'none'; // マスク設定を解除
+        imgDiv.style.backgroundColor = 'transparent';
+        imgDiv.style.webkitMask = 'none';
         imgDiv.style.mask = 'none';
+        imgDiv.style.transform = 'translateZ(0)'; // iOS描画対策
 
-        // 画像の設定：元の画像を左(-60px)に飛ばし、右(+60px)に色付きの影を落とす
+        // 画像の設定：transformではなくleftで移動させる
         img.style.width = '60px';
         img.style.height = '60px';
         img.style.opacity = '1';
+        img.style.position = 'absolute'; // 絶対配置
+        img.style.left = '-60px'; // 左にずらす
+        img.style.top = '0';
+        img.style.transform = 'none'; // transformは解除
         
-        // 指定した色（iconColor）の影を作る
+        // 影を落とす
         const filterVal = `drop-shadow(60px 0 0 ${iconColor})`;
         img.style.filter = filterVal;
-        img.style.webkitFilter = filterVal; // Safari/Chrome用
-        
-        // 位置をずらす（元の画像は見えなくなり、影だけが中央に来る）
-        img.style.transform = 'translateX(-60px)';
+        img.style.webkitFilter = filterVal;
     }
 }
 
