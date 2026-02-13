@@ -824,34 +824,41 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
 
-    // ★アイコン色変更 (iOS対応版 Drop-shadow Hack)
+    // ★アイコン色変更 (iOS完全対応版 Drop-shadow)
     const imgDiv = el.querySelector('.button_img');
     const img = el.querySelector('img');
 
     if (imgDiv && img) {
-        // 親枠の設定：iOSでの描画バグを防ぐため translateZ(0) を追加
+        // 親枠の設定
         imgDiv.style.width = '60px';
         imgDiv.style.height = '60px';
-        imgDiv.style.position = 'relative'; // 基準位置にする
         imgDiv.style.overflow = 'hidden';
+        imgDiv.style.position = 'relative'; // 必須
         imgDiv.style.backgroundColor = 'transparent';
         imgDiv.style.webkitMask = 'none';
         imgDiv.style.mask = 'none';
-        imgDiv.style.transform = 'translateZ(0)'; // iOS描画対策
 
-        // 画像の設定：transformではなくleftで移動させる
+        // 画像の設定
         img.style.width = '60px';
         img.style.height = '60px';
         img.style.opacity = '1';
-        img.style.position = 'absolute'; // 絶対配置
-        img.style.left = '-60px'; // 左にずらす
+        img.style.position = 'absolute';
         img.style.top = '0';
-        img.style.transform = 'none'; // transformは解除
+        img.style.left = '0'; // 枠の中に一旦置く
+        img.style.display = 'block';
         
-        // 影を落とす
-        const filterVal = `drop-shadow(60px 0 0 ${iconColor})`;
-        img.style.filter = filterVal;
-        img.style.webkitFilter = filterVal;
+        // ★iOS対策の肝：GPU描画を強制し、transformで移動させる
+        // 左に60pxズラして、右に60pxの影を落とす
+        const shadow = `drop-shadow(60px 0 0 ${iconColor})`;
+        img.style.filter = shadow;
+        img.style.webkitFilter = shadow;
+        
+        // 3D変換を使ってGPUレイヤーに乗せる（描画欠け防止）
+        img.style.transform = 'translate3d(-60px, 0, 0)';
+        img.style.webkitTransform = 'translate3d(-60px, 0, 0)';
+        
+        // ブラウザへのヒント
+        img.style.willChange = 'filter, transform';
     }
 }
 
