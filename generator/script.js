@@ -814,50 +814,53 @@ function applyCurrentDesignToMock() {
     }
 }
 
+
 function apply(el, bg, on, bw, bc, tx, iconColor) {
     if(!el) return;
     
     // ボタン自体のスタイル
     el.style.backgroundColor = bg;
     el.style.setProperty('border', on ? `${bw} solid ${bc}` : 'none', 'important');
-    // iOS対策: 親要素にもGPU描画を強制
+    // iOS対策：GPU描画強制
     el.style.transform = 'translateZ(0)'; 
     
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
 
-    // ★アイコン色変更 (iOS完全対応・Flexbox潰れ防止版)
+    // ★アイコン色変更 (iOS決定版: Clip-Path方式)
     const imgDiv = el.querySelector('.button_img');
     const img = el.querySelector('img');
 
     if (imgDiv && img) {
-        // 親枠(.button_img)の設定：絶対に60pxから動かさない設定
-        // cssTextを使って既存のスタイルを確実に上書きします
+        // 親枠の設定：overflow:hiddenの代わりにclip-pathを使う
         imgDiv.style.cssText = `
             width: 60px !important;
             height: 60px !important;
-            min-width: 60px !important; /* 縮小防止 */
-            min-height: 60px !important;
-            flex: 0 0 60px !important; /* Flexboxでの縮小を禁止 */
+            min-width: 60px !important;
+            flex: 0 0 60px !important;
             position: relative !important;
-            overflow: hidden !important;
             background: transparent !important;
-            transform: translateZ(0); /* iOS GPU */
-            margin: 0 auto; /* 中央寄せ */
+            transform: translateZ(0);
+            margin: 0 auto;
             -webkit-mask: none !important;
             mask: none !important;
+            /* ★ここが変更点：overflowをやめてclip-pathにする */
+            overflow: visible !important;
+            clip-path: inset(0px);
+            -webkit-clip-path: inset(0px);
         `;
 
-        // 画像(.button_img img)の設定
-        // 左(-60px)に飛ばして、同じ色の影を元の場所(0,0)に落とす
+        // 画像の設定
         img.style.cssText = `
-            width: 60px !important;
-            height: 60px !important;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
             position: absolute !important;
             top: 0; left: 0;
             opacity: 1 !important;
-            transform: translate3d(-60px, 0, 0);
-            -webkit-transform: translate3d(-60px, 0, 0);
+            /* 左に飛ばして、右に影を落とす */
+            transform: translateX(-100%);
+            -webkit-transform: translateX(-100%);
             filter: drop-shadow(60px 0 0 ${iconColor}) !important;
             -webkit-filter: drop-shadow(60px 0 0 ${iconColor}) !important;
         `;
