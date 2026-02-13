@@ -1268,6 +1268,7 @@ function getPageBtnCSS() {
 // --- メイン処理: 生成ボタンクリック時の動作 ---
 document.getElementById('generate-btn').onclick = () => {
     
+    // ... (既存の背景色取得や switchNoticePattern などの処理) ...
     // 生成前に最新状態を強制反映
     updatePreview(); 
 
@@ -1279,8 +1280,6 @@ document.getElementById('generate-btn').onclick = () => {
     const isBtnAreaNone = document.getElementById('cfg-btn-area-bg-none').checked;
     const btnAreaColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
 
-
-
     // 各パーツのCSS生成
     const bodyBgCSS = getBodyBgCSS();
     const btnPattern = document.querySelector('input[name="btn-pattern"]:checked').value;
@@ -1288,7 +1287,8 @@ document.getElementById('generate-btn').onclick = () => {
     const headerCSS = getHeaderCSS();
     const stampPageCSS = getStampPageCSS();
     const pageBtnCSS = getPageBtnCSS();
-    
+    const noticeCSS = getNoticeCSS(); // お知らせCSS
+
     // フッターメニュー設定
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
     const listBorderOn = document.getElementById('cfg-list-border-on').checked;
@@ -1303,42 +1303,352 @@ document.getElementById('generate-btn').onclick = () => {
     ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
 }`;
 
-
-
-
-// --- 【1】JavaScriptコードの組み立て ---
-const menuItems = getMenuItems();
+    // ハンバーガーメニューの色設定を取得
+    const hamLineColor = getV('cfg-ham-line-val');
+    const hamActiveColor = getV('cfg-ham-line-active-val');
+    const listPattern = document.querySelector('input[name="list-pattern"]:checked').value;
     
-// ★追加：パターンB（ハンバーガー）が選ばれているか確認
-const listPattern = document.querySelector('input[name="list-pattern"]:checked').value;
-let hamburgerScript = "";
+    // 追加するCSS
+    let hamburgerCSS = "";
+    if (listPattern === 'B') {
+        hamburgerCSS = `
+/* ハンバーガーボタンの色設定 */
+.hamburger-btn span { background-color: ${hamLineColor} !important; }
+.hamburger-btn.active span { background-color: ${hamActiveColor} !important; }
+`;
+    }
 
-// パターンBの場合のみ、ハンバーガーメニュー用スクリプトを追加
-if (listPattern === 'B') {
-    hamburgerScript = `
+    // ★★★【追加】フッターアイコン画像のCSS生成 ★★★
+    let footerIconCSS = "";
+    // iconImagesオブジェクト（script.js上部で定義済み）をループしてCSSを作る
+    Object.keys(iconImages).forEach(key => {
+        let url = iconImages[key];
+        // officialの場合は入力欄の値を使う
+        if (key === 'official') {
+            url = getV('cfg-official-url');
+        }
+        // CSS生成: .home .icon { background-image: ... }
+        footerIconCSS += `#sp-fixed-menu li.${key} .icon { background-image: url('${url}'); }\n`;
+    });
+    // ★★★ 追加ここまで ★★★
+
+
+    // --- 【1】JavaScriptコードの組み立て ---
+    const menuItems = getMenuItems();
+    const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
+    
+    // ★追加：ヘッダーBパターン用の超長スクリプト
+    let headerBScript = "";
+    if (headerPattern === 'B') {
+        headerBScript = `
+    /* お知らせ・スライダー機能 (Header Pattern B) */
+    $(window).on('load', function () {
+    setTimeout(function () {
+    /* ======================================================
+        ★ スライダー処理
+    ====================================================== */
+    function buildSlider() {
+    $('.header-slider-wrap, .header-dots-wrap, .header-slider, .header-slide').remove();
+    if ($('.header-slider-wrap').length === 0) {
+        $('header.top').after(\`
+        <div class="header-slider-wrap">
+            <div class="header-slider"></div>
+        </div>
+        <div class="header-dots-wrap">
+            <div class="header-dots"></div>
+        </div>
+        \`);
+    }
+    let carouselImages = [];
+    let carouselLinks = [];
+    $('.notice_list dt').each(function () {
+    const text = $(this).text().trim();
+    if (text.includes('↔️')) {
+        const cleaned = text.replace('↔️', '').trim();
+        const $notice = $(this).closest('.notice_list');
+        const imgSrc = $notice.find('p img').attr('src');
+        if (imgSrc) carouselImages.push(imgSrc);
+        let link = null;
+        const href = $notice.find('a').attr('href') || null;
+        if (/^https?:\\/\\/[^\\s]+$/i.test(cleaned)) {
+            link = cleaned;
+        }
+        else if (cleaned === "リンクあり") {
+            link = href;
+        }
+        else {
+            link = null;
+        }
+        carouselLinks.push(link);
+        $notice.hide();
+    }
+    });
+    if (carouselImages.length === 1) {
+        $('.header-dots-wrap').hide();
+    }
+    if (carouselImages.length === 0) return;
+    const $wrap = $('.header-slider-wrap');
+    const $slider = $('.header-slider');
+    $wrap.css('height', '380px');
+    $slider.html("");
+    let index = 1;
+    if (carouselImages.length === 1) {
+        const bg = carouselImages[0];
+        const link = carouselLinks[0];
+        if (link) {
+        $slider.html(\`<a href="\${link}" class="header-slide" style="background-image:url('\${bg}')"></a>\`);
+        } else {
+        $slider.html(\`<div class="header-slide" style="background-image:url('\${bg}')"></div>\`);
+        }
+        return;
+    }
+    const loopImages = [
+        carouselImages[carouselImages.length - 1],
+        ...carouselImages,
+        carouselImages[0]
+    ];
+    const loopLinks = [
+        carouselLinks[carouselLinks.length - 1],
+        ...carouselLinks,
+        carouselLinks[0]
+    ];
+    loopImages.forEach((src, i) => {
+        const link = loopLinks[i];
+        if (link) {
+        $slider.append(\`<a href="\${link}" class="header-slide" style="background-image:url('\${src}')"></a>\`);
+        } else {
+        $slider.append(\`<div class="header-slide" style="background-image:url('\${src}')"></div>\`);
+        }
+    });
+    const total = loopImages.length;
+    function clampIndex() {
+        if (index < 0) index = 1;
+        if (index > total - 1) index = total - 2;
+    }
+    function applyTransform() {
+        clampIndex();
+        $slider.css('transform', \`translateX(-\${index * 100}%)\`);
+    }
+    $slider.css({ transition: 'none', transform: \`translateX(-\${index * 100}%)\` });
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+        applyTransform();
+        });
+    });
+    setTimeout(() => {
+        $slider.css('transition', 'transform 0.8s ease-in-out');
+    }, 30);
+    let dotsHtml = '';
+    carouselImages.forEach((_, i) => {
+        dotsHtml += \`<span class="dot" data-index="\${i}"></span>\`;
+    });
+    $('.header-dots').html(dotsHtml);
+    function updateDots() {
+        const realIndex = (index - 1 + carouselImages.length) % carouselImages.length;
+        $('.header-dots .dot').removeClass('active');
+        $(\`.header-dots .dot[data-index="\${realIndex}"]\`).addClass('active');
+    }
+    updateDots();
+    if (window.__sliderTimer) clearInterval(window.__sliderTimer);
+    window.__sliderTimer = setInterval(() => {
+        index++;
+        clampIndex();
+        applyTransform();
+        updateDots();
+    }, 3500);
+    $slider.on('transitionend', function () {
+        if (index === total - 1) {
+        $slider.css('transition', 'none');
+        index = 1;
+        applyTransform();
+        setTimeout(() => {
+            $slider.css('transition', 'transform 0.8s ease-in-out');
+        }, 30);
+        }
+        clampIndex();
+    });
+    if (carouselImages.length >= 2) {
+        let startX = 0, currentX = 0, isDragging = false;
+        $wrap.on('touchstart', function (e) {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        $slider.css('transition', 'none');
+        });
+        $wrap.on('touchmove', function (e) {
+        if (!isDragging) return;
+        currentX = e.touches[0].clientX;
+        let diff = currentX - startX;
+        $slider.css('transform', \`translateX(calc(-\${index * 100}% + \${diff}px))\`);
+        });
+        $wrap.on('touchend', function () {
+        if (!isDragging) return;
+        isDragging = false;
+        let diff = currentX - startX;
+        if (diff > 50) index--;
+        else if (diff < -50) index++;
+        $slider.css('transition', 'transform 0.3s ease');
+        clampIndex();
+        applyTransform();
+        updateDots();
+        });
+    }
+    }
+    buildSlider();
+    $('.notice_list dt').each(function () {
+        const text = $(this).text().trim();
+        const $dl = $(this).closest('dl');
+        const $a = $(this).closest('a');
+        const isNoTitle = (text === 'タイトル無し' || text === '');
+        const isURL = /^https?:\\/\\/[^\\s]+$/i.test(text);
+        if (isNoTitle) {
+        $dl.hide().addClass('hidden-dl-force');
+        } else if (isURL) {
+        let url = text;
+        if (!url.includes('?') && !url.includes('#') && !url.endsWith('/')) {
+            url += '/';
+        }
+        $a.attr({
+            href: url,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+        });
+        $(this).text('');
+        $dl.hide().addClass('hidden-dl-force');
+        }
+    });
+    $('.landing_title').each(function () {
+        const text = $(this).text().trim();
+        const $landingSet = $(this).closest('.landing_set');
+        const isNoTitle = (text === 'タイトル無し' || text === '');
+        const isURL = /^https?:\\/\\/[^\\s]+$/i.test(text);
+        if (isNoTitle || isURL) {
+        $(this).hide().addClass('hidden-title-force');
+        $landingSet.css({
+            padding: '20px 0 10px 0'
+        }).addClass('adjusted-padding');
+        }
+    });
+    $('.notice_list dt').each(function () {
+        const text = $(this).text().trim();
+        if (text.includes('ℹ️')) {
+        const $notice = $(this).closest('.notice_list');
+        const $a = $notice.find('a');
+        const url = $a.attr('href');
+        const cleanText = text.replace('ℹ️', '').trim();
+        $('.top_button').before(\`
+            <div class="info-banner">
+            <a href="\${url}" rel="noopener noreferrer">
+                <p><span class="info-icon">i</span> \${cleanText}</p>
+            </a>
+            </div>
+        \`);
+        $notice.hide().addClass('hidden-info-notice');
+        }
+    });
+    $('.landing_title').each(function () {
+        const text = $(this).text().trim();
+        if (text.includes('ℹ️')) {
+        $(this).text(text.replace('ℹ️', '').trim());
+        }
+    });
+    $('.landing_title').each(function () {
+        const text = $(this).text().trim();
+        if (text.includes('↔️')) {
+        $(this).hide().addClass('hidden-slider-title');
+        $(this).closest('.landing_set')
+            .css({ padding: '20px 0 10px 0' })
+            .addClass('adjusted-padding');
+        }
+    });
+    $('.landing_title').each(function () {
+        if (!$(this).hasClass('hidden-title-force') &&
+            !$(this).hasClass('hidden-slider-title')) {
+        $(this).css('visibility', 'visible');
+        }
+    });
+    (function () {
+        $('.notice_list dt').each(function () {
+        const text = $(this).text().trim();
+        if (text.includes('↔️')) {
+            $(this).closest('.notice_list')
+            .hide()
+            .addClass('hidden-slider-notice');
+        }
+        });
+        let hasNormalNotice = false;
+        $('.notice_list dt').each(function () {
+        const text = $(this).text().trim();
+        if (!text.includes('↔️') && !text.includes('ℹ️') && text !== '' && text !== 'タイトル無し' && !/^https?:\\/\\/[^\\s]+$/i.test(text)) {
+            hasNormalNotice = true;
+        }
+        });
+        if (!hasNormalNotice) {
+        $('h3.titleh3:contains("お知らせ")').hide();
+        }
+    })();
+    (function () {
+        const currentTitle = document.title.trim();
+        const shouldReplace = currentTitle === "" || currentTitle === "タイトル無し" || currentTitle.includes("↔️") || currentTitle.includes("ℹ️");
+        if (shouldReplace) {
+            document.title = "お知らせ";
+        }
+    })();
+    $('.notice_list').each(function (i) {
+        const $el = $(this);
+        setTimeout(function () {
+        $el.addClass('show');
+        }, i * 100);
+    });
+    $('.landing_set').css('opacity', 0);
+    $('.landing_note').css('opacity', 0);
+    setTimeout(function () {
+        $('.landing_set').each(function (i) {
+        const $set = $(this);
+        const $note = $set.find('.landing_note');
+        setTimeout(function () {
+            $set.css('opacity', 1);
+            $note.css('opacity', 1);
+        }, i * 120);
+        });
+    }, 30);
+    window.addEventListener("pageshow", function(event) {
+        if (event.persisted) {
+        console.log("🔥 BFCache 復元 → スライダー再構築発動");
+        $('.header-slider-wrap').remove();
+        $('.header-dots-wrap').remove();
+        $('.header-slider').remove();
+        $('.header-slide').remove();
+        setTimeout(() => {
+            buildSlider();
+        }, 100);
+        }
+    });
+    }, 300);
+    });
+    `;
+    }
+
+    let hamburgerScript = "";
+    if (listPattern === 'B') {
+        hamburgerScript = `
 /* ハンバーガー機能 */
 $(function() {
-// body に追加
 $('body').append('<div class="hamburger-btn"><span></span><span></span><span></span></div>');
 $('body').append('<div class="menu-overlay"></div>');
-
-// 開閉制御
 $('.hamburger-btn').on('click', function() {
     $(this).toggleClass('active');
     $('.menu-sublist').toggleClass('open');
     $('.menu-overlay').toggleClass('show');
 });
-
-// 背景クリックで閉じる
 $('.menu-overlay').on('click', function() {
     $('.hamburger-btn').removeClass('active');
     $('.menu-sublist').removeClass('open');
     $(this).removeClass('show');
 });
 });`;
-}
+    }
 
-const jsOutput = `<script>
+    const jsOutput = `<script>
 window.onload = () => {
 const menuItems = ${JSON.stringify(menuItems.map(item => ({
     class: item.class,
@@ -1356,19 +1666,12 @@ const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listI
 document.body.insertAdjacentHTML('beforeend', footerHTML);
 };
 ${hamburgerScript}
+${headerBScript}
 <\/script>`;
-
-
-
-
-
-
-
-
 
     // --- 【2】CSSコードの組み立て ---
     const cssOutput = `<style type="text/css">
-* ページ全体の設定 */
+/* ページ全体の設定 */
 html, body { 
     background-color: ${bodyBgColor} !important;
     ${bodyBgCSS} 
@@ -1386,12 +1689,18 @@ ${headerCSS}
 ${subPageHeaderCSS}
 ${stampPageCSS}
 ${pageBtnCSS}
+${hamburgerCSS}
+${noticeCSS}
 
 /* フッター固定メニュー */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
 #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
+
+/* ★ここに生成したアイコンCSSを追加 */
+${footerIconCSS}
+
 #sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
 #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
 #sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
