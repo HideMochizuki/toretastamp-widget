@@ -820,47 +820,47 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
     // ボタン自体のスタイル
     el.style.backgroundColor = bg;
     el.style.setProperty('border', on ? `${bw} solid ${bc}` : 'none', 'important');
-    
-    // ★【重要】iOS対策：親要素(li)にGPU描画を強制させる呪文
-    // これがないと、iPhoneでアイコンの影が消えてしまいます
+    // iOS対策: 親要素にもGPU描画を強制
     el.style.transform = 'translateZ(0)'; 
     
     const info = el.querySelector('.button_info');
     if(info) info.style.setProperty('color', tx, 'important');
 
-    // ★アイコン色変更 (iOS完全対応版 Drop-shadow Hack)
+    // ★アイコン色変更 (iOS完全対応・Flexbox潰れ防止版)
     const imgDiv = el.querySelector('.button_img');
     const img = el.querySelector('img');
 
     if (imgDiv && img) {
-        // 親枠の設定
-        imgDiv.style.width = '60px';
-        imgDiv.style.height = '60px';
-        imgDiv.style.position = 'relative'; 
-        imgDiv.style.overflow = 'hidden';
-        imgDiv.style.backgroundColor = 'transparent';
-        imgDiv.style.webkitMask = 'none';
-        imgDiv.style.mask = 'none';
-        // 念のためここにも対策
-        imgDiv.style.transform = 'translateZ(0)';
+        // 親枠(.button_img)の設定：絶対に60pxから動かさない設定
+        // cssTextを使って既存のスタイルを確実に上書きします
+        imgDiv.style.cssText = `
+            width: 60px !important;
+            height: 60px !important;
+            min-width: 60px !important; /* 縮小防止 */
+            min-height: 60px !important;
+            flex: 0 0 60px !important; /* Flexboxでの縮小を禁止 */
+            position: relative !important;
+            overflow: hidden !important;
+            background: transparent !important;
+            transform: translateZ(0); /* iOS GPU */
+            margin: 0 auto; /* 中央寄せ */
+            -webkit-mask: none !important;
+            mask: none !important;
+        `;
 
-        // 画像の設定
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'contain';
-        img.style.opacity = '1';
-        img.style.position = 'absolute';
-        img.style.top = '0';
-        img.style.left = '0';
-        
-        // 影を落とす（左に60px移動し、右に60pxの影）
-        const shadow = `drop-shadow(60px 0 0 ${iconColor})`;
-        img.style.filter = shadow;
-        img.style.webkitFilter = shadow;
-        
-        // 画像本体を左に飛ばす
-        img.style.transform = 'translate3d(-60px, 0, 0)';
-        img.style.webkitTransform = 'translate3d(-60px, 0, 0)';
+        // 画像(.button_img img)の設定
+        // 左(-60px)に飛ばして、同じ色の影を元の場所(0,0)に落とす
+        img.style.cssText = `
+            width: 60px !important;
+            height: 60px !important;
+            position: absolute !important;
+            top: 0; left: 0;
+            opacity: 1 !important;
+            transform: translate3d(-60px, 0, 0);
+            -webkit-transform: translate3d(-60px, 0, 0);
+            filter: drop-shadow(60px 0 0 ${iconColor}) !important;
+            -webkit-filter: drop-shadow(60px 0 0 ${iconColor}) !important;
+        `;
     }
 }
 
