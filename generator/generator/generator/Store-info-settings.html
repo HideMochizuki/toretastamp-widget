@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>店舗情報設定 | オプション機能ジェネレーター</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="preview-footer.css">
+    <link rel="stylesheet" href="store-info.css"> 
+    <link rel="stylesheet" href="store-info-preview.css"> 
+
+    <style>
+        /* 店舗設定ページ専用の調整：index.htmlのレイアウトを維持するための補正 */
+        .data-input-area { 
+            width: 100%; 
+            height: 120px !important; 
+            font-family: monospace; 
+            font-size: 11px; 
+            background: #2d2d2d; 
+            color: #f8f8f2; 
+            padding: 15px; 
+            border-radius: 4px; 
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        /* プレビュー内の店舗ロゴが巨大化しないための強制上書き */
+        #store-preview-screen .logo-box {
+            width: 90px !important;
+            height: 90px !important;
+            min-width: 90px !important;
+            border-radius: 18px !important;
+            background: #fff;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+            margin: 0 auto !important;
+            overflow: hidden !important;
+        }
+        #store-preview-screen .menu_banner img {
+            width: 70% !important;
+            height: 70% !important;
+            object-fit: contain !important;
+        }
+    </style>
+</head>
+<body>
+
+<header class="generator">
+    <button id="sidebar-toggle" class="sidebar-toggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div style="font-weight: bold;">オプション機能ジェネレーター</div>
+</header>
+
+<div class="app-container">
+    <div class="sidebar">
+        <a href="index.html" class="nav-item"><i class="fa fa-home"></i> ホーム</a>
+        <a href="index.html" class="nav-item"><i class="fa fa-list"></i> トップページ設定</a>
+        <a href="store-info-settings.html" class="nav-item active"><i class="fa fa-store"></i> 店舗情報設定</a>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="config-side">
+            <div class="card-wrapper">
+                <h2 class="card-title">基本・スイッチ設定</h2>
+                <div class="card">
+                    <div class="form-group">
+                        <label>メインスイッチ</label>
+                        <select id="cfg-main-sw">
+                            <option value="1">ON (実行する)</option>
+                            <option value="2">OFF (停止)</option>
+                        </select>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>検索表示閾値 (店舗数)</label>
+                            <input type="number" id="cfg-search-thr" value="20">
+                        </div>
+                        <div class="form-group">
+                            <label>ブランド表示閾値</label>
+                            <input type="number" id="cfg-brand-thr" value="2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-wrapper">
+                <h2 class="card-title">店舗データ登録</h2>
+                <div class="card">
+                    <div class="form-group">
+                        <label>ブランドデータ (CSV形式)</label>
+                        <textarea id="cfg-brand-data" class="data-input-area" placeholder="brand_id,slug,name,logo,bg,description,url"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-top:20px;">
+                        <label>店舗データ (CSV形式)</label>
+                        <textarea id="cfg-shop-data" class="data-input-area" placeholder="id,brand_id,name,address,tel,lat,lng,menu,reserve,hours"></textarea>
+                    </div>
+                    <button class="btn btn-generate" onclick="applyDataToPreview()">プレビューに反映する</button>
+                </div>
+            </div>
+
+            <div class="card-wrapper">
+                <h2 class="card-title">配布用コード生成</h2>
+                <div class="card">
+                    <div style="overflow: hidden;">
+                        <label style="font-weight: bold; color: var(--primary-color);">生成されたコード</label>
+                        <button class="btn btn-copy" onclick="copyText('out-store-code')">コピー</button>
+                    </div>
+                    <textarea id="out-store-code" class="output-area" readonly placeholder="反映ボタンを押すと生成されます"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-side">
+            <p style="font-weight: bold; margin-bottom: 15px; text-align: center;">UIプレビュー</p>
+            <div class="phone-mock">
+                <div class="mock-screen" id="store-preview-screen">
+                    <div style="display:flex; align-items:center; justify-content:center; height:100%; color:#ccc; font-size:12px; text-align:center; padding:20px;">
+                        データを入力して<br>「反映ボタン」を押してください
+                    </div>
+                </div>
+            </div>
+            <div style="margin: 10px auto 0; text-align: center;">
+                <button class="btn" onclick="location.reload()" style="background-color: #6c757d; color: #fff; width: 120px; font-size: 12px;">設定リセット</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+/**
+ * 1. 共通UI動作（サイドバートグルとカード開閉）
+ * これにより index.html と全く同じ挙動になります
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // サイドバートグル
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    // カード開閉
+    const cardWrappers = document.querySelectorAll('.card-wrapper');
+    cardWrappers.forEach(wrapper => {
+        const title = wrapper.querySelector('h2.card-title');
+        if (title) {
+            title.addEventListener('click', () => {
+                wrapper.classList.toggle('collapsed');
+            });
+        }
+    });
+});
+
+/**
+ * 2. CSV解析ロジック
+ */
+function parseCSV(csvText) {
+    if (!csvText || !csvText.includes(',')) return [];
+    const lines = csvText.trim().split(/\r?\n/);
+    const headers = lines[0].split(',').map(h => h.trim());
+
+    return lines.slice(1).map(line => {
+        const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+        const obj = {};
+        headers.forEach((header, i) => {
+            let val = values[i] ? values[i].trim() : "";
+            val = val.replace(/^"|"$/g, '');
+            obj[header] = val;
+        });
+        return obj;
+    });
+}
+
+/**
+ * 3. プレビュー反映
+ */
+function applyDataToPreview() {
+    const brandCsv = document.getElementById('cfg-brand-data').value;
+    const shopCsv = document.getElementById('cfg-shop-data').value;
+
+    if (!brandCsv || !shopCsv) {
+        alert("ブランドと店舗のCSVデータを両方入力してください。");
+        return;
+    }
+
+    try {
+        const brands = parseCSV(brandCsv);
+        const shops = parseCSV(shopCsv);
+
+        window.brandData = {};
+        brands.forEach(b => {
+            window.brandData[b.brand_id] = b;
+        });
+
+        window.shopData = shops.map(s => ({
+            ...s,
+            brand: s.brand_id,
+            lat: parseFloat(s.lat),
+            lng: parseFloat(s.lng)
+        }));
+
+        renderPreviewUI();
+        generateOutputCode();
+        alert("プレビューを更新しました！");
+    } catch (e) {
+        console.error(e);
+        alert("CSVの解析中にエラーが発生しました。形式を確認してください。");
+    }
+}
+
+/**
+ * 4. プレビューUI描画
+ */
+function renderPreviewUI() {
+    const $screen = $('#store-preview-screen');
+    $screen.empty();
+
+    const brandThr = parseInt(document.getElementById('cfg-brand-thr').value) || 2;
+    let html = '<div style="padding: 10px 0;">';
+
+    // BRANDセクション
+    if (Object.keys(window.brandData).length >= brandThr) {
+        html += `<h3 class="titleh3">BRAND</h3>`;
+        html += `<div class="menu_banners scrollable" style="display:flex; overflow-x:auto; gap:10px; padding:10px;">`;
+        Object.keys(window.brandData).forEach(key => {
+            const b = window.brandData[key];
+            html += `
+                <div class="menu_banner" style="flex:0 0 90px; text-align:center;">
+                    <div class="logo-box"><img src="${b.logo}"></div>
+                    <span style="font-size:9px; display:block; margin-top:5px;">${b.name}</span>
+                </div>`;
+        });
+        html += `</div>`;
+    }
+
+    // 検索窓デモ
+    html += `<h3 class="titleh3">店舗検索</h3><div style="padding:0 15px 15px;"><input type="text" placeholder="店舗名・エリアで検索..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;"></div>`;
+
+    // 店舗一覧
+    html += `<h3 class="titleh3">店舗情報一覧</h3><div style="padding:0 15px;">`;
+    window.shopData.forEach(s => {
+        const b = window.brandData[s.brand] || {};
+        html += `
+            <div class="shop" style="display:flex; gap:12px; background:#fff; padding:12px; border-radius:12px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); align-items:center;">
+                <div style="width:45px; height:45px; border-radius:50%; border:1px solid #eee; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:5px; overflow:hidden;">
+                    <img src="${b.logo}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                </div>
+                <div style="text-align:left;">
+                    <p style="margin:0; font-weight:bold; font-size:13px;">${s.name}</p>
+                    <p style="margin:2px 0 0; font-size:10px; color:#888;">${s.address}</p>
+                </div>
+            </div>`;
+    });
+    html += `</div></div>`;
+
+    $screen.append(html);
+}
+
+/**
+ * 5. 配布用コード生成
+ */
+function generateOutputCode() {
+    const mainSw = document.getElementById('cfg-main-sw').value;
+    const brandJson = JSON.stringify(window.brandData, null, 4);
+    const shopJson = JSON.stringify(window.shopData, null, 4);
+
+    const code = `<script>
+$(document).ready(function() {
+    const mainSwitch = ${mainSw};
+    window.brandData = ${brandJson};
+    const shopData = ${shopJson};
+    // ...ここにモーダル/検索等の共通ロジックが続きます...
+});
+<\/script>`;
+    document.getElementById('out-store-code').value = code;
+}
+
+function copyText(id) {
+    const el = document.getElementById(id);
+    el.select();
+    document.execCommand('copy');
+    alert("コピーしました");
+}
+</script>
+</body>
+</html>
