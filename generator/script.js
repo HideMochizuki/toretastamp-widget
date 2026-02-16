@@ -169,14 +169,14 @@ const screens = {
             </div>
             <p class="stamp_note">お得なチケットは、来店3回来店ごとにお得なチケットをプレゼント！<br>ご来店お待ちしております！</p>
             
-            <div class="stamp_wrapper" style="text-align: center; margin: 20px 0;">
-                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/Ad0xVj96ubnYL40GtQCi.png" alt="" style="width: 25%; margin: 5px;">
-                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%; margin: 5px;">
-                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%; margin: 5px;">
+            <div class="stamp_wrapper" style="text-align: center; margin: 20px 0; padding: 0;">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/Ad0xVj96ubnYL40GtQCi.png" alt="" style="width: 25%;">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%;">
             </div>
             
             <div class="stamp_button" style="text-align: center; margin: 0 10px">
-                <a class="page_button orange" href="#" style="text-decoration: none; padding: 3px 5px;"><span  style="font-size:10px;">QRコード読み取り</span></a>
+                <a class="page_button orange" href="#" style="text-decoration: none; padding: 3px 5px;"><span  style="font-size:12px;">QRコード読み取り</span></a>
             </div>
         </div>
         
@@ -233,6 +233,7 @@ const syncPairs = [
     
     // ★ヘッダー用
     ['cfg-header-bg', 'cfg-header-bg-val'],
+    ['cfg-header-text-c', 'cfg-header-text-c-val'], // ★この行を追加
     ['cfg-mock-header-bg', 'cfg-mock-header-bg-val'],
     ['cfg-btn-area-bg', 'cfg-btn-area-bg-val'],
     ['cfg-btn1-bg', 'cfg-btn1-bg-val'], ['cfg-btn2-bg', 'cfg-btn2-bg-val'],
@@ -283,6 +284,7 @@ const syncPairs = [
     ['cfg-std-border-c', 'cfg-std-border-c-val'],
     ['cfg-std-due-txt-c', 'cfg-std-due-txt-val'],
     ['cfg-std-due-bg-c', 'cfg-std-due-bg-val'],
+    ['cfg-std-due-border-c', 'cfg-std-due-border-c-val'],
     ['cfg-std-note-line-c', 'cfg-std-note-line-val'],
     ['cfg-std-title-c', 'cfg-std-title-val'],
     ['cfg-std-note-txt-c', 'cfg-std-note-txt-val']
@@ -300,6 +302,14 @@ function relabelItems() {
 function updatePreview() {
     const mock = document.querySelector('.mock-screen');
     const phoneContainer = document.querySelector('.phone-mock');
+
+    // ★追加：HTMLで設定したIDから確実に値を取得して同期させる
+    const picker = document.getElementById('cfg-header-text-c');
+    const textVal = document.getElementById('cfg-header-text-c-val');
+    if (picker && textVal) {
+        // カラーピッカーの値をテキストボックスに反映（小文字を大文字に揃える）
+        textVal.value = picker.value.toUpperCase();
+    }
 
     if (!mock || !phoneContainer) return;
 
@@ -354,21 +364,24 @@ function updatePreview() {
             if(bSettings) bSettings.style.display = 'none';
 
             if(headerTop) {
-                headerTop.style.display = '';
-                headerTop.style.justifyContent = '';
-                headerTop.style.paddingLeft = '';
-                headerTop.style.height = '';
-                headerTop.style.setProperty('background-color', getV('cfg-header-bg-val'), 'important');
-            }
-            if(headerH1) {
-                headerH1.style.margin = '';
-                headerH1.style.width = '';
-            }
-            if(headerSpan) {
-                headerSpan.style.display = '';
-                headerSpan.style.color = '';
-            }
-            if (sliderWrap) sliderWrap.remove();
+                    headerTop.style.display = '';
+                    headerTop.style.justifyContent = '';
+                    headerTop.style.paddingLeft = '';
+                    headerTop.style.height = '';
+                    // 背景色の適用
+                    headerTop.style.setProperty('background-color', getV('cfg-header-bg-val'), 'important');
+                }
+                if(headerH1) {
+                    headerH1.style.margin = '';
+                    headerH1.style.width = '';
+                }
+                if(headerSpan) {
+                    headerSpan.style.display = '';
+                    // ★ここを修正：色を消すのではなく、設定した色を適用する
+                    headerSpan.style.setProperty('color', getV('cfg-header-text-c-val'), 'important');
+                    headerSpan.style.setProperty('font-size', getV('cfg-header-text-size'), 'important');
+                }
+                if (sliderWrap) sliderWrap.remove();
         }
 
         const selected = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
@@ -712,8 +725,20 @@ function applyCurrentDesignToMock() {
         }
     } else {
         const topHeader = mock.querySelector('header.top') || mock.querySelector('header:not(.mock-header-v2)');
+
         if (topHeader) {
+            // 背景色の適用
             topHeader.style.setProperty('background-color', getV('cfg-header-bg-val'), 'important');
+
+            // ★ タイトルの文字色とサイズを適用（セレクタをより広範囲に指定）
+            const titleSpan = topHeader.querySelector('h1 span, h1'); 
+            if (titleSpan) {
+                const textColor = getV('cfg-header-text-c-val');
+                const textSize = getV('cfg-header-text-size').replace('px', '');
+                
+                titleSpan.style.setProperty('color', textColor, 'important');
+                titleSpan.style.setProperty('font-size', textSize + 'px', 'important');
+            }
         }
     }
 
@@ -1339,16 +1364,22 @@ function getStampDetailsCSS() {
     const stdBorderC = getV('cfg-std-border-c-val');
     const borderCSS = stdBorderOn ? `${stdBorderW} solid ${stdBorderC}` : 'none';
 
-    // ★追加：タイトル
+    // タイトル
     const titleSize = getV('cfg-std-title-size');
     const titleColor = getV('cfg-std-title-val');
 
-    // 有効期限
+    // 有効期限の背景・文字
     const dueTxt = getV('cfg-std-due-txt-val');
     const dueBg = getV('cfg-std-due-bg-val');
     const dueRadius = getV('cfg-std-due-radius');
 
-    // 注意事項 (★文字色を追加)
+    // ★有効期限の枠線設定（ここを getV に直しました）
+    const dueBorderOn = document.getElementById('cfg-std-due-border-on')?.checked;
+    const dueBorderW = getV('cfg-std-due-border-w');
+    const dueBorderC = getV('cfg-std-due-border-c-val');
+    const dueBorderCSS = dueBorderOn ? `${dueBorderW} solid ${dueBorderC}` : 'none';
+
+    // 注意事項
     const noteSize = getV('cfg-std-note-size');
     const noteTxtColor = getV('cfg-std-note-txt-val'); 
     const noteLineC = getV('cfg-std-note-line-val');
@@ -1370,6 +1401,10 @@ function getStampDetailsCSS() {
     background-color: ${dueBg} !important;
     border-radius: ${dueRadius} !important;
     color: ${dueTxt} !important;
+    /* ★ここに枠線のCSSを反映 */
+    border: ${dueBorderCSS} !important;
+    display: inline-block;
+    padding: 2px 8px;
 }
 .stamp_note {
     font-size: ${noteSize} !important;

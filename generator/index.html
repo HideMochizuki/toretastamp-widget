@@ -91,6 +91,17 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label>タイトル文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-header-text-c" value="#000000" oninput="updatePreview()">
+                            <input type="text" id="cfg-header-text-c-val" value="#000000" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>タイトル文字サイズ</label>
+                        <input type="text" id="cfg-header-text-size" value="18px" oninput="updatePreview()" placeholder="18px など">
+                    </div>
+                    <div class="form-group">
                         <label>ヘッダー背景 (TOP以外)</label>
                         <div class="color-picker-group">
                             <input type="color" id="cfg-mock-header-bg" value="#ffffff">
@@ -748,6 +759,17 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>枠線</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="checkbox" id="cfg-std-due-border-on" onchange="updatePreview()">
+                        <input type="text" id="cfg-std-due-border-w" value="1px" style="width:50px;" oninput="updatePreview()">
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-std-due-border-c" value="#333333">
+                            <input type="text" id="cfg-std-due-border-c-val" value="#333333">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>角丸 (px)</label>
                     <input type="text" id="cfg-std-due-radius" value="5px">
                 </div>
@@ -849,7 +871,8 @@
                 </div>
     </div>
 
-</div><!-- main-wrapper -->
+    </div><!-- main-wrapper -->
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>

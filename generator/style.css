@@ -601,6 +601,4 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .stamp_wrapper img {
     width: 60px !important;
     height: 60px !important;
-    border-radius: 50%;
-    background: #f0f0f0; /* 未獲得時のグレーアウト風 */
 }
