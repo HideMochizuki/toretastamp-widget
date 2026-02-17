@@ -72,8 +72,10 @@
         <div class="sidebar">
             <a href="index.html" class="nav-item"><i class="fa fa-home"></i> ホーム</a>
             <a href="index.html" class="nav-item"><i class="fa fa-list"></i> トップページ設定</a>
-            <a href="store-info-settings.html" class="nav-item  active"><i class="fa fa-store"></i> 店舗情報設定</a>
+            <a href="shop.html" class="nav-item  active"><i class="fa fa-store"></i> 店舗情報設定</a>
         </div>
+
+        
     
         <div class="main-wrapper">
     
@@ -146,7 +148,7 @@
 
 
                 <div class="card-wrapper">
-                    <h2 class="card-title">店舗データ登録</h2>
+                    <h2 class="card-title">ブランド・店舗データ登録</h2>
                     <div class="card">
                         <p style="font-size: 16px; margin: 0 0 10px;">※CSVファイルサンプルは<a style="color: #333; text-decoration: underline;" href="https://drive.google.com/drive/folders/1XPqb1B6UQrTdbJDH0P2RO71Dv-N5oLgS" target="_blank">こちら</a></p>
                         <div class="form-group">
@@ -161,7 +163,7 @@
                     </div>
                 </div>
 
-    
+                <!--
                 <div class="button-group" style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn btn-generate" id="generate-btn" style="flex: 1;">配布用コードを生成する</button>    
                 </div>
@@ -171,7 +173,7 @@
                     <div style="overflow: hidden; margin-top: 25px;"><label style="font-weight: bold; color: var(--primary-color);">【2】CSSコード (styleタグ付)</label><button class="btn btn-copy" onclick="copyText('out-css')">コピー</button></div>
                     <textarea id="out-css" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
                 </div>
-                
+                -->
     
             </div>
     
@@ -198,37 +200,8 @@
     </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script>
-    /**
-     * 1. 共通UI動作（サイドバーとカードのトグル）
-     * index.html の挙動を完全に再現します
-     */
-    // --- 1. サイドバーの開閉トグル (状態保存機能付き) ---
-    const sidebar = document.querySelector('.sidebar');
-    const toggleBtn = document.getElementById('sidebar-toggle');
-    
-    if (toggleBtn && sidebar) {
-        // ① ページを開いた時：保存された状態を確認して復元する
-        const savedState = localStorage.getItem('sidebar_collapsed');
-        
-        if (savedState === 'true') {
-            // 前回「閉じていた」なら、閉じるクラスをつける
-            sidebar.classList.add('collapsed');
-        } else {
-            // 前回「開いていた」または初回なら、閉じるクラスを外す（開く）
-            sidebar.classList.remove('collapsed');
-        }
-
-        // ② ボタンを押した時：開閉を切り替えて、状態を保存する
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            
-            // 今の状態（閉じているか？）を保存する
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebar_collapsed', isCollapsed);
-        });
-    }
-    
+<script src="common-ui.js"></script>
+<script>    
     /**
      * 2. 強化版CSV解析ロジック（省略なし）
      * 空の項目や改行、ダブルクォーテーションを考慮し、CSVデータを1列もズラさずに解析します。
@@ -969,12 +942,6 @@ h3.titleh3.shop-list-title {margin: 10px 0 20px;}
     alert("配布用コードを正常に生成しました！");
 }
 
-    function copyText(id) {
-        const el = document.getElementById(id);
-        el.select();
-        document.execCommand('copy');
-        alert("コピーしました");
-    }
 </script>
 
 </body>

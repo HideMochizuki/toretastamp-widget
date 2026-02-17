@@ -1,55 +1,3 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. サイドバーの開閉トグル (既存) ---
-    const sidebar = document.querySelector('.sidebar');
-    const toggleBtn = document.getElementById('sidebar-toggle');
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-        });
-    }
-
-    // --- 2. カードエリアの初期化とトグル設定 ---
-    const cardWrappers = document.querySelectorAll('.card-wrapper');
-    cardWrappers.forEach(wrapper => {
-        // ★ 最初から閉じた状態にするためにクラスを追加
-        wrapper.classList.add('collapsed');
-
-        const title = wrapper.querySelector('h2.card-title');
-        if (title) {
-            title.addEventListener('click', () => {
-                wrapper.classList.toggle('collapsed');
-            });
-        }
-    });
-
-    // 前回のデータを復元
-    loadFromLocal();
-
-    // ★追加：お知らせパターンの切り替え監視
-    const noticeRadios = document.querySelectorAll('input[name="notice-pattern"]');
-    noticeRadios.forEach(r => {
-        r.addEventListener('change', () => {
-            switchNoticePattern(); // 表示切り替え
-            updatePreview();       // プレビュー更新
-        });
-    });
-    switchNoticePattern(); // 初期実行
-
-    // ★追加：リストパターンのラジオボタン切り替え時に実行
-    const listRadios = document.querySelectorAll('input[name="list-pattern"]');
-    listRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            switchListPattern(); // 表示切り替え
-            updatePreview();     // プレビュー更新
-        });
-    });
-    switchListPattern();
-    
-    // 入力があるたびに自動保存する（デバウンス処理なしの簡易版）
-    document.addEventListener('input', saveToLocal);
-    document.addEventListener('change', saveToLocal);
-});
-
 // --- 設定データ ---
 const iconImages = {
     home: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/G7NN1cykJDexyrf7W3sY.png",
@@ -57,7 +5,7 @@ const iconImages = {
     user: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/E3WFqdsnqvH99pgwlK5L.png",
     ticket: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/qwb7BN3RXESAD0krnj5v.png",
     history: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/s1WjgAYhCT5YkwteDBW1.png",
-    ec: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
+    reservation: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png",
     map: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/l8lm4e55dWmksNmI67cP.png",
     official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
 };
@@ -1922,7 +1870,7 @@ function createItem(isFirst = false) {
         ${isFirst ? '' : '<button class="btn-remove" onclick="this.parentElement.remove();relabelItems();updatePreview();"><i class="fa fa-times"></i></button>'}
         <div class="menu-item-header">ITEM ${menuList.children.length + 1}</div>
         <div class="form-grid">
-            <div class="form-group"><label>アイコン</label><select class="field-class" onchange="handleClassChange(this)"><option value="home">home</option><option value="stamp">stamp</option><option value="user">user (マイページ)</option><option value="ticket">ticket</option><option value="history">history</option><option value="ec">ec</option><option value="official">official</option><option value="map">map</option></select></div>
+            <div class="form-group"><label>アイコン</label><select class="field-class" onchange="handleClassChange(this)"><option value="home">home</option><option value="stamp">stamp</option><option value="user">user (マイページ)</option><option value="ticket">ticket</option><option value="history">history</option><option value="reservation">reservation</option><option value="official">official</option><option value="map">map</option></select></div>
             <div class="form-group"><label>ラベル名</label><input type="text" class="field-label" oninput="updatePreview()" value="${isFirst?'ホーム':''}"></div>
             <div class="form-group full-width"><label>URL</label><input type="text" class="field-href" oninput="updatePreview()" placeholder="https://"></div>
             <div class="form-group"><label>aclass (固定)</label><input type="text" class="field-aclass" disabled style="background:#f0f0f0;"></div>
