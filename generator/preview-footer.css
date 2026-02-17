@@ -99,7 +99,7 @@ img:not([alt]) {
 
 /* --- Bパターンのスタイル --- */
 .mock-screen.pattern-B .top_button > ul > li > a {
-    display: flex; flex-direction: initial; align-items: center; padding: 15px 10px;
+    display: flex; flex-direction: initial; align-items: center; padding: 15px 10px 15px 5px;
 }
 
 /* --- Cパターンのスタイル --- */

@@ -151,7 +151,7 @@ const previewUl = document.getElementById('preview-ul');
 if (window.Sortable && menuList) {
     Sortable.create(menuList, {
         animation: 150, handle: '.drag-handle', ghostClass: 'sortable-ghost',
-        onEnd: function() { relabelItems(); updatePreview(); }
+        onEnd: function() { relabelItems(); updatePreview(); saveToLocal(); } 
     });
 }
 
@@ -246,7 +246,7 @@ function relabelItems() {
     });
 }
 
-// --- プレビュー更新 (整理版) ---
+// --- プレビュー ---
 function updatePreview() {
     const mock = document.querySelector('.mock-screen');
     const phoneContainer = document.querySelector('.phone-mock');
@@ -514,7 +514,6 @@ function updatePreview() {
 
     attachPreviewEvents();
 }
-
 // 1. プレビュー内のボタンにクリックイベントを貼る関数
 function attachPreviewEvents() {
     setTimeout(() => {
@@ -885,7 +884,6 @@ function applyCurrentDesignToMock() {
     }
 }
 
-
 function apply(el, bg, on, bw, bc, tx, iconColor) {
     if(!el) return;
     
@@ -983,16 +981,24 @@ function getBodyBgCSS() {
     const bodyBgImg = getV('cfg-body-bg-img');
     if (!bodyBgImg) return "";
 
+    let css = `background-image: url('${bodyBgImg}') !important;`;
+
+    // 1. リピート設定がデフォルトの 'repeat' 以外なら出力する
     const bgRepeat = getV('cfg-body-bg-repeat');
+    if (bgRepeat !== 'repeat') {
+        css += `background-repeat: ${bgRepeat} !important;`;
+    }
+
+    // 2. サイズ設定がデフォルトの 'cover' 以外なら出力する
     const bgSizeMode = getV('cfg-body-bg-size-mode');
     const bgSizeVal = getV('cfg-body-bg-size-val');
     const finalSize = (bgSizeMode === 'custom') ? bgSizeVal : bgSizeMode;
+    if (finalSize !== 'cover') {
+        css += `background-size: ${finalSize} !important;`;
+    }
 
-    return `
-    background-image: url('${bodyBgImg}') !important;
-    background-repeat: ${bgRepeat} !important;
-    background-size: ${finalSize} !important;
-    background-position: center top !important;`;
+    css += `background-position: center top !important;`;
+    return css;
 }
 
 // 2. メインボタン（A/B/Cパターン）のCSSを生成する関数
@@ -1000,12 +1006,30 @@ function getButtonPatternCSS(selectedPattern) {
 
     // --- Aパターン ---
     if (selectedPattern === 'A') {
+        // 現在の設定値を取得
+        const bg1 = getV('cfg-btn1-bg-val').toUpperCase();
+        const txt1 = getV('cfg-btn1-txt-val').toUpperCase();
+        const icon1 = getV('cfg-btn1-icon-c-val').toUpperCase();
+        const bg2 = getV('cfg-btn2-bg-val').toUpperCase();
+        const txt2 = getV('cfg-btn2-txt-val').toUpperCase();
+        const icon2 = getV('cfg-btn2-icon-c-val').toUpperCase();
         const b1on = getC('cfg-btn1-border-on');
         const b2on = getC('cfg-btn2-border-on');
+
+        // デフォルト状態（初期値）の判定
+        // 背景: #FFFFFF, 文字/アイコン: #000000, 枠線チェック: OFF
+        const isDefault = (
+            bg1 === '#FFFFFF' && txt1 === '#000000' && icon1 === '#000000' &&
+            bg2 === '#FFFFFF' && txt2 === '#000000' && icon2 === '#000000' &&
+            b1on === false && b2on === false
+        );
+
+        // 全て初期値のままなら何も出力しない
+        if (isDefault) return "";
+
+        // 一つでも変更がある場合は以下のCSSを生成
         const b1Border = b1on ? `${getV('cfg-btn1-border-w')} solid ${getV('cfg-btn1-border-c-val')}` : 'none';
         const b2Border = b2on ? `${getV('cfg-btn2-border-w')} solid ${getV('cfg-btn2-border-c-val')}` : 'none';
-        const icon1 = getV('cfg-btn1-icon-c-val');
-        const icon2 = getV('cfg-btn2-icon-c-val');
 
         return `
     /* --- Aパターン専用 --- */
@@ -1014,8 +1038,8 @@ function getButtonPatternCSS(selectedPattern) {
     .button_info { width: 100%; font-size: 14px; font-weight: 700; padding: 10px 0 0; text-align: center; }
 
     /* 左ボタン */
-    .top_button > ul > li:nth-child(1) { background-color: ${getV('cfg-btn1-bg-val')} !important; border: ${b1Border} !important; }
-    .top_button > ul > li:nth-child(1) .button_info { color: ${getV('cfg-btn1-txt-val')} !important; }
+    .top_button > ul > li:nth-child(1) { background-color: ${bg1} !important; border: ${b1Border} !important; }
+    .top_button > ul > li:nth-child(1) .button_info { color: ${txt1} !important; }
     /* 左アイコン (Clip-Path) */
     .top_button > ul > li:nth-child(1) .button_img { 
     width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
@@ -1029,8 +1053,8 @@ function getButtonPatternCSS(selectedPattern) {
     }
 
     /* 右ボタン */
-    .top_button > ul > li:nth-child(2) { background-color: ${getV('cfg-btn2-bg-val')} !important; border: ${b2Border} !important; }
-    .top_button > ul > li:nth-child(2) .button_info { color: ${getV('cfg-btn2-txt-val')} !important; }
+    .top_button > ul > li:nth-child(2) { background-color: ${bg2} !important; border: ${b2Border} !important; }
+    .top_button > ul > li:nth-child(2) .button_info { color: ${txt2} !important; }
     /* 右アイコン (Clip-Path) */
     .top_button > ul > li:nth-child(2) .button_img { 
     width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
@@ -1043,7 +1067,8 @@ function getButtonPatternCSS(selectedPattern) {
     filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
     }`;
     }
-        
+    
+
     // --- Bパターン ---
     if (selectedPattern === 'B') {
         const bArea = document.getElementById('pattern-settings-B');
@@ -1164,6 +1189,8 @@ function getButtonPatternCSS(selectedPattern) {
 // 3. ヘッダー（パターンA/B）のCSSを生成する関数
 function getHeaderCSS() {
     const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
+
+    // --- パターンB：常にCSSを生成（スライダー等の複雑な構成のため） ---
     if (headerPattern === 'B') {
         return `
 header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: transparent !important; position: relative; z-index: 20; padding-left: 15px !important; }
@@ -1183,24 +1210,68 @@ header.top h1.top span { display: none !important; }
 .header-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(117,117,117,0.5); cursor: pointer; }
 .header-dots .dot.active { background: #333; transform: scale(1.2); }
 `;
-    } else {
-        return `header.top { background-color: ${getV('cfg-header-bg-val')} !important; display: flex; justify-content: center; align-items: center; padding: 10px 0; }`;
+    } 
+    
+    // --- パターンA：初期値（白）から変更がある場合のみ生成 ---
+    else {
+        const headerBg = getV('cfg-header-bg-val').toUpperCase();
+        
+        // デフォルト値が #FFFFFF（白）かつ他の文字サイズ等に変更がない場合の判定
+        // ※必要に応じて文字色やサイズの判定もここに追加できます
+        if (headerBg === '#FFFFFF') {
+            return ""; 
+        }
+
+        return `header.top { background-color: ${headerBg} !important; display: flex; justify-content: center; align-items: center; padding: 10px 0; }`;
     }
 }
 
-// 4. スタンプ帳ページのCSSを生成する関数
+// 4. スタンプ一覧ページのCSSを生成する関数
 function getStampPageCSS() {
-    const stTxtColor = getV('cfg-st-txt-c-val');
-    const stDueTxtColor = getV('cfg-st-due-txt-c-val');
-    const stBorderColor = getV('cfg-st-border-c-val');
+    // 現在の設定値を取得
+    const stCardBg = getV('cfg-st-card-bg-val').toUpperCase();
+    const stRadius = getV('cfg-st-radius');
     const stBorderOn = document.getElementById('cfg-st-border-on').checked;
-    
-    // アイコンフィルター設定
-    const stIconFilter = document.getElementById('cfg-st-icon-choice').value === 'black' 
+    const stBorderW = getV('cfg-st-border-w');
+    const stBorderC = getV('cfg-st-border-c-val').toUpperCase();
+    const stOutlineW = getV('cfg-st-outline-w');
+    const stWatermarkUrl = getV('cfg-st-watermark-url');
+    const stTxtColor = getV('cfg-st-txt-c-val').toUpperCase();
+    const stDueTxtColor = getV('cfg-st-due-txt-c-val').toUpperCase();
+    const stLabelBg = getV('cfg-st-label-bg-val'); // 透明度を含む場合があるためそのまま比較
+    const stLabelRadius = getV('cfg-st-label-radius');
+    const stIconBorder = getV('cfg-st-icon-border-val').toUpperCase();
+    const stIconChoice = document.getElementById('cfg-st-icon-choice').value;
+
+    // デフォルト状態（初期値）の判定
+    const isDefault = (
+        stCardBg === '#FFFFFF' &&
+        stRadius === '16px' &&
+        stBorderOn === true &&
+        stBorderW === '1px' &&
+        stBorderC === '#000000' &&
+        stOutlineW === '1.3px' &&
+        stWatermarkUrl === 'https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png' &&
+        stTxtColor === '#000000' &&
+        stDueTxtColor === '#000000' &&
+        stLabelBg === '#ffffff1c' &&
+        stLabelRadius === '30px' &&
+        stIconBorder === '#000000' &&
+        stIconChoice === 'black'
+    );
+
+    // 全て初期値のままなら何も出力しない
+    if (isDefault) return "";
+
+    // 一つでも変更がある場合は以下のCSSを生成
+    const stIconFilter = stIconChoice === 'black' 
         ? 'brightness(0)' 
         : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
 
+    const stBorderColor = getV('cfg-st-border-c-val');
+
     return `
+/* ====== スタンプ一覧ページ ====== */
 body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; }
 #stamp-list .stamp_card {
     background: ${getV('cfg-st-card-bg-val')} !important;
@@ -1229,7 +1300,7 @@ body.stamp .stampicon > b > span { filter: ${stIconFilter} !important; }
 `;
 }
 
-// 5. メニューリストの配列を取得する関数
+// 5. フッター固定メニューリストの配列を取得する関数
 function getMenuItems() {
     const items = [];
     document.querySelectorAll('.menu-item').forEach(el => {
@@ -1349,7 +1420,6 @@ function getStampDetailsCSS() {
     background-color: ${dueBg} !important;
     border-radius: ${dueRadius} !important;
     color: ${dueTxt} !important;
-    /* ★ここに枠線のCSSを反映 */
     border: ${dueBorderCSS} !important;
     display: inline-block;
     padding: 2px 8px;
@@ -1400,6 +1470,7 @@ document.getElementById('generate-btn').onclick = () => {
     ${mockLogoAlign === 'flex-start' ? 'padding-left: 15px !important;' : ''}
     ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
 }`;
+
 
     // ハンバーガーメニューの色設定を取得
     const hamLineColor = getV('cfg-ham-line-val');
@@ -1852,15 +1923,6 @@ ${footerIconCSS}
 };
 
 
-
-
-
-
-
-
-
-
-
 function createItem(isFirst = false) {
     if (!isFirst && menuList.children.length >= 5) return alert("最大5個までです");
     const div = document.createElement('div');
@@ -1883,14 +1945,15 @@ createItem(true);
 document.getElementById('add-item').onclick = () => createItem();
 window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.select(); document.execCommand('copy'); alert("コピーしました"); } };
 
-// --- 4. データの保存・読み込み (LocalStorage) ---
-// 現在のすべての設定値をオブジェクトにまとめる関数
+// データの保存・読み込み (LocalStorage) 
+// 1. 現在のすべての設定値をオブジェクトにまとめる関数
 function getAllSettings() {
     const settings = {};
+    // 入力欄とセレクトボックス
     const inputs = document.querySelectorAll('input, select');
     
     inputs.forEach(input => {
-        // --- 1. IDがある通常の入力欄 (テキスト、カラー、チェックボックス、セレクト) の保存 ---
+        // (A) IDがある通常の入力欄の保存
         if (input.id) {
             if (input.type === 'checkbox') {
                 settings[input.id] = input.checked;
@@ -1899,9 +1962,9 @@ function getAllSettings() {
             }
         }
         
-        // --- 2. ラジオボタン (パターン選択・ロゴ配置) の保存 ---
+        // (B) ラジオボタン (パターン選択など) の保存
         if (input.checked) {
-            // ★ここを変更： 'list-pattern' を追加しました
+            // name属性で管理されているグループを保存
             if (input.name === 'btn-pattern' || 
                 input.name === 'header-pattern' || 
                 input.name === 'cfg-mock-logo-align' || 
@@ -1913,7 +1976,7 @@ function getAllSettings() {
         }
     });
 
-    // --- 3. 動的に増減するメニュー項目の保存 ---
+    // (C) メニュー項目の保存
     const items = [];
     document.querySelectorAll('.menu-item').forEach(el => {
         items.push({
@@ -1928,6 +1991,118 @@ function getAllSettings() {
 
     return settings;
 }
+
+// 2. 保存を実行する関数
+function saveToLocal() {
+    // 読み込みが完了するまでは保存しないフラグ（誤作動防止）
+    if (!window.isLoaded) return;
+
+    const data = getAllSettings();
+    localStorage.setItem('generator_backup', JSON.stringify(data));
+    // console.log("設定を保存しました"); // デバッグ用
+}
+
+// 3. データを復元する関数
+function loadFromLocal() {
+    const dataStr = localStorage.getItem('generator_backup');
+    if (!dataStr) return;
+
+    try {
+        const settings = JSON.parse(dataStr);
+        
+        // (A) 各種入力項目の復元
+        Object.keys(settings).forEach(key => {
+            // ラジオボタンの復元
+            if (key === 'btn-pattern' || key === 'header-pattern' || key === 'cfg-mock-logo-align' || key === 'list-pattern' || key === 'notice-pattern') {
+                const val = settings[key];
+                const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
+                if (radio) radio.checked = true;
+                return;
+            }
+
+            // 通常の入力欄の復元
+            const el = document.getElementById(key);
+            if (el) {
+                if (el.type === 'checkbox') {
+                    el.checked = settings[key];
+                } else {
+                    el.value = settings[key];
+                }
+            }
+        });
+
+        // (B) メニュー項目の復元
+        if (settings['saved_menu_items'] && menuList) {
+            menuList.innerHTML = ''; // 一旦クリア
+            settings['saved_menu_items'].forEach((data, idx) => {
+                createItem(idx === 0);
+                const lastItem = menuList.lastElementChild;
+                if (lastItem) {
+                    lastItem.querySelector('.field-class').value = data.class;
+                    lastItem.querySelector('.field-label').value = data.label;
+                    lastItem.querySelector('.field-href').value = data.href;
+                    lastItem.querySelector('.field-ext').checked = data.ext;
+                    // handleClassChangeなどを実行してUIを同期
+                    handleClassChange(lastItem.querySelector('.field-class'));
+                    // handleClassChangeでhrefがリセットされる場合があるので再度セット
+                    lastItem.querySelector('.field-href').value = data.href;
+                }
+            });
+        }
+
+        // (C) カラーピッカーとテキストボックスの同期
+        // 保存されたテキスト値(#XXXXXX)を、カラーピッカー側にも反映させる
+        if (typeof syncPairs !== 'undefined') {
+            syncPairs.forEach(pair => {
+                const picker = document.getElementById(pair[0]); // カラーピッカー
+                const text = document.getElementById(pair[1]);   // テキスト入力
+                if (picker && text) {
+                    // テキスト側の値（保存データ）を優先してピッカーに適用
+                    if(/^#[0-9A-F]{6}$/i.test(text.value)) {
+                         picker.value = text.value;
+                    }
+                }
+            });
+        }
+        
+        // (D) 表示の切り替えを反映
+        if(typeof switchPattern === 'function') switchPattern();
+        if(typeof switchListPattern === 'function') switchListPattern();
+        if(typeof switchNoticePattern === 'function') switchNoticePattern();
+
+    } catch (e) {
+        console.error("データの読み込みに失敗しました", e);
+    }
+}
+
+// =========================================================
+// ★実行タイミングの制御（ここが重要です）
+// =========================================================
+
+// まだ読み込みが完了していないことを示すフラグ
+window.isLoaded = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. まずデータを復元する
+    loadFromLocal();
+    
+    // 2. プレビューを更新する
+    updatePreview();
+
+    // 3. 復元が終わったので、ここから保存を許可する
+    window.isLoaded = true;
+    
+    // 4. イベントリスナーをセット（変更があったら保存）
+    document.addEventListener('input', saveToLocal);
+    document.addEventListener('change', saveToLocal);
+    
+    // 5. 並び替え時の保存（Sortable）
+    if (window.Sortable && menuList) {
+
+    }
+    
+    console.log("設定を復元し、保存監視を開始しました。");
+});
 
 // 保存ボタン（または自動保存）用の関数
 function saveToLocal() {
@@ -2009,7 +2184,6 @@ function loadFromLocal() {
 
     updatePreview();
 }
-
 
 // ★リストパターンの設定エリアの表示/非表示を切り替える関数
 function switchListPattern() {
@@ -2100,8 +2274,6 @@ function switchNoticePattern() {
     }
 }
 
-
-
 // ページをリロードして初期状態を反映
 document.getElementById('reset-btn').onclick = () => {
     if (confirm("すべての設定を初期状態にリセットしますか？")) {
@@ -2110,3 +2282,26 @@ document.getElementById('reset-btn').onclick = () => {
         location.reload();
     }
 };
+
+// ==============================================
+// ★追加コード：保存・読み込み機能の実行スイッチ
+// ==============================================
+
+// 1. 画面を開いた(読み込んだ)ときに、保存データを復元する
+document.addEventListener('DOMContentLoaded', () => {
+    // データがあれば読み込む
+    loadFromLocal();
+    
+    // 読み込み直後はプレビューが古いままの場合があるので、念のため更新
+    setTimeout(updatePreview, 100);
+});
+
+// 2. 何か入力(input)や変更(change)があるたびに、自動で保存する
+// （キーボード入力中や、ラジオボタン切り替え時など）
+document.addEventListener('input', () => {
+    saveToLocal();
+});
+
+document.addEventListener('change', () => {
+    saveToLocal();
+});
