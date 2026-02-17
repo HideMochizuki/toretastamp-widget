@@ -804,6 +804,106 @@
             </div>
         </div>
 
+        <div class="card-wrapper">
+            <h2 class="card-title">チケット一覧デザイン</h2>
+            <span class="badge ticket">チケット</span>
+            <div class="card">
+                <div class="card-sub-title">カード全体 (.ticket_list_set)</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-ticket-bg" value="#ffffff">
+                            <input type="text" id="cfg-ticket-bg-val" value="#ffffff">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>角丸</label>
+                        <input type="text" id="cfg-ticket-radius" value="15px" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>枠線</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="checkbox" id="cfg-ticket-border-on" onchange="updatePreview()">
+                            <input type="text" id="cfg-ticket-border-w" value="1px" style="width:50px;" oninput="updatePreview()">
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-ticket-border-c" value="#000000">
+                                <input type="text" id="cfg-ticket-border-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-sub-title" style="margin-top:20px;">区切り線 (.ticket_list > a)</div>
+                <div class="form-group">
+                    <label>下線の色 (dashed 1px)</label>
+                    <div class="color-picker-group">
+                        <input type="color" id="cfg-ticket-line-c" value="#717171">
+                        <input type="text" id="cfg-ticket-line-val" value="#717171">
+                    </div>
+                </div>
+
+                <div class="card-sub-title" style="margin-top:20px;">タイトル (.ticket_list > a > dl > dt)</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>文字サイズ</label>
+                        <input type="text" id="cfg-ticket-title-size" value="16px" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>文字の太さ</label>
+                        <select id="cfg-ticket-title-weight" onchange="updatePreview()">
+                            <option value="400">通常 (400)</option>
+                            <option value="700" selected>太字 (700)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-ticket-title-c" value="#252525">
+                            <input type="text" id="cfg-ticket-title-val" value="#252525">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-sub-title" style="margin-top:20px;">有効期限 (.ticket_list_due)</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>文字サイズ</label>
+                        <input type="text" id="cfg-ticket-due-size" value="13px" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>文字色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-ticket-due-c" value="#000000">
+                            <input type="text" id="cfg-ticket-due-val" value="#000000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>背景色</label>
+                        <div class="color-picker-group">
+                            <input type="color" id="cfg-ticket-due-bg" value="#dadada">
+                            <input type="text" id="cfg-ticket-due-bg-val" value="#dadada">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>角丸</label>
+                        <input type="text" id="cfg-ticket-due-radius" value="5px" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>枠線</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="checkbox" id="cfg-ticket-due-border-on" onchange="updatePreview()">
+                            <input type="text" id="cfg-ticket-due-border-w" value="1px" style="width:50px;" oninput="updatePreview()">
+                            <div class="color-picker-group">
+                                <input type="color" id="cfg-ticket-due-border-c" value="#000000">
+                                <input type="text" id="cfg-ticket-due-border-c-val" value="#000000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
             <div class="button-group" style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="btn btn-generate" id="generate-btn" style="flex: 1;">配布用コードを生成する</button>    
             </div>

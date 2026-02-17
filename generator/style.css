@@ -381,6 +381,11 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     background: transparent; /* 背景色は.mock-screen側で塗る */
 }
 
+.phone-mock .mock-screen .ticket_list_set.used .ticket_list_due, .mock-screen .ticket_list_set.expired .ticket_list_due {
+    background-color: #D5D5D5;
+    color: #fff;
+}
+
 
 /* =================================================================
    ★追加：ハンバーガーメニュー (パターンB) & フッター調整用スタイル

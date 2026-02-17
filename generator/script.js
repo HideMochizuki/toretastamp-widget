@@ -56,23 +56,37 @@ const screens = {
     <div class="mock-headermargin-v2"></div>
     <section class="content">
         <h3 class="titleh3"><b>チケット一覧</b>
-            <select class="ticket_sort_select" style="font-size:10px; padding:2px;">
+            <select class="ticket_sort_select" style="font-size:10px; padding:5px 2px;">
                 <option>有効期限順 ▼</option>
             </select>
         </h3>
         <div id="coupon-list">
+
             <div class="ticket_list_set">
                 <div class="ticket_list">
                     <a href="#">
                         <p><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/j25fdwy2uJ1ykNwKelCg.png" alt=""></p>
-                        <dl><dt>【抽選】お好きなピザ</dt></dl>
+                        <dl><dt>お好きなピザプレゼント</dt></dl>
                     </a>
                     <dl class="ticket_list_bottom">
                         <dt><span class="ticket_list_due">有効期限：2026/02/24</span></dt>
                     </dl>
                 </div>
             </div>
-            <div class="ticket_list_set expired" style="opacity: 0.6;">
+            <div class="ticket_list_set used">
+                <div class="ticket_list">
+                    <a>
+                    <p><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/den7ZxsbI7usqqeACj7Q.png" alt=""></p>
+                    <dl><dt>お好きなピザプレゼント</dt></dl>
+                    </a>
+                    <dl class="ticket_list_bottom">
+                        <dt><span class="ticket_list_due">利用日時：2026/02/17 18:48:21
+                    </span></dt>
+                <dd><a href="#modal-stamp_delete" class="stamp_card_delete_btn">削除</a></dd>
+                </dl>
+                </div>
+            </div>
+            <div class="ticket_list_set expired">
                 <div class="ticket_list">
                     <a>
                         <p style="position:relative;">
@@ -235,7 +249,15 @@ const syncPairs = [
     ['cfg-std-due-border-c', 'cfg-std-due-border-c-val'],
     ['cfg-std-note-line-c', 'cfg-std-note-line-val'],
     ['cfg-std-title-c', 'cfg-std-title-val'],
-    ['cfg-std-note-txt-c', 'cfg-std-note-txt-val']
+    ['cfg-std-note-txt-c', 'cfg-std-note-txt-val'],
+    // チケット一覧
+    ['cfg-ticket-bg', 'cfg-ticket-bg-val'],
+    ['cfg-ticket-line-c', 'cfg-ticket-line-val'],
+    ['cfg-ticket-title-c', 'cfg-ticket-title-val'],
+    ['cfg-ticket-due-c', 'cfg-ticket-due-val'],
+    ['cfg-ticket-due-bg', 'cfg-ticket-due-bg-val'],
+    ['cfg-ticket-border-c', 'cfg-ticket-border-c-val'],
+    ['cfg-ticket-due-border-c', 'cfg-ticket-due-border-c-val']
 ];
 syncPairs.forEach(pair => setupSync(pair[0], pair[1]));
 
@@ -749,7 +771,12 @@ function applyCurrentDesignToMock() {
         finalCSS += getStampDetailsCSS();
     }
 
-    // --- CSSをプレビュー画面に適用 ---
+    // チケット一覧ページCSS
+    if (mock.dataset.currentScreen === 'ticket' && typeof getTicketPageCSS === 'function') {
+        finalCSS += getTicketPageCSS(false);
+    }
+
+    // CSSをプレビュー画面に適用
     if (typeof updateDynamicStyle === 'function') {
         updateDynamicStyle(finalCSS, 'dyn-style-main');
     }
@@ -1432,6 +1459,82 @@ function getStampDetailsCSS() {
 `;
 }
 
+// 8. チケット一覧ページのCSSを生成する関数
+function getTicketPageCSS(isExport = false) {
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    // prefix (プレビュー用 or 出力用)
+    const prefix = isExport ? '' : '.mock-screen ';
+
+    // ★ここがポイント！
+    // 「.ticket_list_set」のうち、「.used」でも「.expired」でもないものだけを対象にするセレクタを作る
+    const targetSelector = '.ticket_list_set:not(.used):not(.expired)';
+    
+    // プレビュー用プレフィックスと合体させる
+    // 例: .mock-screen .ticket_list_set:not(.used):not(.expired)
+    const baseSelector = prefix + targetSelector;
+
+    // カード設定
+    const cardBg = getV('cfg-ticket-bg-val');
+    const cardRadius = getV('cfg-ticket-radius');
+    // カード枠線
+    const cardBorderOn = document.getElementById('cfg-ticket-border-on')?.checked;
+    const cardBorderW = getV('cfg-ticket-border-w');
+    const cardBorderC = getV('cfg-ticket-border-c-val');
+    const cardBorderCSS = cardBorderOn ? `${cardBorderW} solid ${cardBorderC}` : 'none';
+
+    // 区切り線
+    const lineColor = getV('cfg-ticket-line-val');
+
+    // タイトル
+    const titleSize = getV('cfg-ticket-title-size');
+    const titleWeight = document.getElementById('cfg-ticket-title-weight')?.value || '700';
+    const titleColor = getV('cfg-ticket-title-val');
+
+    // 有効期限
+    const dueSize = getV('cfg-ticket-due-size');
+    const dueColor = getV('cfg-ticket-due-val');
+    const dueBg = getV('cfg-ticket-due-bg-val');
+    const dueRadius = getV('cfg-ticket-due-radius');
+    // 有効期限枠線
+    const dueBorderOn = document.getElementById('cfg-ticket-due-border-on')?.checked;
+    const dueBorderW = getV('cfg-ticket-due-border-w');
+    const dueBorderC = getV('cfg-ticket-due-border-c-val');
+    const dueBorderCSS = dueBorderOn ? `${dueBorderW} solid ${dueBorderC}` : 'none';
+
+    return `
+/* チケット一覧デザイン（利用可能のみ） */
+
+/* カード全体：利用可能チケットのみ対象 */
+${baseSelector} {
+    border-radius: ${cardRadius} !important;
+    background-color: ${cardBg} !important;
+    border: ${cardBorderCSS} !important;
+}
+
+/* 区切り線：親要素を「利用可能」に限定して、その中の aタグ を指定 */
+${baseSelector} > .ticket_list > a {
+    border-bottom: 1px dashed ${lineColor} !important;
+}
+
+/* タイトル：親要素を「利用可能」に限定して指定 */
+${baseSelector} > .ticket_list > a > dl > dt {
+    font-size: ${titleSize} !important;
+    font-weight: ${titleWeight} !important;
+    color: ${titleColor} !important;
+}
+
+/* 有効期限：親要素を「利用可能」に限定して指定 */
+${baseSelector} .ticket_list_due {
+    font-size: ${dueSize} !important;
+    background-color: ${dueBg} !important;
+    border-radius: ${dueRadius} !important;
+    color: ${dueColor} !important;
+    border: ${dueBorderCSS} !important;
+    display: inline-block;
+}
+`;
+}
+
 // --- メイン処理: 生成ボタンクリック時の動作 ---
 document.getElementById('generate-btn').onclick = () => {
     
@@ -1454,8 +1557,9 @@ document.getElementById('generate-btn').onclick = () => {
     const headerCSS = getHeaderCSS();
     const stampPageCSS = getStampPageCSS();
     const pageBtnCSS = getPageBtnCSS();
-    const noticeCSS = getNoticeCSS(true); // お知らせCSS
+    const noticeCSS = getNoticeCSS(true);
     const stampDetailsCSS = getStampDetailsCSS();
+    const ticketPageCSS = getTicketPageCSS(true);
 
     // フッターメニュー設定
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
@@ -1892,6 +1996,7 @@ ${stampDetailsCSS}
 ${pageBtnCSS}
 ${hamburgerCSS}
 ${noticeCSS}
+${ticketPageCSS}
 
 /* フッター固定メニュー */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
