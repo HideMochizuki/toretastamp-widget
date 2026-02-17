@@ -2411,3 +2411,85 @@ document.addEventListener('input', () => {
 document.addEventListener('change', () => {
     saveToLocal();
 });
+
+
+
+
+
+// =========================================================
+// 設定のエクスポート（ダウンロード）とインポート
+// =========================================================
+
+// 1. 設定を書き出し (Export)
+document.getElementById('export-btn').onclick = () => {
+    // 現在の設定データを取得
+    const data = getAllSettings();
+    // JSON文字列に変換（見やすく整形）
+    const jsonStr = JSON.stringify(data, null, 2);
+    
+    // Blob（ファイルのようなデータ詳細）を作成
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    
+    // ダウンロードリンクを生成してクリックさせる
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // ファイル名（日付入り）
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0,10).replace(/-/g, '');
+    a.download = `option_generator_settings_${dateStr}.json`;
+    
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+// 2. 設定を読み込み (Import)
+const importBtn = document.getElementById('import-btn');
+const fileInput = document.getElementById('import-file');
+
+// ボタンを押したら、隠してあるファイル選択ダイアログを開く
+importBtn.onclick = () => {
+    fileInput.click();
+};
+
+// ファイルが選択されたら実行
+fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    // ファイル読み込み完了時の処理
+    reader.onload = (event) => {
+        try {
+            const jsonStr = event.target.result;
+            // 正しいJSONかチェック
+            const data = JSON.parse(jsonStr);
+
+            // 簡易チェック（saved_menu_itemsがあるか確認）
+            if (!data.saved_menu_items) {
+                alert("無効なファイル形式です。");
+                return;
+            }
+
+            if (confirm("現在の設定を上書きして、ファイルを読み込みますか？")) {
+                // LocalStorageに上書き保存
+                localStorage.setItem('generator_backup', JSON.stringify(data));
+                
+                // 画面を再読み込みして反映（これが一番確実です）
+                location.reload();
+            }
+        } catch (error) {
+            console.error(error);
+            alert("ファイルの読み込みに失敗しました。\n正しいJSONファイルを選択してください。");
+        }
+    };
+
+    // テキストとしてファイルを読み込む
+    reader.readAsText(file);
+    
+    // 同じファイルを再度選べるようにリセット
+    fileInput.value = '';
+};
