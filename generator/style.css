@@ -239,6 +239,10 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     font-size: 0.8rem; background: var(--dark-bg); color: #f8f8f2; padding: 15px; border-radius: 4px; resize: vertical; box-sizing: border-box; 
 }
 
+.phone-mock .notice_set {
+    margin-bottom: 15px;
+}
+
 /* ==========================================
    4. フッターメニュー編集（Sortable用）
    ========================================== */

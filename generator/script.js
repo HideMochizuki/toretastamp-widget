@@ -151,6 +151,7 @@ const screens = {
         <div class="menu-sublist">
             <ul>
                 <li><a href="#">スタンプ履歴</a></li>
+                <li><a href="#">スタンプ/チケットの使い方</a></li>
                 <li><a href="#">お問い合わせ</a></li>
             </ul>
         </div>
@@ -2340,7 +2341,7 @@ ${prefix} .notice_list > a > dl > dt {
 /* =========================================
 お知らせカード（横いっぱい画像＋下白テキスト）＆MVカルーセル
 ========================================= */
-${prefix} .notice_set { margin: 10px 20px 50px !important; box-shadow: none !important; background: transparent !important; }
+${prefix} .notice_set { margin: 10px 20px 20px !important; box-shadow: none !important; background: transparent !important; }
 ${prefix} .notice_list { border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important; margin-bottom: 20px !important; background: #fff !important; transition: transform 0.2s ease, box-shadow 0.2s ease !important; border: none !important; }
 ${prefix} .notice_list:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 14px rgba(0,0,0,0.15) !important; }
 ${prefix} .notice_list > a { display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important; text-decoration: none !important; color: inherit !important; padding: 0 !important; }
