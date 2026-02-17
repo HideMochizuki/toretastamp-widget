@@ -167,13 +167,14 @@
                 <div class="button-group" style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn btn-generate" id="generate-btn" style="flex: 1;">配布用コードを生成する</button>    
                 </div>
+                -->
                 <div style="margin-top: 40px;">
                     <div style="overflow: hidden;"><label style="font-weight: bold; color: var(--primary-color);">【1】JavaScriptコード</label><button class="btn btn-copy" onclick="copyText('out-js')">コピー</button></div>
                     <textarea id="out-js" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
                     <div style="overflow: hidden; margin-top: 25px;"><label style="font-weight: bold; color: var(--primary-color);">【2】CSSコード (styleタグ付)</label><button class="btn btn-copy" onclick="copyText('out-css')">コピー</button></div>
                     <textarea id="out-css" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
                 </div>
-                -->
+                
     
             </div>
     
@@ -202,179 +203,184 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="common-ui.js"></script>
 <script>    
-    /**
-     * 2. 強化版CSV解析ロジック（省略なし）
-     * 空の項目や改行、ダブルクォーテーションを考慮し、CSVデータを1列もズラさずに解析します。
-     */
-    function parseCSV(csvText) {
-        if (!csvText) return [];
-        const lines = csvText.trim().split(/\r?\n/);
-        if (lines.length < 2) return [];
-        
-        const headers = lines[0].split(',').map(h => h.trim());
-        
-        return lines.slice(1).map(line => {
+/**
+ * 1. 強化版データ解析ロジック（CSV/Numbers自動判別・省略なし）
+ * カンマ区切り、またはNumbersのコピー（タブ区切り）を自動判別し、1列もズラさずに解析します。
+ */
+ function parseFlexibleData(text) {
+    if (!text) return [];
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+
+    // 1行目から区切り文字（タブかカンマか）を自動判定
+    const headerLine = lines[0];
+    const delimiter = headerLine.includes('\t') ? '\t' : ',';
+    const headers = headerLine.split(delimiter).map(h => h.trim());
+
+    return lines.slice(1).map(line => {
+        let values = [];
+        if (delimiter === '\t') {
+            // タブ区切りの処理（Numbers/Excel等）
+            values = line.split('\t');
+        } else {
+            // カンマ区切りの処理（ダブルクォーテーション対応）
             const result = [];
-            let start = 0;
-            let inQuotes = false;
-            
-            // カンマ区切りの各項目を正しく切り出す（ダブルクォーテーション内のカンマは無視）
+            let start = 0, inQuotes = false;
             for (let i = 0; i < line.length; i++) {
-                if (line[i] === '"') {
-                    inQuotes = !inQuotes;
-                } else if (line[i] === ',' && !inQuotes) {
+                if (line[i] === '"') inQuotes = !inQuotes;
+                else if (line[i] === ',' && !inQuotes) {
                     result.push(line.substring(start, i));
                     start = i + 1;
                 }
             }
             result.push(line.substring(start));
-            
-            const obj = {};
-            headers.forEach((header, i) => {
-                let val = result[i] ? result[i].trim() : "";
-                // 前後の引用符を削除し、内部のダブルクォーテーションを戻す
-                if (val.startsWith('"') && val.endsWith('"')) {
-                    val = val.substring(1, val.length - 1);
-                }
-                obj[header] = val.replace(/""/g, '"');
-            });
-            return obj;
-        });
-    }
-    
-    /**
-     * 3. 各種スイッチの状態取得
-     */
-    function getSwitches() {
-        return {
-            mainSwitch: document.getElementById('cfg-main-sw').value,
-            searchBoxSwitch: document.getElementById('cfg-search-sw').value,
-            searchBoxThreshold: parseInt(document.getElementById('cfg-search-thr').value) || 0,
-            brandBoxSwitch: document.getElementById('cfg-brand-sw').value,
-            brandBoxThreshold: parseInt(document.getElementById('cfg-brand-thr').value) || 0,
-            areaBoxSwitch: document.getElementById('cfg-area-sw').value,
-            areaBoxThreshold: parseInt(document.getElementById('cfg-area-thr').value) || 0,
-            shopListSwitch: document.getElementById('cfg-shoplist-sw').value
-        };
-    }
-    
-    /**
-     * 4. プレビュー反映メイン処理
-     */
-    function applyDataToPreview() {
-        const brandCsv = document.getElementById('cfg-brand-data').value;
-        const shopCsv = document.getElementById('cfg-shop-data').value;
-    
-        if (!brandCsv || !shopCsv) {
-            alert("ブランドと店舗のCSVデータを両方入力してください。");
-            return;
+            values = result;
         }
-    
-        try {
-            const brandsArr = parseCSV(brandCsv);
-            const shopsArr = parseCSV(shopCsv);
-    
-            // ブランドデータの連動
-            window.brandData = {};
-            brandsArr.forEach(b => { 
-                window.brandData[b.brand_id] = b; 
-            });
-    
-            // 店舗データの連動（キー名をbrandに統一）
-            window.shopData = shopsArr.map(s => ({
-                ...s,
-                brand: s.brand_id,
-                lat: parseFloat(s.lat) || 0,
-                lng: parseFloat(s.lng) || 0
-            }));
-    
-            renderPreviewUI();
-            generateOutputCode();
-            alert("プレビューと配布コードを更新しました！");
-    
-        } catch (e) {
-            console.error(e);
-            alert("解析エラーが発生しました。CSV形式（カンマ数など）を再確認してください。");
-        }
-    }
-    
-    /**
-     * 5. プレビューUI描画（WEB実装版を100%再現）
-     * 沖縄の表示不具合と情報の省略を修正しました。
-     */
-    function renderPreviewUI() {
-        const $screen = $('#store-preview-screen');
-        $screen.empty();
-        const config = getSwitches();
-        
-        if (config.mainSwitch != 1) {
-            $screen.html('<div style="padding:20px;text-align:center;color:#999;">メインスイッチがOFFです</div>');
-            return;
-        }
-    
-        // WEB版と同じデザインクラスを適用
-        let html = '<div class="SyFLdCxCbsFfSEbKqHBjof" style="padding: 10px 0; background:#f5f5f5; min-height:100%; text-align:left;">';
-    
-        // A. 検索窓
-        if (config.searchBoxSwitch == 1 && window.shopData.length >= config.searchBoxThreshold) {
-            html += `<h3 class="titleh3 shop-search-title">店舗検索</h3><div class="shop-search-box"><div class="search-box"><i class="fa fa-search search-icon" style="position:absolute;left:10px;top:10px;color:#999;"></i><input type="text" placeholder="店舗名・住所・駅名で検索..." style="width:100%;padding:10px 10px 10px 35px;border-radius:8px;border:1px solid #ccc;"></div></div>`;
-        }
-    
-        // B. BRANDバナー
-        if (config.brandBoxSwitch == 1 && Object.keys(window.brandData).length >= config.brandBoxThreshold) {
-            html += `<h3 class="titleh3 brand-box">BRAND</h3><div class="menu_banners scrollable">`;
-            Object.keys(window.brandData).forEach(key => {
-                const b = window.brandData[key];
-                html += `<a href="#" class="menu_banner" data-brand="${key}"><div class="logo-box"><img src="${b.logo}" alt="${b.name}"></div><span>${b.name}</span></a>`;
-            });
-            html += `</div>`;
-        }
-    
-        // C. エリア抽出（都道府県名が不一致にならないよう「沖縄」等も完全に網羅）
-        if (config.areaBoxSwitch == 1) {
-            const areaOrder = ['神奈川', '東京', '千葉', '埼玉', '静岡', '沖縄', '大阪'];
-            const extractedAreas = areaOrder.filter(a => 
-                window.shopData.some(s => s.address && s.address.indexOf(a) !== -1)
-            );
-    
-            if (extractedAreas.length >= config.areaBoxThreshold) {
-                html += `<h3 class="titleh3 area-box">エリアから探す</h3><div class="area-scroll">`;
-                extractedAreas.forEach(a => {
-                    html += `<button class="area-banner">${a}</button>`;
-                });
-                html += `</div>`;
+
+        const obj = {};
+        headers.forEach((header, i) => {
+            let val = values[i] ? values[i].trim() : "";
+            // 前後の引用符を削除し、内部のダブルクォーテーションを戻す
+            if (val.startsWith('"') && val.endsWith('"')) {
+                val = val.substring(1, val.length - 1);
             }
-        }
+            obj[header] = val.replace(/""/g, '"');
+        });
+        return obj;
+    });
+}
+
+/**
+ * 2. 各種スイッチの状態取得
+ */
+function getSwitches() {
+    return {
+        mainSwitch: document.getElementById('cfg-main-sw').value,
+        searchBoxSwitch: document.getElementById('cfg-search-sw').value,
+        searchBoxThreshold: parseInt(document.getElementById('cfg-search-thr').value) || 0,
+        brandBoxSwitch: document.getElementById('cfg-brand-sw').value,
+        brandBoxThreshold: parseInt(document.getElementById('cfg-brand-thr').value) || 0,
+        areaBoxSwitch: document.getElementById('cfg-area-sw').value,
+        areaBoxThreshold: parseInt(document.getElementById('cfg-area-thr').value) || 0,
+        shopListSwitch: document.getElementById('cfg-shoplist-sw').value
+    };
+}
+
+/**
+ * 3. プレビュー反映メイン処理
+ */
+function applyDataToPreview() {
+    const brandRaw = document.getElementById('cfg-brand-data').value;
+    const shopRaw = document.getElementById('cfg-shop-data').value;
+
+    if (!brandRaw || !shopRaw) {
+        alert("ブランドデータと店舗データを両方入力してください。");
+        return;
+    }
+
+    try {
+        // Numbers対応のパース関数を使用
+        const brandsArr = parseFlexibleData(brandRaw);
+        const shopsArr = parseFlexibleData(shopRaw);
+
+        window.brandData = {};
+        brandsArr.forEach(b => { 
+            if(b.brand_id) window.brandData[b.brand_id] = b; 
+        });
+
+        window.shopData = shopsArr.map(s => ({
+            ...s,
+            brand: s.brand_id,
+            lat: parseFloat(s.lat) || 0,
+            lng: parseFloat(s.lng) || 0
+        }));
+
+        renderPreviewUI();
+        generateOutputCode(); // 配布コードも自動更新
+        alert("プレビューを更新しました！");
+
+    } catch (e) {
+        console.error(e);
+        alert("データの解析に失敗しました。1行目の項目名が正しいか確認してください。");
+    }
+}
+
+/**
+ * 4. プレビューUI描画（WEB実装版を100%再現）
+ * 沖縄の表示対応および情報の省略なし版です。
+ */
+function renderPreviewUI() {
+    const $screen = $('#store-preview-screen');
+    $screen.empty();
+    const config = getSwitches();
     
-        // D. 店舗情報一覧（省略なし・カード構造の完全再現）
-        if (config.shopListSwitch == 1) {
-            html += `<h3 class="titleh3 shop-list-title">店舗情報一覧</h3><div class="search-results">`;
-            window.shopData.forEach(s => {
-                const b = window.brandData[s.brand] || {};
-                html += `
-                    <div class="shop" style="display:flex; gap:12px; background:#fff; padding:12px; border-radius:12px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); align-items:flex-start;">
-                        <div class="shop-logo" style="width:48px; flex-shrink:0;">
-                            <img src="${b.logo || ''}" style="width:48px; height:48px; border-radius:50%; border:1px solid #ddd; padding:5px; object-fit:contain;">
-                        </div>
-                        <div class="shop-info" style="flex:1;">
-                            <p class="shop-name" style="font-size:16px; margin:0 0 5px;"><strong>${s.name}</strong></p>
-                            <p style="margin:0;"><a href="#" class="shop-address-link" style="color:#444; text-decoration:underline; font-size:14px;">${s.address}</a></p>
-                            <p class="tel" style="margin:5px 0;"><a href="tel:${s.tel}" style="color:#333; text-decoration:none; font-size:14px;">📞 ${s.tel}</a></p>
-                            ${s.hours ? `<p class="shop-hours" style="background:#f0f0f0; border-radius:7px; padding:10px; font-size:10px; line-height:1.5; margin:10px 0;">${s.hours}</p>` : ''}
-                            <div class="shop-btns" style="display:flex; gap:10px; margin-top:10px;">
-                                ${s.menu ? `<button class="shop-btn" style="flex:1; height:33px; border:1.5px solid #444; background:#fff; border-radius:8px; font-size:13px;">menu</button>` : ''}
-                                ${s.reserve ? `<button class="reserve-btn" style="flex:1; height:33px; background:#f08519; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:bold;">RESERVATION</button>` : ''}
-                            </div>
-                        </div>
-                    </div>`;
+    if (config.mainSwitch != 1) {
+        $screen.html('<div style="padding:20px;text-align:center;color:#999;">メインスイッチがOFFです</div>');
+        return;
+    }
+
+    // WEB版と同じデザインクラスを適用
+    let html = '<div class="SyFLdCxCbsFfSEbKqHBjof" style="padding: 10px 0; background:#f5f5f5; min-height:100%; text-align:left;">';
+
+    // A. 検索窓
+    if (config.searchBoxSwitch == 1 && window.shopData.length >= config.searchBoxThreshold) {
+        html += `<h3 class="titleh3 shop-search-title">店舗検索</h3><div class="shop-search-box" style="text-align:center;"><div class="search-box" style="width:90%; display:inline-block; position:relative;"><i class="fa fa-search search-icon" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#999;"></i><input type="text" placeholder="検索..." style="width:100%;padding:10px 10px 10px 35px;border-radius:8px;border:1px solid #ccc;"></div></div>`;
+    }
+
+    // B. BRANDバナー
+    if (config.brandBoxSwitch == 1 && Object.keys(window.brandData).length >= config.brandBoxThreshold) {
+        html += `<h3 class="titleh3 brand-box">BRAND</h3><div class="menu_banners scrollable">`;
+        Object.keys(window.brandData).forEach(key => {
+            const b = window.brandData[key];
+            html += `<a href="#" class="menu_banner" data-brand="${key}"><div class="logo-box"><img src="${b.logo}" alt="${b.name}"></div><span>${b.name}</span></a>`;
+        });
+        html += `</div>`;
+    }
+
+    // C. エリア抽出（沖縄を確実に含む全網羅）
+    if (config.areaBoxSwitch == 1) {
+        const areaOrder = ['神奈川', '東京', '千葉', '埼玉', '静岡', '沖縄', '大阪'];
+        const extractedAreas = areaOrder.filter(a => 
+            window.shopData.some(s => s.address && s.address.indexOf(a) !== -1)
+        );
+
+        if (extractedAreas.length >= config.areaBoxThreshold) {
+            html += `<h3 class="titleh3 area-box">エリアから探す</h3><div class="area-scroll">`;
+            extractedAreas.forEach(a => {
+                html += `<button class="area-banner">${a}</button>`;
             });
             html += `</div>`;
         }
-    
-        html += '</div>';
-        $screen.append(html);
     }
-    
+
+    // D. 店舗情報一覧（省略なし・カード構造の完全再現）
+    if (config.shopListSwitch == 1) {
+        html += `<h3 class="titleh3 shop-list-title">店舗情報一覧</h3><div class="search-results">`;
+        window.shopData.forEach(s => {
+            const b = window.brandData[s.brand] || {};
+            html += `
+                <div class="shop" style="display:flex; gap:12px; background:#fff; padding:12px; border-radius:12px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); align-items:flex-start;">
+                    <div class="shop-logo" style="width:48px; flex-shrink:0;">
+                        <img src="${b.logo || ''}" style="width:48px; height:48px; border-radius:50%; border:1px solid #ddd; padding:5px; object-fit:contain;">
+                    </div>
+                    <div class="shop-info" style="flex:1;">
+                        <p class="shop-name" style="font-size:16px; margin:0 0 5px;"><strong>${s.name}</strong></p>
+                        <p style="margin:0;"><a href="#" class="shop-address-link" style="color:#444; text-decoration:underline; font-size:14px;">${s.address}</a></p>
+                        <p class="tel" style="margin:5px 0;"><a href="tel:${s.tel}" style="color:#333; text-decoration:none; font-size:14px;">📞 ${s.tel}</a></p>
+                        ${s.hours ? `<p class="shop-hours" style="background:#f0f0f0; border-radius:7px; padding:10px; font-size:10px; line-height:1.5; margin:10px 0;">${s.hours}</p>` : ''}
+                        <div class="shop-btns" style="display:flex; gap:10px; margin-top:10px;">
+                            ${s.menu ? `<button class="shop-btn" style="flex:1; height:33px; border:1.5px solid #444; background:#fff; border-radius:8px; font-size:13px;">menu</button>` : ''}
+                            ${s.reserve ? `<button class="reserve-btn" style="flex:1; height:33px; background:#f08519; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:bold;">RESERVATION</button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+        });
+        html += `</div>`;
+    }
+
+    html += '</div>';
+    $screen.append(html);
+}
 
 function generateOutputCode() {
     const config = getSwitches();
@@ -387,7 +393,7 @@ $(document).ready(function () {
     // ===============================
     // ✅ スクリプト実行スイッチ（設定値反映）
     // ===============================
-    const mainSwitch = ${config.mainSwitch}; 
+    const mainSwitch = ${config.mainSwitch};
     const searchBoxSwitch = ${config.searchBoxSwitch};
     const searchBoxThreshold = ${config.searchBoxThreshold};
     const brandBoxSwitch = ${config.brandBoxSwitch};
@@ -787,10 +793,6 @@ $(document).ready(function () {
 });
 
 <\/script>`;
-
-
-
-
 
 
     // 配布用CSS（提示された全てのスタイルを網羅）
