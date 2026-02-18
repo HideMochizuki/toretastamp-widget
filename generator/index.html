@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>オプション機能 | 管理画面</title>
+    <link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="preview-footer.css">
@@ -911,7 +912,7 @@
                 <div style="overflow: hidden; margin-top: 25px;"><label style="font-weight: bold; color: var(--primary-color);">【2】CSSコード (styleタグ付)</label><button class="btn btn-copy" onclick="copyText('out-css')">コピー</button></div>
                 <textarea id="out-css" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
             </div>
-    </div>
+        </div>
 
         <link rel="stylesheet" href="style.css">
         <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/style_default.css" rel="stylesheet" />
@@ -982,21 +983,16 @@
 
                 <div style="margin: 15px auto 40px;text-align: center;display: flex;justify-content: center;gap: 10px; padding: 10px;border-radius: 5px;background-color: #dddddd;">
                     <button class="btn" id="reset-btn" style="background-color: #6c757d; color: #fff; width: 120px; font-size: 10px;">リセット</button>
-                    
                     <button class="btn" id="export-btn" style="background-color: #007bff; color: #fff; width: 120px; font-size: 10px;">書き出し</button>
-                    
                     <button class="btn" id="import-btn" style="background-color: #8ace36; color: #fff; width: 120px; font-size: 10px;">読み込み</button>
-                    
                     <input type="file" id="import-file" style="display: none;" accept=".json">
                 </div>
-
                 
     
         </div>
 
     </div><!-- main-wrapper -->
-
-</div>
+</div><!-- app-container -->
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
