@@ -291,7 +291,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     pointer-events: auto !important;
     cursor: pointer !important;
 }
-.mock-screen section.content { padding-top: 20px; }
+.mock-screen section.content { padding-top: 20px; margin-bottom: 80px; }
 
 /* プレビュー画面内の仮想ヘッダー専用スタイル */
 .mock-header-v2 {
@@ -312,6 +312,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .mock-header-v2 h1 {
     margin: 0;
     line-height: 0;
+    text-align: center;
 }
 
 .mock-header-v2 h1 img {

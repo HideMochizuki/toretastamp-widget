@@ -1,4 +1,8 @@
-// --- 設定データ ---
+/* ==========================================================
+   設定データ・定数定義
+   ========================================================== */
+
+// フッター固定メニュー　アイコン
 const iconImages = {
     home: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/G7NN1cykJDexyrf7W3sY.png",
     stamp: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/11vmbKPoZKbaDsS6AnC8.png",
@@ -10,10 +14,11 @@ const iconImages = {
     official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
 };
 
-// --- 別画面のテンプレート（スタンプ帳一覧） ---
+// 別画面のテンプレート（スタンプ帳一覧・チケット一覧・その他）
 const screens = {
-    top: "", // 初期化時に現在のHTMLを保存します
-    // screens.stamp の中身をこちらに差し替え
+    top: "", // 初期化時に現在のHTMLを保存
+    
+    // スタンプ帳一覧
     stamp: `
     <div class="mock-header-v2">
         <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
@@ -41,14 +46,58 @@ const screens = {
         </div>
         <div class="menu-sublist">
             <ul>
-                <li><a href="#">スタンプ履歴</a></li>
+                <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+                <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
                 <li><a href="#">スタンプ/チケットの使い方</a></li>
                 <li><a href="#">お問い合わせ</a></li>
             </ul>
         </div>
     </section>
     `,
-    // ★ チケット一覧用のテンプレート
+
+    // スタンプ詳細
+    stamp_details: `
+    <div class="mock-header-v2">
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+    </div>
+    <div class="mock-headermargin-v2"></div>
+    <section class="content">
+        <div class="stamp_set" style="padding: 20px; margin: 15px;">
+            <h3 class="stamp_title">レストラントレタ来店スタンプ</h3>
+            <div style="margin-bottom: 0px;">
+                <span class="stamp_due" style="font-size: 10px;">有効期限：2027年02月14日</span>
+            </div>
+            <p class="stamp_note">お得なチケットは、来店3回来店ごとにお得なチケットをプレゼント！<br>ご来店お待ちしております！</p>
+            
+            <div class="stamp_wrapper" style="text-align: center; margin: 20px 0; padding: 0;">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/Ad0xVj96ubnYL40GtQCi.png" alt="" style="width: 25%;">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%;">
+            </div>
+            
+            <div class="stamp_button" style="text-align: center; margin: 0 10px">
+                <a class="page_button orange" href="#" style="text-decoration: none; padding: 3px 5px;"><span style="font-size:12px;">QRコード読み取り</span></a>
+            </div>
+        </div>
+        
+        <div class="stamp_button" style="margin-top: 20px;">
+            <a class="page_button to-stamp-list clickable" href="#"><span>スタンプ一覧へ</span></a>
+        </div>
+        <div class="stamp_button">
+            <a class="page_button back-to-top clickable" href="#"><span>トップへ</span></a>
+        </div>
+        <div class="menu-sublist">
+            <ul>
+               <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+               <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
+               <li><a href="#">スタンプ/チケットの使い方</a></li>
+               <li><a href="#">お問い合わせ</a></li>
+            </ul>
+        </div>
+    </section>
+    `,
+
+    // チケット一覧
     ticket: `
     <div class="mock-header-v2">
         <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
@@ -61,7 +110,6 @@ const screens = {
             </select>
         </h3>
         <div id="coupon-list">
-
             <div class="ticket_list_set">
                 <div class="ticket_list">
                     <a href="#">
@@ -80,10 +128,9 @@ const screens = {
                     <dl><dt>お好きなピザプレゼント</dt></dl>
                     </a>
                     <dl class="ticket_list_bottom">
-                        <dt><span class="ticket_list_due">利用日時：2026/02/17 18:48:21
-                    </span></dt>
-                <dd><a href="#modal-stamp_delete" class="stamp_card_delete_btn">削除</a></dd>
-                </dl>
+                        <dt><span class="ticket_list_due">利用日時：2026/02/17 18:48:21</span></dt>
+                        <dd><a href="#" class="stamp_card_delete_btn">削除</a></dd>
+                    </dl>
                 </div>
             </div>
             <div class="ticket_list_set expired">
@@ -110,59 +157,226 @@ const screens = {
         </div>
         <div class="menu-sublist">
             <ul>
-                <li><a href="#">スタンプ履歴</a></li>
+                <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+                <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
                 <li><a href="#">スタンプ/チケットの使い方</a></li>
                 <li><a href="#">お問い合わせ</a></li>
             </ul>
         </div>
     </section>
     `,
-    // ★ ここから：スタンプ詳細ページ
-    stamp_details: `
+
+    // チケット詳細ページ
+    ticket_detail: `
     <div class="mock-header-v2">
         <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
     </div>
     <div class="mock-headermargin-v2"></div>
     <section class="content">
-        <div class="stamp_set" style="padding: 20px; margin: 15px;">
-            <h3 class="stamp_title">レストラントレタ来店スタンプ</h3>
-            <div style="margin-bottom: 0px;">
-                <span class="stamp_due" style="font-size: 10px;">有効期限：2027年02月14日</span>
+        <p class="ticket_notice" style="margin: 0 0 10px;">
+            ★おめでとうございます★
+        </p>
+
+        <div class="ticket_set">
+            <div class="ticket_img">
+                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/j25fdwy2uJ1ykNwKelCg.png" alt="お好きなピザプレゼント" style="width:100%; display:block;">
             </div>
-            <p class="stamp_note">お得なチケットは、来店3回来店ごとにお得なチケットをプレゼント！<br>ご来店お待ちしております！</p>
+
+            <h3 class="ticket_title">お好きなピザプレゼント</h3>
+
+            <span class="ticket_due">有効期限：2026/05/19</span>
+
+            <p class="ticket_note">※チケットご利用時にスタッフにお見せください。<br>※メニュー内にあるデザートと引き換える事が可能です。<br>※1回のみご利用いただけます。<br>※他のチケットと併用可能です。</p>
             
-            <div class="stamp_wrapper" style="text-align: center; margin: 20px 0; padding: 0;">
-                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/Ad0xVj96ubnYL40GtQCi.png" alt="" style="width: 25%;">
-                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%">
-                <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/rGXbgv33qZPRED56WnWc.png" alt="" style="width: 25%;">
-            </div>
-            
-            <div class="stamp_button" style="text-align: center; margin: 0 10px">
-                <a class="page_button orange" href="#" style="text-decoration: none; padding: 3px 5px;"><span  style="font-size:12px;">QRコード読み取り</span></a>
+            <div class="stamp_button">
+                <a class="page_button orange" href="#" style="text-decoration: none; padding: 3px 5px;"><span style="font-size:12px;">チケットを利用する</span></a>
+                
             </div>
         </div>
-        
-        <div class="stamp_button" style="margin-top: 20px;">
-            <a class="page_button to-stamp-list clickable" href="#"><span>スタンプ一覧へ</span></a>
+
+        <div class="stamp_button">
+            <a class="page_button to-ticket clickable" href="#"><span>チケット一覧へ</span></a>
+        </div>
+        <div class="stamp_button">
+            <a class="page_button to-history clickable" href="#"><span>スタンプ履歴へ</span></a>
         </div>
         <div class="stamp_button">
             <a class="page_button back-to-top clickable" href="#"><span>トップへ</span></a>
         </div>
+
         <div class="menu-sublist">
             <ul>
-                <li><a href="#">スタンプ履歴</a></li>
+                <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+                <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
                 <li><a href="#">スタンプ/チケットの使い方</a></li>
                 <li><a href="#">お問い合わせ</a></li>
             </ul>
         </div>
     </section>
-    `
+    `,
+    user: `
+    <div class="mock-header-v2">
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+    </div>
+    <div class="mock-headermargin-v2"></div>
+    <section class="content">
+        <div class="profile_set">
+            <form class="form">
+                <h3 class="profile_title">会員ID</h3>
+                <div class="formset">
+                    <div class="txfmset d-flex">
+                        <p id="user_id">*************</p>
+                    </div>
+                </div>
+
+                <h3 class="profile_title" style="margin: -20px 0 0 0;">メールアドレス変更</h3>
+                <p class="profile_note">メールアドレスを変更する場合は以下より変更してください。</p>
+                
+                <div class="formset">
+                    <h4>現在のメールアドレス</h4>
+                    <div class="txfmset d-flex" >
+                        <p id="user_email">yamada@toreta.in</p>
+                    </div>
+                    
+                    <h4 style="margin-top:10px;">変更後のメールアドレス</h4>
+                    <div class="txfmset">
+                        <input type="email" name="email" value="">
+                    </div>
+                    
+                    <h4 style="margin-top:10px;">変更後のメールアドレス（確認用）</h4>
+                    <div class="txfmset">
+                        <input type="email" name="check_mail" value="">
+                    </div>
+                </div>
+
+                <div class="stamp_button">
+                    <button type="button" class="page_button orange submit idChangeConfirm disabled" disabled=""><span>変更する</span></button>
+                </div>
+                <p class="borderDash"></p>
+            </form>
+
+            <div style="padding:15px 0;">
+                <div class="stamp_button">
+                    <a class="page_button orange" href="#" style="text-decoration: none;"><span>ログアウト</span></a>
+                </div>
+                <div class="stamp_button">
+                    <a class="page_button orange" href="#" style="text-decoration: none;"><span>退会する</span></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="stamp_button">
+            <a class="page_button back-to-top clickable" href="#"><span>トップへ</span></a>
+        </div>
+
+        <div class="menu-sublist">
+            <ul>
+                <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+                <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
+                <li><a href="#">スタンプ/チケットの使い方</a></li>
+                <li><a href="#">お問い合わせ</a></li>
+            </ul>
+        </div>
+    </section>
+    `,
+    // スタンプ履歴ページ
+    history: `
+    <div class="mock-header-v2">
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+    </div>
+    <div class="mock-headermargin-v2"></div>
+    <section class="content">
+        <div class="top_button">
+            <ul>
+                <li>
+                    <a href="#" class="to-stamp clickable">
+                        <div class="button_img">
+                            <img src="https://toretastamp-stg.s3.amazonaws.com/static/front/images/stamp.svg" alt="">
+                        </div>
+                        <div class="button_info">スタンプ帳</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="to-ticket clickable">
+                        <div class="button_img">
+                            <img src="https://toretastamp-stg.s3.amazonaws.com/static/front/images/ticket.svg" alt="">
+                        </div>
+                        <div class="button_info">チケット一覧</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <h3 class="titleh3"><b>スタンプ履歴</b></h3>
+
+        <div class="stamp_set" style="margin-bottom:10px;"> 
+            <h3 class="stamp_list_title">来店スタンプ</h3>
+            <dl><dt><span class="stamp_shop">店舗：レストラントレタ</span></dt></dl>
+            <dl><dt><span class="ticket_list_due">獲得日:2026年02月18日 14:39</span></dt></dl>
+            <dl class="ticket_list_bottom stamp">
+                <dt class="stampicon"><b><span></span></b><span class="stamp_num">5ポイント獲得</span></dt>
+            </dl>
+        </div>
+
+        <div class="stamp_set" style="margin-bottom:10px;"> 
+            <h3 class="stamp_list_title">来店スタンプ</h3>
+            <dl><dt><span class="stamp_shop">店舗：レストラントレタ</span></dt></dl>
+            <dl><dt><span class="ticket_list_due">獲得日:2026年02月01日 12:29</span></dt></dl>
+            <dl class="ticket_list_bottom stamp">
+                <dt class="stampicon"><b><span></span></b><span class="stamp_num">1ポイント獲得</span></dt>
+            </dl>
+        </div>
+        
+        <div class="stamp_button">
+            <a class="page_button back-to-top clickable" href="#"><span>トップへ戻る</span></a>
+        </div>
+        
+        <div class="menu-sublist">
+            <ul>
+                <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+                <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
+                <li><a href="#">スタンプ/チケットの使い方</a></li>
+                <li><a href="#">お問い合わせ</a></li>
+            </ul>
+        </div>
+    </section>
+    `,
+    // screens オブジェクト内に追加
+    notice_detail: `
+    <div class="mock-header-v2">
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+    </div>
+    <div class="mock-headermargin-v2"></div>
+    <section class="content">
+        <div class="landing_set show">
+            <h3 class="landing_title">◯◯◯◯のお知らせ</h3>
+            <div class="landing_note"">
+                テキスト<br><br>
+                テキストテキストテキストテキストテキストテキストテキストテキストテキストテキストテキストテキスト<br><br>
+                テキストテキストテキストテキストテキストテキストテキストテキスト<br><br><br>
+                テキストテキストテキストテキスト
+                <br><br><br><br>
+            </div>
+        </div>
+        <div class="stamp_button" style="margin-top: 20px;">
+            <a class="page_button back-to-top clickable" href="#"><span>トップへ戻る</span></a>
+        </div>
+        <div class="menu-sublist">
+            <ul>
+                <li><a href="#" class="to-history clickable">スタンプ履歴</a></li>
+                <li><a href="#" class="to-user clickable">登録情報の変更</a></li>
+                <li><a href="#">スタンプ/チケットの使い方</a></li>
+                <li><a href="#">お問い合わせ</a></li>
+            </ul>
+        </div>
+    </section>
+    `,
 };
 
 const menuList = document.getElementById('menu-list');
 const previewUl = document.getElementById('preview-ul');
 
-// --- 初期化 ---
+// 初期化 ---
 if (window.Sortable && menuList) {
     Sortable.create(menuList, {
         animation: 150, handle: '.drag-handle', ghostClass: 'sortable-ghost',
@@ -185,7 +399,7 @@ const setupSync = (p, t) => {
 };
 
 const syncPairs = [
-    // 共通・Aパターン・Bパターン（既存分）
+    // 共通・Aパターン・Bパターン
     ['cfg-body-bg', 'cfg-body-bg-val'],
     ['cfg-btn1-icon-c', 'cfg-btn1-icon-c-val'],
     ['cfg-btn2-icon-c', 'cfg-btn2-icon-c-val'],
@@ -196,7 +410,7 @@ const syncPairs = [
     
     // ★ヘッダー用
     ['cfg-header-bg', 'cfg-header-bg-val'],
-    ['cfg-header-text-c', 'cfg-header-text-c-val'], // ★この行を追加
+    ['cfg-header-text-c', 'cfg-header-text-c-val'],
     ['cfg-mock-header-bg', 'cfg-mock-header-bg-val'],
     ['cfg-btn-area-bg', 'cfg-btn-area-bg-val'],
     ['cfg-btn1-bg', 'cfg-btn1-bg-val'], ['cfg-btn2-bg', 'cfg-btn2-bg-val'],
@@ -258,10 +472,25 @@ const syncPairs = [
     ['cfg-ticket-due-c', 'cfg-ticket-due-val'],
     ['cfg-ticket-due-bg', 'cfg-ticket-due-bg-val'],
     ['cfg-ticket-border-c', 'cfg-ticket-border-c-val'],
-    ['cfg-ticket-due-border-c', 'cfg-ticket-due-border-c-val']
+    ['cfg-ticket-due-border-c', 'cfg-ticket-due-border-c-val'],
+    // チケット詳細用
+    ['cfg-td-card-bg', 'cfg-td-card-bg-val'],
+    ['cfg-td-card-border-c', 'cfg-td-card-border-c-val'],
+    ['cfg-td-notice-c', 'cfg-td-notice-val'],
+    ['cfg-td-title-c', 'cfg-td-title-val'],
+    ['cfg-td-due-bg', 'cfg-td-due-bg-val'],
+    ['cfg-td-note-c', 'cfg-td-note-val'],
+    ['cfg-td-due-c', 'cfg-td-due-val'],
+    // マイページ
+    ['cfg-user-card-bg', 'cfg-user-card-bg-val'],
+    ['cfg-user-card-border-c', 'cfg-user-card-border-c-val'],
+    ['cfg-user-title-c', 'cfg-user-title-val'],
+    ['cfg-user-note-c', 'cfg-user-note-val'],
+    ['cfg-user-btn-disabled-bg', 'cfg-user-btn-disabled-bg-val']
 ];
 syncPairs.forEach(pair => setupSync(pair[0], pair[1]));
 
+// フッター固定メニュー　
 function relabelItems() {
     document.querySelectorAll('.menu-item').forEach((item, index) => { 
         const h = item.querySelector('.menu-item-header');
@@ -269,8 +498,10 @@ function relabelItems() {
     });
 }
 
-// --- プレビュー ---
-function updatePreview() {
+/* ==========================================================
+   UIプレビュー層（各パーツの反映処理）
+   ========================================================== */
+   function updatePreview() {
     const mock = document.querySelector('.mock-screen');
     const phoneContainer = document.querySelector('.phone-mock');
 
@@ -278,7 +509,6 @@ function updatePreview() {
     const picker = document.getElementById('cfg-header-text-c');
     const textVal = document.getElementById('cfg-header-text-c-val');
     if (picker && textVal) {
-        // カラーピッカーの値をテキストボックスに反映（小文字を大文字に揃える）
         textVal.value = picker.value.toUpperCase();
     }
 
@@ -287,7 +517,13 @@ function updatePreview() {
     // ★ CSS一括適用
     applyCurrentDesignToMock();
 
-    const isSubScreen = mock.dataset.currentScreen === 'stamp' || mock.dataset.currentScreen === 'ticket' || mock.dataset.currentScreen === 'stamp_details';
+    const isSubScreen = mock.dataset.currentScreen === 'stamp' 
+                      || mock.dataset.currentScreen === 'ticket' 
+                      || mock.dataset.currentScreen === 'stamp_details' 
+                      || mock.dataset.currentScreen === 'ticket_detail'
+                      || mock.dataset.currentScreen === 'user'
+                      || mock.dataset.currentScreen === 'history'
+                      || mock.dataset.currentScreen === 'notice_detail';
     
     const previewUl = document.getElementById('preview-ul');
     if(!previewUl) return;
@@ -296,6 +532,9 @@ function updatePreview() {
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
 
+    // ---------------------------------------------------------
+    // A. ヘッダー設定（トップページのみ）
+    // ---------------------------------------------------------
     if (!isSubScreen) {
         const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
         const bSettings = document.getElementById('header-b-settings');
@@ -339,7 +578,6 @@ function updatePreview() {
                     headerTop.style.justifyContent = '';
                     headerTop.style.paddingLeft = '';
                     headerTop.style.height = '';
-                    // 背景色の適用
                     headerTop.style.setProperty('background-color', getV('cfg-header-bg-val'), 'important');
                 }
                 if(headerH1) {
@@ -348,25 +586,31 @@ function updatePreview() {
                 }
                 if(headerSpan) {
                     headerSpan.style.display = '';
-                    // ★ここを修正：色を消すのではなく、設定した色を適用する
                     headerSpan.style.setProperty('color', getV('cfg-header-text-c-val'), 'important');
                     headerSpan.style.setProperty('font-size', getV('cfg-header-text-size'), 'important');
                 }
                 if (sliderWrap) sliderWrap.remove();
         }
+        
 
-        const selected = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
-        const btn1 = mock.querySelector('.top_button ul li:nth-child(1)');
-        const btn2 = mock.querySelector('.top_button ul li:nth-child(2)');
-
+        // 全体背景色（トップページのみ適用する場合）
         const isBodyBgNone = document.getElementById('cfg-body-bg-none')?.checked;
         mock.style.backgroundColor = isBodyBgNone ? 'transparent' : getV('cfg-body-bg-val');
-        
-        const area = mock.querySelector('.top_button');
-        if(area) {
-            const isBtnAreaNone = document.getElementById('cfg-btn-area-bg-none')?.checked;
-            area.style.backgroundColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
-        }
+    }
+
+    // ---------------------------------------------------------
+    // B. メインボタン設定（トップ・履歴など共通）
+    // ---------------------------------------------------------
+    const area = mock.querySelector('.top_button');
+    if(area) {
+        // ボタンエリア背景色
+        const isBtnAreaNone = document.getElementById('cfg-btn-area-bg-none')?.checked;
+        area.style.backgroundColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
+
+        // ボタン自体のデザイン適用
+        const selected = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
+        const btn1 = area.querySelector('ul li:nth-child(1)');
+        const btn2 = area.querySelector('ul li:nth-child(2)');
 
         if (selected === 'A') {
             apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'));
@@ -429,6 +673,9 @@ function updatePreview() {
         }
     }
 
+    // ---------------------------------------------------------
+    // C. フッターメニューのアイコン設定
+    // ---------------------------------------------------------
     const fBg = getV('cfg-bg-val');
     const fFilter = document.getElementById('cfg-icon-choice')?.value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
     const previewFooter = document.getElementById('preview-footer');
@@ -454,6 +701,14 @@ function updatePreview() {
             li.classList.add('clickable');
             li.style.cursor = 'pointer';
             li.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
+        } else if (cls === 'user') {
+            li.classList.add('clickable');
+            li.style.cursor = 'pointer';
+            li.onclick = (e) => { e.preventDefault(); changeMockScreen('user'); };
+        } else if (cls === 'history') {
+            li.classList.add('clickable');
+            li.style.cursor = 'pointer';
+            li.onclick = (e) => { e.preventDefault(); changeMockScreen('history'); };
         } else if (cls === 'home') {
             li.onclick = (e) => { 
                 e.preventDefault(); 
@@ -537,6 +792,7 @@ function updatePreview() {
 
     attachPreviewEvents();
 }
+
 // 1. プレビュー内のボタンにクリックイベントを貼る関数
 function attachPreviewEvents() {
     setTimeout(() => {
@@ -573,10 +829,36 @@ function attachPreviewEvents() {
                 changeMockScreen('ticket');
             };
         }
-    }, 150);
+        const historyLink = mock.querySelector('.menu-sublist .to-history');
+        if (historyLink) {
+            historyLink.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                changeMockScreen('history');
+            };
+        }
+        const userLink = mock.querySelector('.menu-sublist .to-user');
+        if (userLink) {
+            userLink.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                changeMockScreen('user');
+            };
+        }
+        mock.onclick = (e) => {
+            const noticeItem = e.target.closest('.notice_list');
+            
+            if (noticeItem) {
+                e.preventDefault();
+                e.stopPropagation();
+                changeMockScreen('notice_detail');
+            }
+        };
+
+    }, 200);
 }
 
-// 2. 画面を切り替える関数（決定版：ロゴクリックを確実に動かす）
+// 2. 画面を切り替える関数
 function changeMockScreen(screenKey) {
     const mock = document.querySelector('.mock-screen');
     if (!mock) return;
@@ -588,32 +870,53 @@ function changeMockScreen(screenKey) {
     if (screens[screenKey]) {
         mock.innerHTML = screens[screenKey];
         mock.dataset.currentScreen = screenKey;
+    } else {
+        console.error(`エラー: screens.${screenKey} が定義されていません。script.jsを確認してください。`);
+        return; 
     }
 
     // --- トップ画面に戻る共通命令 ---
     const goToTop = (e) => {
-        if(e) {
-            e.preventDefault();
-            e.stopPropagation(); // 他のイベントに邪魔されないようにする
-        }
+        if(e) { e.preventDefault(); e.stopPropagation(); }
         console.log("トップ画面に戻ります");
         mock.innerHTML = screens.top;
         delete mock.dataset.currentScreen;
         updatePreview(); // トップ画面のイベントを再登録
     };
 
-    // 2. 遷移先がサブ画面（stamp/ticket）の場合のイベント設定
-    if (screenKey === 'stamp' || screenKey === 'ticket' || screenKey === 'stamp_details') {
-        
-        // 【重要：修正ポイント】
-        // <a>タグを探すのではなく、ヘッダーの塊（.mock-header-v2）全体をクリック可能にします
+    const toUserBtns = mock.querySelectorAll('.to-user');
+    toUserBtns.forEach(btn => {
+        btn.style.cursor = 'pointer';
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            changeMockScreen('user');
+        };
+    });
+    // 2. イベント設定（DOM反映待ちのために少しだけ遅らせる）
+    setTimeout(() => {
+        // ヘッダー全体をクリック可能に
         const headerBox = mock.querySelector('.mock-header-v2');
         if (headerBox) {
-            headerBox.style.cursor = 'pointer'; // どこを触っても指マークにする
-            headerBox.onclick = goToTop;        // ヘッダーエリア全体に命令を出す
+            headerBox.style.cursor = 'pointer';
+            headerBox.onclick = goToTop;
         }
 
-        // ★スタンプ画面の「スタンプカード」をクリックで詳細へ
+        // 「トップへ戻る」ボタン
+        const backBtn = mock.querySelector('.back-to-top');
+        if (backBtn) backBtn.onclick = goToTop;
+
+        // ページ内リンク（チケット一覧へ）
+        const toTicketBtn = mock.querySelector('.to-ticket');
+        if (toTicketBtn) toTicketBtn.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
+
+        // ページ内リンク（スタンプ帳へ）
+        const toStampBtn = mock.querySelector('.to-stamp');
+        if (toStampBtn) toStampBtn.onclick = (e) => { e.preventDefault(); changeMockScreen('stamp'); };
+
+        // ===============================================
+        // スタンプ画面の設定
+        // ===============================================
         if (screenKey === 'stamp') {
             const stampCards = mock.querySelectorAll('.stamp_card');
             stampCards.forEach(card => {
@@ -625,7 +928,9 @@ function changeMockScreen(screenKey) {
             });
         }
 
-        // ★詳細画面の「スタンプ一覧へ」ボタンで一覧へ戻る
+        // ===============================================
+        // スタンプ詳細画面の設定
+        // ===============================================
         if (screenKey === 'stamp_details') {
             const toStampListBtn = mock.querySelector('.to-stamp-list');
             if (toStampListBtn) {
@@ -636,28 +941,105 @@ function changeMockScreen(screenKey) {
             }
         }
 
-        // 「トップへ戻る」ボタン
-        const backBtn = mock.querySelector('.back-to-top');
-        if (backBtn) {
-            backBtn.onclick = goToTop;
+        // ===============================================
+        // チケット一覧画面でのクリック設定
+        // ===============================================
+        if (screenKey === 'ticket') {
+            // 「利用可能」なチケットのカード全体を取得（親のdivを見る）
+            // .ticket_list_set のうち、.used も .expired も付いていないものの中にある .ticket_list
+            const validCards = mock.querySelectorAll('.ticket_list_set:not(.used):not(.expired) .ticket_list');
+            
+            console.log(`チケット検出数: ${validCards.length} 件`); // デバッグ用
+
+            validCards.forEach(card => {
+                // カード全体をクリック可能にする
+                card.style.cursor = 'pointer';
+                card.onclick = (e) => {
+                    e.preventDefault();
+                    console.log("チケット詳細へ遷移します");
+                    changeMockScreen('ticket_detail');
+                };
+                
+                // 念のため中のリンク(aタグ)のクリックも無効化して、親(card)のクリックを優先させる
+                const link = card.querySelector('a');
+                if(link) link.style.pointerEvents = "none"; 
+            });
         }
 
-        // スタンプ画面内の「チケット一覧へ」
-        const toTicketBtn = mock.querySelector('.to-ticket');
-        if (toTicketBtn) {
-            toTicketBtn.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
+        // ===============================================
+        // チケット詳細画面のボタン設定
+        // ===============================================
+        if (screenKey === 'ticket_detail') {
+            // チケット一覧へ戻る
+            const toTicketList = mock.querySelector('.to-ticket');
+            if (toTicketList) {
+                toTicketList.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
+            }
+            // スタンプ履歴へ（仮でスタンプ帳へ）
+            const toHistory = mock.querySelector('.to-history');
+            if (toHistory) {
+                toHistory.onclick = (e) => { e.preventDefault(); changeMockScreen('stamp'); };
+            }
         }
 
-        // チケット画面内の「スタンプ帳へ」
-        const toStampBtn = mock.querySelector('.to-stamp');
-        if (toStampBtn) {
-            toStampBtn.onclick = (e) => { e.preventDefault(); changeMockScreen('stamp'); };
+        // ===============================================
+        // ★スタンプ履歴画面の設定
+        // ===============================================
+        if (screenKey === 'history') {
+            // リストメニューなどの「スタンプ履歴」リンクを無効化（現在地なので）
+            const historyLinks = mock.querySelectorAll('.to-history');
+            historyLinks.forEach(a => a.style.pointerEvents = 'none');
+            
+            // ページ上部の「スタンプ帳」ボタン
+            const toStamp = mock.querySelector('a[href*="stamp_list"]'); // hrefに含まれる文字で探すかクラスで
+            if(toStamp) toStamp.onclick = (e) => { e.preventDefault(); changeMockScreen('stamp'); };
+
+            // ページ上部の「チケット一覧」ボタン
+            const toTicket = mock.querySelector('a[href*="coupon_list"]');
+            if(toTicket) toTicket.onclick = (e) => { e.preventDefault(); changeMockScreen('ticket'); };
         }
-    }
-    
-    // デザインの反映
-    applyCurrentDesignToMock();
+
+        // ===============================================
+        // 他の画面からの遷移
+        // ===============================================
+        // すべての画面共通で「.to-history」クラスを持つリンクをクリックしたら履歴へ
+        const toHistoryBtns = mock.querySelectorAll('.to-history');
+        toHistoryBtns.forEach(btn => {
+            btn.style.cursor = 'pointer';
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation(); // イベントの連鎖を止める
+                console.log("リストメニューから履歴ページへ遷移します");
+                changeMockScreen('history'); // 履歴画面へ切り替え
+            };
+        });
+
+        // ===============================================
+        // お知らせリストからの遷移
+        // ===============================================
+        const noticeLinks = mock.querySelectorAll('.notice_list a');
+        noticeLinks.forEach(link => {
+            link.onclick = (e) => {
+                e.preventDefault();
+                console.log("遷移実行：お知らせ詳細へ");
+                changeMockScreen('notice_detail'); // 1で作ったテンプレートに切り替え
+            };
+        });
+
+        // --- 2. お知らせ詳細ページ内の「トップへ戻る」ボタン ---
+        // 既存の back-to-top 処理があれば自動で動きますが、念のため
+        const noticeBackBtn = mock.querySelector('.notice_detail .back-to-top');
+        if (noticeBackBtn) noticeBackBtn.onclick = goToTop;
+
+
+
+        // デザインの再適用（DOM書き換えで消えることがあるため念押し）
+        applyCurrentDesignToMock();
+        updatePreview();
+
+    }, 10); // 10ms待ってからイベントを貼る
 }
+
 // プレビュー画面へのデザイン反映処理
 function applyCurrentDesignToMock() {
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
@@ -684,7 +1066,14 @@ function applyCurrentDesignToMock() {
     }
 
     // --- 2. ヘッダー色の適用 ---
-    if (mock.dataset.currentScreen === 'stamp' || mock.dataset.currentScreen === 'ticket' || mock.dataset.currentScreen === 'stamp_details') {
+    if (mock.dataset.currentScreen === 'stamp' 
+            || mock.dataset.currentScreen === 'ticket' 
+            || mock.dataset.currentScreen === 'stamp_details' 
+            || mock.dataset.currentScreen === 'ticket_detail'
+            || mock.dataset.currentScreen === 'user'
+            || mock.dataset.currentScreen === 'history'
+            || mock.dataset.currentScreen === 'notice_detail') {
+
         const mockHeader = mock.querySelector('.mock-header-v2');
         if (mockHeader) {
             const hColor = getV('cfg-mock-header-bg-val');
@@ -777,6 +1166,15 @@ function applyCurrentDesignToMock() {
         finalCSS += getTicketPageCSS(false);
     }
 
+    // チケット詳細ページCSS
+    if (mock.dataset.currentScreen === 'ticket_detail' && typeof getTicketDetailPageCSS === 'function') {
+        finalCSS += getTicketDetailPageCSS(false);
+    }
+    // マイページCSS
+    if (mock.dataset.currentScreen === 'user' && typeof getUserPageCSS === 'function') {
+        finalCSS += getUserPageCSS(false);
+    }
+
     // CSSをプレビュー画面に適用
     if (typeof updateDynamicStyle === 'function') {
         updateDynamicStyle(finalCSS, 'dyn-style-main');
@@ -814,6 +1212,7 @@ function applyCurrentDesignToMock() {
     }
 
     // ② オレンジボタン (.page_button.orange)
+    // ② オレンジボタン (.page_button.orange)
     const orgBtns = mock.querySelectorAll('.page_button.orange');
     if (orgBtns.length > 0) {
         const orgBg = getV('cfg-pgbtn-org-bg-val');
@@ -823,15 +1222,26 @@ function applyCurrentDesignToMock() {
         const orgBorderOn = orgBorderOnEl ? orgBorderOnEl.checked : false;
         const orgBorderW = getV('cfg-pgbtn-org-border-w');
         const orgBorderC = getV('cfg-pgbtn-org-border-c-val');
+        
+        // 無効ボタンの背景色を取得
+        const disabledBg = getV('cfg-user-btn-disabled-bg-val');
 
         orgBtns.forEach(btn => {
-            btn.style.setProperty('background-color', orgBg, 'important');
-            btn.style.setProperty('border-radius', orgRadius, 'important');
-            
-            if (orgBorderOn) {
-                btn.style.setProperty('border', `${orgBorderW} solid ${orgBorderC}`, 'important');
+            // disabledクラスがある場合は、無効色を優先する
+            if (btn.classList.contains('disabled')) {
+                btn.style.setProperty('background-color', disabledBg, 'important');
+                btn.style.setProperty('border', 'none', 'important'); // 無効時は枠線なし
+                btn.style.setProperty('border-radius', orgRadius, 'important'); // 角丸は維持
             } else {
-                btn.style.setProperty('border', 'none', 'important');
+                // 通常時（オレンジ）
+                btn.style.setProperty('background-color', orgBg, 'important');
+                btn.style.setProperty('border-radius', orgRadius, 'important');
+                
+                if (orgBorderOn) {
+                    btn.style.setProperty('border', `${orgBorderW} solid ${orgBorderC}`, 'important');
+                } else {
+                    btn.style.setProperty('border', 'none', 'important');
+                }
             }
 
             const span = btn.querySelector('span');
@@ -911,7 +1321,7 @@ function applyCurrentDesignToMock() {
         };
     }
 }
-
+// アイコン色設定用
 function apply(el, bg, on, bw, bc, tx, iconColor) {
     if(!el) return;
     
@@ -998,8 +1408,10 @@ function handleClassChange(select) {
     updatePreview();
 }
 
+/* ==========================================================
+   生成ロジック (リファクタリング版)
+   ========================================================== */
 
-// --- 3. 生成ロジック (リファクタリング版) ---
 // 共通ヘルパー関数：値の取得を簡単にする
 const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
 const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
@@ -1216,7 +1628,7 @@ function getButtonPatternCSS(selectedPattern) {
 
 // 3. ヘッダー（パターンA/B）のCSSを生成する関数
 function getHeaderCSS() {
-    const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
+    const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
 
     // --- パターンB：常にCSSを生成（スライダー等の複雑な構成のため） ---
     if (headerPattern === 'B') {
@@ -1535,6 +1947,119 @@ ${baseSelector} .ticket_list_due {
 }
 `;
 }
+// 9. チケット詳細ページのCSSを生成する関数
+function getTicketDetailPageCSS(isExport = false) {
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    const prefix = isExport ? '' : '.mock-screen ';
+
+    // 設定値の取得
+    // カード全体
+    const cardBg = getV('cfg-td-card-bg-val');
+    const cardRadius = getV('cfg-td-card-radius');
+    const borderOn = document.getElementById('cfg-td-card-border-on')?.checked;
+    const borderW = getV('cfg-td-card-border-w');
+    const borderC = getV('cfg-td-card-border-c-val');
+    const borderCSS = borderOn ? `${borderW} solid ${borderC}` : 'none';
+
+    // メッセージ
+    const noticeSize = getV('cfg-td-notice-size');
+    const noticeColor = getV('cfg-td-notice-val');
+
+    // タイトル
+    const titleSize = getV('cfg-td-title-size');
+    const titleWeight = document.getElementById('cfg-td-title-weight')?.value || '700';
+    const titleColor = getV('cfg-td-title-val');
+
+    // 有効期限
+    const dueSize = getV('cfg-td-due-size');
+    const dueColor = getV('cfg-td-due-val');
+    const dueBg = getV('cfg-td-due-bg-val');
+    const dueRadius = getV('cfg-td-due-radius');
+
+    // 注意事項
+    const noteSize = getV('cfg-td-note-size');
+    const noteColor = getV('cfg-td-note-val');
+
+    return `
+/* チケット詳細デザイン */
+${prefix}.ticket_set {
+    background-color: ${cardBg} !important;
+    border-radius: ${cardRadius} !important;
+    border: ${borderCSS} !important;
+}
+${prefix}.ticket_notice {
+    color: ${noticeColor} !important;
+    font-size: ${noticeSize} !important;
+
+}
+${prefix}.ticket_title {
+    color: ${titleColor} !important;
+    font-size: ${titleSize} !important;
+    font-weight: ${titleWeight} !important;
+}
+${prefix}.ticket_due {
+    font-size: ${dueSize} !important;
+    color: ${dueColor} !important;
+    background: ${dueBg} !important;
+    border-radius: ${dueRadius} !important;
+}
+${prefix}.ticket_note {
+    font-size: ${noteSize} !important;
+    color: ${noteColor} !important;
+}
+${prefix}.ticket_img img {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: calc(${cardRadius} / 2);
+}
+`;
+}
+
+// 10. マイページ用CSS生成関数
+function getUserPageCSS(isExport = false) {
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    const prefix = isExport ? '' : '.mock-screen ';
+
+    const cardBg = getV('cfg-user-card-bg-val');
+    const cardRadius = getV('cfg-user-card-radius');
+    const borderOn = document.getElementById('cfg-user-card-border-on')?.checked;
+    const borderW = getV('cfg-user-card-border-w');
+    const borderC = getV('cfg-user-card-border-c-val');
+    const borderCSS = borderOn ? `${borderW} solid ${borderC}` : 'none';
+    const titleColor = getV('cfg-user-title-val');
+    const noteColor = getV('cfg-user-note-val');
+    const disabledBg = getV('cfg-user-btn-disabled-bg-val');
+
+    return `
+/* マイページデザイン */
+${prefix}.profile_set {
+    background-color: ${cardBg} !important;
+    border-radius: ${cardRadius} !important;
+    border: ${borderCSS} !important; /* ★枠線を適用 */
+}
+${prefix}.profile_title {
+    color: ${titleColor} !important;
+}
+${prefix}.profile_note {
+    color: ${noteColor} !important;
+}
+${prefix}.page_button.disabled,
+${prefix}.page_button.orange.disabled {
+    background-color: ${disabledBg} !important;
+
+}
+${prefix}.page_button.disabled span,
+${prefix}.page_button.orange.disabled span {
+    color: #fff !important;
+}
+/* フォーム入力欄のスタイル補正 (プレビュー用) */
+${prefix}.formset h4 {
+    font-size: 12px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+`;
+}
 
 // --- メイン処理: 生成ボタンクリック時の動作 ---
 document.getElementById('generate-btn').onclick = () => {
@@ -1553,7 +2078,7 @@ document.getElementById('generate-btn').onclick = () => {
 
     // 各パーツのCSS生成
     const bodyBgCSS = getBodyBgCSS();
-    const btnPattern = document.querySelector('input[name="btn-pattern"]:checked').value;
+    const btnPattern = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
     const patternCSS = getButtonPatternCSS(btnPattern);
     const headerCSS = getHeaderCSS();
     const stampPageCSS = getStampPageCSS();
@@ -1561,13 +2086,15 @@ document.getElementById('generate-btn').onclick = () => {
     const noticeCSS = getNoticeCSS(true);
     const stampDetailsCSS = getStampDetailsCSS();
     const ticketPageCSS = getTicketPageCSS(true);
+    const ticketDetailCSS = getTicketDetailPageCSS(true);
+    const userPageCSS = getUserPageCSS(true);
 
     // フッターメニュー設定
     const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
     const listBorderOn = document.getElementById('cfg-list-border-on').checked;
     
-    // ロゴ配置
-    const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked').value;
+    // ロゴ配置（ここ後で改修）
+    const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked')?.value || 'center';
     const subPageHeaderCSS = `
 .mock-header-v2 { 
     display: flex !important; 
@@ -1576,11 +2103,10 @@ document.getElementById('generate-btn').onclick = () => {
     ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
 }`;
 
-
     // ハンバーガーメニューの色設定を取得
     const hamLineColor = getV('cfg-ham-line-val');
     const hamActiveColor = getV('cfg-ham-line-active-val');
-    const listPattern = document.querySelector('input[name="list-pattern"]:checked').value;
+    const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
     
     // 追加するCSS
     let hamburgerCSS = "";
@@ -1623,7 +2149,7 @@ document.getElementById('generate-btn').onclick = () => {
     `;
     }
 
-    // ★★★【追加】フッターアイコン画像のCSS生成 ★★★
+    // フッターアイコン画像のCSS生成 ★★★
     let footerIconCSS = "";
     // iconImagesオブジェクト（script.js上部で定義済み）をループしてCSSを作る
     Object.keys(iconImages).forEach(key => {
@@ -1635,12 +2161,11 @@ document.getElementById('generate-btn').onclick = () => {
         // CSS生成: .home .icon { background-image: ... }
         footerIconCSS += `#sp-fixed-menu li.${key} .icon { background-image: url('${url}'); }\n`;
     });
-    // ★★★ 追加ここまで ★★★
 
 
     // --- 【1】JavaScriptコードの組み立て ---
     const menuItems = getMenuItems();
-    const headerPattern = document.querySelector('input[name="header-pattern"]:checked').value;
+    const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
     
     // ★追加：ヘッダーBパターン用の超長スクリプト
     let headerBScript = "";
@@ -1998,6 +2523,8 @@ ${pageBtnCSS}
 ${hamburgerCSS}
 ${noticeCSS}
 ${ticketPageCSS}
+${ticketDetailCSS}
+${userPageCSS}
 
 /* フッター固定メニュー */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
@@ -2051,7 +2578,10 @@ createItem(true);
 document.getElementById('add-item').onclick = () => createItem();
 window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.select(); document.execCommand('copy'); alert("コピーしました"); } };
 
-// データの保存・読み込み (LocalStorage) 
+/* ==========================================================
+   データの保存・読み込み (LocalStorage) 
+   ========================================================== */
+ 
 // 1. 現在のすべての設定値をオブジェクトにまとめる関数
 function getAllSettings() {
     const settings = {};
@@ -2182,7 +2712,7 @@ function loadFromLocal() {
 }
 
 // =========================================================
-// ★実行タイミングの制御（ここが重要です）
+// 実行タイミングの制御
 // =========================================================
 
 // まだ読み込みが完了していないことを示すフラグ
@@ -2200,7 +2730,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 4. イベントリスナーをセット（変更があったら保存）
     document.addEventListener('input', saveToLocal);
-    document.addEventListener('change', saveToLocal);
+    document.addEventListener('change', () => {
+        switchPattern();
+        switchListPattern();
+        switchNoticePattern(); // ★これでお知らせの切り替えが動きます
+        saveToLocal();
+        updatePreview();
+    });
     
     // 5. 並び替え時の保存（Sortable）
     if (window.Sortable && menuList) {
@@ -2309,10 +2845,15 @@ function switchListPattern() {
 }
 // ★お知らせ用CSSを生成する関数
 function getNoticeCSS(isExport = false) {
+    /*
     const patternEl = document.querySelector('input[name="notice-pattern"]:checked');
     if (!patternEl) return "";
-    
     const pattern = patternEl.value;
+    */
+
+    const patternEl = document.querySelector('input[name="notice-pattern"]:checked');
+    const pattern = patternEl ? patternEl.value : 'A';
+    
 
     // 設定値を取得
     const size = document.getElementById('cfg-notice-size').value;
@@ -2376,7 +2917,8 @@ function switchNoticePattern() {
     const target = document.getElementById('notice-pattern-b-settings');
     
     if (target) {
-        target.style.display = 'block';
+        // Bなら表示、それ以外(A)なら非表示にする
+        target.style.display = (pattern === 'B') ? 'block' : 'none';
     }
 }
 
@@ -2389,8 +2931,9 @@ document.getElementById('reset-btn').onclick = () => {
     }
 };
 
+
 // ==============================================
-// ★追加コード：保存・読み込み機能の実行スイッチ
+// 追加コード：保存・読み込み機能の実行スイッチ
 // ==============================================
 
 // 1. 画面を開いた(読み込んだ)ときに、保存データを復元する
@@ -2411,10 +2954,6 @@ document.addEventListener('input', () => {
 document.addEventListener('change', () => {
     saveToLocal();
 });
-
-
-
-
 
 // =========================================================
 // 設定のエクスポート（ダウンロード）とインポート
