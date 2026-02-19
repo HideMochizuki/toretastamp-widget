@@ -14,6 +14,14 @@ const iconImages = {
     official: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/10SUTh364ZEmm6ZUueCC.png"
 };
 
+// ヘッダーアイコン
+const snsIcons = {
+    x: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/c7uwfrlxGLtGgicoRX1M.png",
+    instagram: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/00C99O6v3QOXHIznyxCw.png",
+    facebook: "https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/BU2IujPW7US3seAdc4nT.png",
+    other: "" // 任意入力用
+};
+
 // 別画面のテンプレート（スタンプ帳一覧・チケット一覧・その他）
 const screens = {
     top: "", // 初期化時に現在のHTMLを保存
@@ -398,6 +406,55 @@ const setupSync = (p, t) => {
     }
 };
 
+/* --- SNSアイテム入力欄の生成 --- */
+function createSnsItem() {
+    const snsList = document.getElementById('sns-list');
+    if (!snsList) return;
+    if (snsList.children.length >= 4) return alert("最大4個までです");
+
+    const div = document.createElement('div');
+    div.className = 'menu-item sns-item'; // sns-itemクラスを付けてフッターと区別
+    div.innerHTML = `
+        <button class="btn-remove" onclick="this.parentElement.remove();updatePreview();"><i class="fa fa-times"></i></button>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>アイコン</label>
+                <select class="field-sns-type" onchange="toggleSnsOtherInput(this); updatePreview();">
+                    <option value="x">X</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="other">その他(URL指定)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>リンクURL</label>
+                <input type="text" class="field-sns-href" oninput="updatePreview()" placeholder="https://...">
+            </div>
+            <div class="form-group field-sns-other-url-wrap" style="display:none;">
+                <label>カスタム画像URL</label>
+                <input type="text" class="field-sns-other-url" oninput="updatePreview()" placeholder="https://...">
+            </div>
+            <div class="form-group" style="flex-direction:row; align-items:center; gap:8px;">
+                <input type="checkbox" class="field-sns-ext" onchange="updatePreview()" checked> 
+                <label style="margin:0;">別タブ</label>
+            </div>
+        </div>`;
+    
+    snsList.appendChild(div);
+    updatePreview();
+}
+
+function toggleSnsOtherInput(select) {
+    const wrap = select.closest('.sns-item').querySelector('.field-sns-other-url-wrap');
+    if(wrap) wrap.style.display = (select.value === 'other') ? 'block' : 'none';
+}
+
+// HTML側にボタンがある前提でイベント登録
+const addSnsBtn = document.getElementById('add-sns-btn');
+if(addSnsBtn) addSnsBtn.onclick = () => createSnsItem();
+
+
+
 const syncPairs = [
     // 共通・Aパターン・Bパターン
     ['cfg-body-bg', 'cfg-body-bg-val'],
@@ -681,7 +738,7 @@ function relabelItems() {
     const previewFooter = document.getElementById('preview-footer');
     if(previewFooter) previewFooter.style.backgroundColor = fBg;
 
-    document.querySelectorAll('.menu-item').forEach(el => {
+    document.querySelectorAll('.menu-item:not(.sns-item)').forEach(el => {
         const cls = el.querySelector('.field-class').value;
         const lab = el.querySelector('.field-label').value;
         const li = document.createElement('li');
@@ -788,6 +845,46 @@ function relabelItems() {
             overlay.classList.remove('show');
             spans.forEach(s => s.style.setProperty('background-color', hamLineColor, 'important'));
         };
+    }
+
+    if (mock) {
+        const oldSns = mock.querySelector('.sns_btn');
+        if(oldSns) oldSns.remove();
+    
+        const snsBtnDiv = document.createElement('div');
+        snsBtnDiv.className = 'sns_btn';
+        let snsHtml = '<ul>';
+        document.querySelectorAll('.sns-item').forEach(item => {
+            const type = item.querySelector('.field-sns-type').value;
+            const href = item.querySelector('.field-sns-href').value || '#';
+            const ext = item.querySelector('.field-sns-ext').checked;
+            const otherUrl = item.querySelector('.field-sns-other-url').value;
+            let iconUrl = (type === 'other') ? otherUrl : snsIcons[type];
+            const target = ext ? ' target="_blank" rel="noopener noreferrer"' : '';
+            if (iconUrl) snsHtml += `<li><a href="${href}"${target}><img src="${iconUrl}"></a></li>`;
+        });
+        snsHtml += '</ul>';
+        snsBtnDiv.innerHTML = snsHtml;
+        mock.appendChild(snsBtnDiv);
+    
+        // --- SNSの位置と色の反映 ---
+        const snsColorChoice = getV('cfg-sns-c-val'); // セレクトボックスの値（#FFFFFF か #000000）
+        
+        // 白(#FFFFFF)なら白、それ以外(黒)なら黒にするフィルタ
+        const filterStyle = (snsColorChoice === '#FFFFFF') 
+            ? 'brightness(0) invert(1)' 
+            : 'brightness(0)';
+
+        const snsRightPos = (listPattern === 'B') ? '60px' : '25px';
+
+        updateDynamicStyle(`
+            .mock-screen .sns_btn { position: absolute; top: 14px; right: ${snsRightPos}; z-index: 110; }
+            .mock-screen .sns_btn ul { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; }
+            .mock-screen .sns_btn li img { 
+                width: 25px; 
+                filter: ${filterStyle} !important; 
+            }
+        `, 'dyn-style-sns');
     }
 
     attachPreviewEvents();
@@ -1743,7 +1840,7 @@ body.stamp .stampicon > b > span { filter: ${stIconFilter} !important; }
 // 5. フッター固定メニューリストの配列を取得する関数
 function getMenuItems() {
     const items = [];
-    document.querySelectorAll('.menu-item').forEach(el => {
+    document.querySelectorAll('.menu-item:not(.sns-item)').forEach(el => {
         items.push({
             class: el.querySelector('.field-class').value,
             href: el.querySelector('.field-href').value,
@@ -1752,7 +1849,19 @@ function getMenuItems() {
             aclass: el.querySelector('.field-aclass').value
         });
     });
-    return items;
+    settings['saved_menu_items'] = items;
+
+    // SNSだけを抽出して保存
+    const snsData = [];
+    document.querySelectorAll('.sns-item').forEach(el => {
+        snsData.push({
+            type: el.querySelector('.field-sns-type').value,
+            href: el.querySelector('.field-sns-href').value,
+            otherUrl: el.querySelector('.field-sns-other-url').value,
+            ext: el.querySelector('.field-sns-ext').checked
+        });
+    });
+    settings['saved_sns_items'] = snsData;
 }
 
 // 6. 共通ボタン ＆ オレンジボタンのCSS生成関数
@@ -2061,40 +2170,70 @@ ${prefix}.formset h4 {
 `;
 }
 
-// --- メイン処理: 生成ボタンクリック時の動作 ---
+// --- 配布用コード生成ボタンの処理 ---
+// --- 配布用コード生成ボタンの処理 ---
 document.getElementById('generate-btn').onclick = () => {
     
-    // ... (既存の背景色取得や switchNoticePattern などの処理) ...
-    // 生成前に最新状態を強制反映
+    // 0. 生成前に最新状態を反映
     updatePreview(); 
 
-    // 全体背景色の判定
-    const isBodyBgNone = document.getElementById('cfg-body-bg-none').checked;
-    const bodyBgColor = isBodyBgNone ? 'transparent' : getV('cfg-body-bg-val');
+    // 1. 各種設定値の取得用のヘルパー
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
 
+    // 全体背景色の判定
+    const isBodyBgNone = getC('cfg-body-bg-none');
+    const bodyBgColor = isBodyBgNone ? 'transparent' : getV('cfg-body-bg-val');
     // ボタンエリア背景色の判定
-    const isBtnAreaNone = document.getElementById('cfg-btn-area-bg-none').checked;
+    const isBtnAreaNone = getC('cfg-btn-area-bg-none');
     const btnAreaColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
 
-    // 各パーツのCSS生成
+    // SNSアイコンのCSSとHTMLの生成
+    const snsIconColorVal = getV('cfg-sns-c-val');
+    // 白なら白、黒なら黒のフィルタを決定
+    const snsFilter = (snsIconColorVal === '#FFFFFF') ? 'brightness(0) invert(1)' : 'brightness(0)';
+    
+    const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
+    const snsRightOffset = (listPattern === 'B') ? '60px' : '15px';
+
+    const headerSnsCSS = `
+/* ヘッダーSNSアイコン */
+.sns_btn { position: fixed; top: 14px; right: ${snsRightOffset}; z-index: 1002; display: block; }
+.sns_btn ul { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; align-items: center; }
+.sns_btn li { margin: 0; padding: 0; line-height: 1; }
+.sns_btn li img { width: 28px; filter: ${snsFilter} !important; }
+    `;
+
+    const snsDataArray = [];
+    document.querySelectorAll('.sns-item').forEach(el => {
+        const type = el.querySelector('.field-sns-type').value;
+        snsDataArray.push({
+            iconUrl: (type === 'other') ? el.querySelector('.field-sns-other-url').value : snsIcons[type],
+            href: el.querySelector('.field-sns-href').value || '#',
+            target: el.querySelector('.field-sns-ext').checked ? ' target="_blank" rel="noopener noreferrer"' : ""
+        });
+    });
+
+    const snsItemsHtml = snsDataArray.map(item => {
+        return `<li><a href="${item.href}"${item.target}><img src="${item.iconUrl}"></a></li>`;
+    }).join('');
+
+    const snsFinalHtml = snsDataArray.length > 0 ? `<div class="sns_btn"><ul>${snsItemsHtml}</ul></div>` : "";
+
+    // 3. 各パーツの配布用CSS生成
     const bodyBgCSS = getBodyBgCSS();
     const btnPattern = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
     const patternCSS = getButtonPatternCSS(btnPattern);
     const headerCSS = getHeaderCSS();
     const stampPageCSS = getStampPageCSS();
-    const pageBtnCSS = getPageBtnCSS();
-    const noticeCSS = getNoticeCSS(true);
+    const pageBtnCSS = getPageBtnCSS(true); // Exportモード
+    const noticeCSS = getNoticeCSS(true);  // Exportモード
     const stampDetailsCSS = getStampDetailsCSS();
     const ticketPageCSS = getTicketPageCSS(true);
     const ticketDetailCSS = getTicketDetailPageCSS(true);
     const userPageCSS = getUserPageCSS(true);
-
-    // フッターメニュー設定
-    const fFilter = document.getElementById('cfg-icon-choice').value === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
-    const listBorderOn = document.getElementById('cfg-list-border-on').checked;
-    
-    // ロゴ配置（ここ後で改修）
     const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked')?.value || 'center';
+
     const subPageHeaderCSS = `
 .mock-header-v2 { 
     display: flex !important; 
@@ -2103,420 +2242,89 @@ document.getElementById('generate-btn').onclick = () => {
     ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''}
 }`;
 
-    // ハンバーガーメニューの色設定を取得
+    const fFilter = getV('cfg-icon-choice') === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
+    const listBorderOn = getC('cfg-list-border-on');
     const hamLineColor = getV('cfg-ham-line-val');
     const hamActiveColor = getV('cfg-ham-line-active-val');
-    const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
-    
-    // 追加するCSS
+
     let hamburgerCSS = "";
     if (listPattern === 'B') {
-        // メニューの背景色と文字色をジェネレーターから取得
         const listBgColor = getV('cfg-list-bg-val');
         const listTxtColor = getV('cfg-list-txt-val');
-
         hamburgerCSS = `
-    /* ====== ハンバーガーボタン ====== */
+    /* ハンバーガーメニュー */
     .hamburger-btn { position: fixed; top: 18px; right: 20px; width: 28px; height: 20px; cursor: pointer; z-index: 1001; display: flex; flex-direction: column; justify-content: space-between; }
-    .hamburger-btn span { display: block; height: 3px; border-radius: 2px; transition: all 0.3s ease; transform-origin: center center; }
-
-    /* ★ジェネレーターの「線の色」を反映 */
-    .hamburger-btn span { background-color: ${hamLineColor} !important; }
+    .hamburger-btn span { display: block; height: 3px; border-radius: 2px; transition: all 0.3s ease; transform-origin: center center; background-color: ${hamLineColor} !important; }
     .hamburger-btn.active span { background-color: ${hamActiveColor} !important; }
-
-    /* ✕アニメーション */
     .hamburger-btn.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
     .hamburger-btn.active span:nth-child(2) { opacity: 0; }
     .hamburger-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
-
-    /* ====== メニュー全体（右スライド＋スクロール可） ====== */
-    .menu-sublist { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2); z-index: 1000; transition: right 0.35s ease; padding: 60px 20px 40px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; margin-top: 0; }
-
-    /* ★ジェネレーターの「メニュー背景色」を反映 */
-    .menu-sublist.open { right: 0; background-color: ${listBgColor} !important; }
-
-    /* メニュー内リンク */
-    .menu-sublist ul { list-style: none; padding: 0; margin: 0; }
-    .menu-sublist li { margin-bottom: 20px; padding: 0; }
-
-    /* ★ジェネレーターの「文字色」を反映 */
+    .menu-sublist { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2); z-index: 1000; transition: right 0.35s ease; padding: 60px 20px 40px; box-sizing: border-box; overflow-y: auto; -webkit-overflow-scrolling: touch; background-color: ${listBgColor} !important; margin-top: 0; }
+    .menu-sublist.open { right: 0; }
     .menu-sublist a { text-decoration: none; font-size: 15px; font-weight: 600; color: ${listTxtColor} !important; }
-    .modal-wrapper { z-index: 1010; }
-
-    /* ====== 背景の半透明オーバーレイ ====== */
     .menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.4); z-index: 999; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
     .menu-overlay.show { opacity: 1; visibility: visible; }
-    `;
+        `;
     }
 
-    // フッターアイコン画像のCSS生成 ★★★
+    // フッターアイコンCSS
     let footerIconCSS = "";
-    // iconImagesオブジェクト（script.js上部で定義済み）をループしてCSSを作る
     Object.keys(iconImages).forEach(key => {
-        let url = iconImages[key];
-        // officialの場合は入力欄の値を使う
-        if (key === 'official') {
-            url = getV('cfg-official-url');
-        }
-        // CSS生成: .home .icon { background-image: ... }
+        let url = (key === 'official') ? getV('cfg-official-url') : iconImages[key];
         footerIconCSS += `#sp-fixed-menu li.${key} .icon { background-image: url('${url}'); }\n`;
     });
 
+    // --- JSコードの組み立て ---
+    // ここで getAllSettings を使わず、直接DOMから取得して JS を作ります
+    const menuItemsData = Array.from(document.querySelectorAll('.menu-item:not(.sns-item)')).map(el => ({
+        class: el.querySelector('.field-class').value,
+        label: el.querySelector('.field-label').value,
+        href: el.querySelector('.field-href').value,
+        external: el.querySelector('.field-ext').checked,
+        aclass: el.querySelector('.field-aclass').value
+    }));
 
-    // --- 【1】JavaScriptコードの組み立て ---
-    const menuItems = getMenuItems();
-    const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
-    
-    // ★追加：ヘッダーBパターン用の超長スクリプト
-    let headerBScript = "";
-    if (headerPattern === 'B') {
-        headerBScript = `
-    /* お知らせ・スライダー機能 (Header Pattern B) */
-    $(window).on('load', function () {
-    setTimeout(function () {
-    /* ======================================================
-        ★ スライダー処理
-    ====================================================== */
-    function buildSlider() {
-    $('.header-slider-wrap, .header-dots-wrap, .header-slider, .header-slide').remove();
-    if ($('.header-slider-wrap').length === 0) {
-        $('header.top').after(\`
-        <div class="header-slider-wrap">
-            <div class="header-slider"></div>
-        </div>
-        <div class="header-dots-wrap">
-            <div class="header-dots"></div>
-        </div>
-        \`);
-    }
-    let carouselImages = [];
-    let carouselLinks = [];
-    $('.notice_list dt').each(function () {
-    const text = $(this).text().trim();
-    if (text.includes('↔️')) {
-        const cleaned = text.replace('↔️', '').trim();
-        const $notice = $(this).closest('.notice_list');
-        const imgSrc = $notice.find('p img').attr('src');
-        if (imgSrc) carouselImages.push(imgSrc);
-        let link = null;
-        const href = $notice.find('a').attr('href') || null;
-        if (/^https?:\\/\\/[^\\s]+$/i.test(cleaned)) {
-            link = cleaned;
-        }
-        else if (cleaned === "リンクあり") {
-            link = href;
-        }
-        else {
-            link = null;
-        }
-        carouselLinks.push(link);
-        $notice.hide();
-    }
-    });
-    if (carouselImages.length === 1) {
-        $('.header-dots-wrap').hide();
-    }
-    if (carouselImages.length === 0) return;
-    const $wrap = $('.header-slider-wrap');
-    const $slider = $('.header-slider');
-    $wrap.css('height', '380px');
-    $slider.html("");
-    let index = 1;
-    if (carouselImages.length === 1) {
-        const bg = carouselImages[0];
-        const link = carouselLinks[0];
-        if (link) {
-        $slider.html(\`<a href="\${link}" class="header-slide" style="background-image:url('\${bg}')"></a>\`);
-        } else {
-        $slider.html(\`<div class="header-slide" style="background-image:url('\${bg}')"></div>\`);
-        }
-        return;
-    }
-    const loopImages = [
-        carouselImages[carouselImages.length - 1],
-        ...carouselImages,
-        carouselImages[0]
-    ];
-    const loopLinks = [
-        carouselLinks[carouselLinks.length - 1],
-        ...carouselLinks,
-        carouselLinks[0]
-    ];
-    loopImages.forEach((src, i) => {
-        const link = loopLinks[i];
-        if (link) {
-        $slider.append(\`<a href="\${link}" class="header-slide" style="background-image:url('\${src}')"></a>\`);
-        } else {
-        $slider.append(\`<div class="header-slide" style="background-image:url('\${src}')"></div>\`);
-        }
-    });
-    const total = loopImages.length;
-    function clampIndex() {
-        if (index < 0) index = 1;
-        if (index > total - 1) index = total - 2;
-    }
-    function applyTransform() {
-        clampIndex();
-        $slider.css('transform', \`translateX(-\${index * 100}%)\`);
-    }
-    $slider.css({ transition: 'none', transform: \`translateX(-\${index * 100}%)\` });
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-        applyTransform();
-        });
-    });
-    setTimeout(() => {
-        $slider.css('transition', 'transform 0.8s ease-in-out');
-    }, 30);
-    let dotsHtml = '';
-    carouselImages.forEach((_, i) => {
-        dotsHtml += \`<span class="dot" data-index="\${i}"></span>\`;
-    });
-    $('.header-dots').html(dotsHtml);
-    function updateDots() {
-        const realIndex = (index - 1 + carouselImages.length) % carouselImages.length;
-        $('.header-dots .dot').removeClass('active');
-        $(\`.header-dots .dot[data-index="\${realIndex}"]\`).addClass('active');
-    }
-    updateDots();
-    if (window.__sliderTimer) clearInterval(window.__sliderTimer);
-    window.__sliderTimer = setInterval(() => {
-        index++;
-        clampIndex();
-        applyTransform();
-        updateDots();
-    }, 3500);
-    $slider.on('transitionend', function () {
-        if (index === total - 1) {
-        $slider.css('transition', 'none');
-        index = 1;
-        applyTransform();
-        setTimeout(() => {
-            $slider.css('transition', 'transform 0.8s ease-in-out');
-        }, 30);
-        }
-        clampIndex();
-    });
-    if (carouselImages.length >= 2) {
-        let startX = 0, currentX = 0, isDragging = false;
-        $wrap.on('touchstart', function (e) {
-        startX = e.touches[0].clientX;
-        isDragging = true;
-        $slider.css('transition', 'none');
-        });
-        $wrap.on('touchmove', function (e) {
-        if (!isDragging) return;
-        currentX = e.touches[0].clientX;
-        let diff = currentX - startX;
-        $slider.css('transform', \`translateX(calc(-\${index * 100}% + \${diff}px))\`);
-        });
-        $wrap.on('touchend', function () {
-        if (!isDragging) return;
-        isDragging = false;
-        let diff = currentX - startX;
-        if (diff > 50) index--;
-        else if (diff < -50) index++;
-        $slider.css('transition', 'transform 0.3s ease');
-        clampIndex();
-        applyTransform();
-        updateDots();
-        });
-    }
-    }
-    buildSlider();
-    $('.notice_list dt').each(function () {
-        const text = $(this).text().trim();
-        const $dl = $(this).closest('dl');
-        const $a = $(this).closest('a');
-        const isNoTitle = (text === 'タイトル無し' || text === '');
-        const isURL = /^https?:\\/\\/[^\\s]+$/i.test(text);
-        if (isNoTitle) {
-        $dl.hide().addClass('hidden-dl-force');
-        } else if (isURL) {
-        let url = text;
-        if (!url.includes('?') && !url.includes('#') && !url.endsWith('/')) {
-            url += '/';
-        }
-        $a.attr({
-            href: url,
-            target: '_blank',
-            rel: 'noopener noreferrer'
-        });
-        $(this).text('');
-        $dl.hide().addClass('hidden-dl-force');
-        }
-    });
-    $('.landing_title').each(function () {
-        const text = $(this).text().trim();
-        const $landingSet = $(this).closest('.landing_set');
-        const isNoTitle = (text === 'タイトル無し' || text === '');
-        const isURL = /^https?:\\/\\/[^\\s]+$/i.test(text);
-        if (isNoTitle || isURL) {
-        $(this).hide().addClass('hidden-title-force');
-        $landingSet.css({
-            padding: '20px 0 10px 0'
-        }).addClass('adjusted-padding');
-        }
-    });
-    $('.notice_list dt').each(function () {
-        const text = $(this).text().trim();
-        if (text.includes('ℹ️')) {
-        const $notice = $(this).closest('.notice_list');
-        const $a = $notice.find('a');
-        const url = $a.attr('href');
-        const cleanText = text.replace('ℹ️', '').trim();
-        $('.top_button').before(\`
-            <div class="info-banner">
-            <a href="\${url}" rel="noopener noreferrer">
-                <p><span class="info-icon">i</span> \${cleanText}</p>
-            </a>
-            </div>
-        \`);
-        $notice.hide().addClass('hidden-info-notice');
-        }
-    });
-    $('.landing_title').each(function () {
-        const text = $(this).text().trim();
-        if (text.includes('ℹ️')) {
-        $(this).text(text.replace('ℹ️', '').trim());
-        }
-    });
-    $('.landing_title').each(function () {
-        const text = $(this).text().trim();
-        if (text.includes('↔️')) {
-        $(this).hide().addClass('hidden-slider-title');
-        $(this).closest('.landing_set')
-            .css({ padding: '20px 0 10px 0' })
-            .addClass('adjusted-padding');
-        }
-    });
-    $('.landing_title').each(function () {
-        if (!$(this).hasClass('hidden-title-force') &&
-            !$(this).hasClass('hidden-slider-title')) {
-        $(this).css('visibility', 'visible');
-        }
-    });
-    (function () {
-        $('.notice_list dt').each(function () {
-        const text = $(this).text().trim();
-        if (text.includes('↔️')) {
-            $(this).closest('.notice_list')
-            .hide()
-            .addClass('hidden-slider-notice');
-        }
-        });
-        let hasNormalNotice = false;
-        $('.notice_list dt').each(function () {
-        const text = $(this).text().trim();
-        if (!text.includes('↔️') && !text.includes('ℹ️') && text !== '' && text !== 'タイトル無し' && !/^https?:\\/\\/[^\\s]+$/i.test(text)) {
-            hasNormalNotice = true;
-        }
-        });
-        if (!hasNormalNotice) {
-        $('h3.titleh3:contains("お知らせ")').hide();
-        }
-    })();
-    (function () {
-        const currentTitle = document.title.trim();
-        const shouldReplace = currentTitle === "" || currentTitle === "タイトル無し" || currentTitle.includes("↔️") || currentTitle.includes("ℹ️");
-        if (shouldReplace) {
-            document.title = "お知らせ";
-        }
-    })();
-    $('.notice_list').each(function (i) {
-        const $el = $(this);
-        setTimeout(function () {
-        $el.addClass('show');
-        }, i * 100);
-    });
-    $('.landing_set').css('opacity', 0);
-    $('.landing_note').css('opacity', 0);
-    setTimeout(function () {
-        $('.landing_set').each(function (i) {
-        const $set = $(this);
-        const $note = $set.find('.landing_note');
-        setTimeout(function () {
-            $set.css('opacity', 1);
-            $note.css('opacity', 1);
-        }, i * 120);
-        });
-    }, 30);
-    window.addEventListener("pageshow", function(event) {
-        if (event.persisted) {
-        console.log("🔥 BFCache 復元 → スライダー再構築発動");
-        $('.header-slider-wrap').remove();
-        $('.header-dots-wrap').remove();
-        $('.header-slider').remove();
-        $('.header-slide').remove();
-        setTimeout(() => {
-            buildSlider();
-        }, 100);
-        }
-    });
-    }, 300);
-    });
-    `;
-    }
-
-    let hamburgerScript = "";
-    if (listPattern === 'B') {
-        hamburgerScript = `
+    let hamburgerScript = (listPattern === 'B') ? `
 /* ハンバーガー機能 */
 $(function() {
-$('body').append('<div class="hamburger-btn"><span></span><span></span><span></span></div>');
-$('body').append('<div class="menu-overlay"></div>');
-$('.hamburger-btn').on('click', function() {
-    $(this).toggleClass('active');
-    $('.menu-sublist').toggleClass('open');
-    $('.menu-overlay').toggleClass('show');
-});
-$('.menu-overlay').on('click', function() {
-    $('.hamburger-btn').removeClass('active');
-    $('.menu-sublist').removeClass('open');
-    $(this).removeClass('show');
-});
-});`;
-    }
+    $('body').append('<div class="hamburger-btn"><span></span><span></span><span></span></div><div class="menu-overlay"></div>');
+    $('.hamburger-btn').on('click', function() { $(this).toggleClass('active'); $('.menu-sublist').toggleClass('open'); $('.menu-overlay').toggleClass('show'); });
+    $('.menu-overlay').on('click', function() { $('.hamburger-btn').removeClass('active'); $('.menu-sublist').removeClass('open'); $(this).removeClass('show'); });
+});` : "";
 
     const jsOutput = `<script>
 window.onload = () => {
-const menuItems = ${JSON.stringify(menuItems.map(item => ({
-    class: item.class,
-    href: item.href,
-    aclass: item.aclass,
-    icon: "<span class='icon'></span>",
-    label: item.label,
-    external: item.external
-})), null, 8)};
-const listItems = menuItems.map(item => {
-    const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : "";
-    return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`;
-}).join('');
-const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
-document.body.insertAdjacentHTML('beforeend', footerHTML);
+    const menuItems = ${JSON.stringify(menuItemsData.map(item => ({ 
+        class: item.class, 
+        href: item.href, 
+        aclass: item.aclass, 
+        icon: "<span class='icon'></span>", 
+        label: item.label, 
+        external: item.external 
+    })), null, 8)};
+    const listItems = menuItems.map(item => { 
+        const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : ""; 
+        return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`; 
+    }).join('');
+    const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
+    document.body.insertAdjacentHTML('beforeend', footerHTML);
+    
+    // SNSアイコンの挿入
+    const snsHTML = \`${snsFinalHtml}\`;
+    if (snsHTML) { document.body.insertAdjacentHTML('beforeend', snsHTML); }
 };
 ${hamburgerScript}
-${headerBScript}
 <\/script>`;
 
-    // --- 【2】CSSコードの組み立て ---
+    // --- CSSコードの組み立て ---
     const cssOutput = `<style type="text/css">
-/* ページ全体の設定 */
-html, body { 
-    background-color: ${bodyBgColor} !important;
-    ${bodyBgCSS} 
-}
+html, body { background-color: ${bodyBgColor} !important; ${bodyBgCSS} }
 ${headerCSS}
+${headerSnsCSS}
 ${subPageHeaderCSS}
-/* --- スタンプ帳画面用 --- */
-body.stamp { background-color: #f5f5f5 !important; }
-header { background-color: ${getV('cfg-mock-header-bg-val')} !important; } 
-${stampPageCSS}
 .top_button { background-color: ${btnAreaColor} !important; }
 .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
 ${patternCSS}
-${headerCSS}
-${subPageHeaderCSS}
 ${stampPageCSS}
 ${stampDetailsCSS}
 ${pageBtnCSS}
@@ -2526,30 +2334,17 @@ ${ticketPageCSS}
 ${ticketDetailCSS}
 ${userPageCSS}
 
-/* フッター固定メニュー */
 #sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
 #sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
 #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
-
-/* ★ここに生成したアイコンCSSを追加 */
 ${footerIconCSS}
-
 #sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
 #sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
 #sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
-
-/* メニューリスト */
-.menu-sublist { background: ${getV('cfg-list-bg-val')} !important; }
-.menu-sublist > ul > li > a { 
-    color: ${getV('cfg-list-txt-val')} !important; 
-    border-top: ${listBorderOn ? getV('cfg-list-border-w') + ' solid ' + getV('cfg-list-border-c-val') : 'none'} !important;
-    font-size: ${getV('cfg-list-size')} !important;
-    display: block; text-decoration: none; padding: 15px;
-}
+.menu-sublist > ul > li > a { color: ${getV('cfg-list-txt-val')} !important; border-top: ${listBorderOn ? getV('cfg-list-border-w') + ' solid ' + getV('cfg-list-border-c-val') : 'none'} !important; font-size: ${getV('cfg-list-size')} !important; display: block; text-decoration: none; padding: 15px; }
 </style>`;
 
-    // --- 結果を出力 ---
     document.getElementById('out-js').value = jsOutput;
     document.getElementById('out-css').value = cssOutput;
     alert("配布用コードを生成しました！");
@@ -2585,11 +2380,9 @@ window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.s
 // 1. 現在のすべての設定値をオブジェクトにまとめる関数
 function getAllSettings() {
     const settings = {};
-    // 入力欄とセレクトボックス
     const inputs = document.querySelectorAll('input, select');
     
     inputs.forEach(input => {
-        // (A) IDがある通常の入力欄の保存
         if (input.id) {
             if (input.type === 'checkbox') {
                 settings[input.id] = input.checked;
@@ -2597,24 +2390,14 @@ function getAllSettings() {
                 settings[input.id] = input.value;
             }
         }
-        
-        // (B) ラジオボタン (パターン選択など) の保存
-        if (input.checked) {
-            // name属性で管理されているグループを保存
-            if (input.name === 'btn-pattern' || 
-                input.name === 'header-pattern' || 
-                input.name === 'cfg-mock-logo-align' || 
-                input.name === 'list-pattern' || 
-                input.name === 'notice-pattern') { 
-                
-                settings[input.name] = input.value;
-            }
+        if (input.checked && input.name) {
+            settings[input.name] = input.value;
         }
     });
 
-    // (C) メニュー項目の保存
+    // (C) フッターメニュー項目の保存
     const items = [];
-    document.querySelectorAll('.menu-item').forEach(el => {
+    document.querySelectorAll('.menu-item:not(.sns-item)').forEach(el => {
         items.push({
             class: el.querySelector('.field-class').value,
             label: el.querySelector('.field-label').value,
@@ -2624,6 +2407,21 @@ function getAllSettings() {
         });
     });
     settings['saved_menu_items'] = items;
+
+    // (D) SNS項目の保存
+    const snsItems = [];
+    const snsContainer = document.getElementById('sns-list');
+    if (snsContainer) {
+        snsContainer.querySelectorAll('.sns-item').forEach(el => {
+            snsItems.push({
+                type: el.querySelector('.field-sns-type').value,
+                href: el.querySelector('.field-sns-href').value,
+                otherUrl: el.querySelector('.field-sns-other-url').value,
+                ext: el.querySelector('.field-sns-ext').checked
+            });
+        });
+    }
+    settings['saved_sns_items'] = snsItems;
 
     return settings;
 }
@@ -2686,6 +2484,24 @@ function loadFromLocal() {
             });
         }
 
+        if (settings['saved_sns_items']) {
+            const snsList = document.getElementById('sns-list');
+            if (snsList) {
+                snsList.innerHTML = '';
+                settings['saved_sns_items'].forEach(data => {
+                    createSnsItem();
+                    const last = snsList.lastElementChild;
+                    if (last) {
+                        last.querySelector('.field-sns-type').value = data.type;
+                        last.querySelector('.field-sns-href').value = data.href;
+                        last.querySelector('.field-sns-other-url').value = data.otherUrl;
+                        last.querySelector('.field-sns-ext').checked = data.ext;
+                        toggleSnsOtherInput(last.querySelector('.field-sns-type'));
+                    }
+                });
+            }
+        }
+
         // (C) カラーピッカーとテキストボックスの同期
         // 保存されたテキスト値(#XXXXXX)を、カラーピッカー側にも反映させる
         if (typeof syncPairs !== 'undefined') {
@@ -2719,31 +2535,31 @@ function loadFromLocal() {
 window.isLoaded = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. まずデータを復元する
+    // 1. 最初は保存を禁止する
+    window.isLoaded = false;
+
+    // 2. データを復元する
     loadFromLocal();
     
-    // 2. プレビューを更新する
-    updatePreview();
+    // 3. 復元が終わったことを少し遅らせて確定させる（要素の生成待ち）
+    setTimeout(() => {
+        window.isLoaded = true;
+        console.log("設定を復元し、自動保存を有効にしました。");
+    }, 500); 
 
-    // 3. 復元が終わったので、ここから保存を許可する
-    window.isLoaded = true;
-    
-    // 4. イベントリスナーをセット（変更があったら保存）
-    document.addEventListener('input', saveToLocal);
+    // 4. イベントリスナーをセット
+    document.addEventListener('input', () => {
+        if(window.isLoaded) saveToLocal(); // ★isLoadedがtrueの時だけ保存
+    });
+
     document.addEventListener('change', () => {
-        switchPattern();
-        switchListPattern();
-        switchNoticePattern(); // ★これでお知らせの切り替えが動きます
+        if(!window.isLoaded) return; // ★読み込み中は無視
+        if(typeof switchPattern === 'function') switchPattern();
+        if(typeof switchListPattern === 'function') switchListPattern();
+        if(typeof switchNoticePattern === 'function') switchNoticePattern();
         saveToLocal();
         updatePreview();
     });
-    
-    // 5. 並び替え時の保存（Sortable）
-    if (window.Sortable && menuList) {
-
-    }
-    
-    console.log("設定を復元し、保存監視を開始しました。");
 });
 
 // 保存ボタン（または自動保存）用の関数
@@ -2760,7 +2576,7 @@ function loadFromLocal() {
 
     const settings = JSON.parse(dataStr);
     
-    // 1. 各種入力項目の復元
+    // (A) 通常入力の復元
     Object.keys(settings).forEach(key => {
         // ラジオボタンの復元（フッターパターン含む）
         if (key === 'btn-pattern' || 
@@ -2788,7 +2604,7 @@ function loadFromLocal() {
         }
     });
 
-    // 2. メニュー項目の復元
+    // (B) フッターメニューの復元
     if (settings['saved_menu_items'] && menuList) {
         menuList.innerHTML = ''; 
         settings['saved_menu_items'].forEach((data, idx) => {
@@ -2805,9 +2621,27 @@ function loadFromLocal() {
         });
     }
 
-    // ★★★ ここを追加！ ★★★
-    // 3. カラーピッカーの値をテキストボックスに同期させる
-    // これをやらないと、プレビューがテキストボックスの初期値（黒など）を読み込んでしまいます
+    // (C) SNS項目の復元
+    if (settings['saved_sns_items']) {
+        const snsList = document.getElementById('sns-list');
+        if (snsList) {
+            snsList.innerHTML = ''; // 既存を一旦クリア
+            settings['saved_sns_items'].forEach(data => {
+                createSnsItem(); // 入力欄を生成
+                const lastItem = snsList.lastElementChild;
+                if (lastItem) {
+                    lastItem.querySelector('.field-sns-type').value = data.type;
+                    lastItem.querySelector('.field-sns-href').value = data.href;
+                    lastItem.querySelector('.field-sns-other-url').value = data.otherUrl;
+                    lastItem.querySelector('.field-sns-ext').checked = data.ext;
+                    // その他URL入力欄の表示制御
+                    toggleSnsOtherInput(lastItem.querySelector('.field-sns-type'));
+                }
+            });
+        }
+    }
+
+    // (D) カラー同期
     if (typeof syncPairs !== 'undefined') {
         syncPairs.forEach(pair => {
             const picker = document.getElementById(pair[0]); // カラーピッカー
@@ -2817,14 +2651,13 @@ function loadFromLocal() {
             }
         });
     }
-    // ★★★ 追加ここまで ★★★
     
-    // 4. 最後にUIの状態を同期
     switchPattern();
     switchListPattern();
     switchNoticePattern();
 
     updatePreview();
+    
 }
 
 // ★リストパターンの設定エリアの表示/非表示を切り替える関数
