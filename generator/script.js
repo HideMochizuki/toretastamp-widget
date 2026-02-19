@@ -2171,7 +2171,6 @@ ${prefix}.formset h4 {
 }
 
 // --- 配布用コード生成ボタンの処理 ---
-// --- 配布用コード生成ボタンの処理 ---
 document.getElementById('generate-btn').onclick = () => {
     
     // 0. 生成前に最新状態を反映
@@ -2318,7 +2317,12 @@ ${hamburgerScript}
 
     // --- CSSコードの組み立て ---
     const cssOutput = `<style type="text/css">
+/* ページ全体の設定 */
 html, body { background-color: ${bodyBgColor} !important; ${bodyBgCSS} }
+header.top { 
+    background-color: ${getV('cfg-header-bg-val')} !important; 
+}
+
 ${headerCSS}
 ${headerSnsCSS}
 ${subPageHeaderCSS}
@@ -2678,11 +2682,6 @@ function switchListPattern() {
 }
 // ★お知らせ用CSSを生成する関数
 function getNoticeCSS(isExport = false) {
-    /*
-    const patternEl = document.querySelector('input[name="notice-pattern"]:checked');
-    if (!patternEl) return "";
-    const pattern = patternEl.value;
-    */
 
     const patternEl = document.querySelector('input[name="notice-pattern"]:checked');
     const pattern = patternEl ? patternEl.value : 'A';
@@ -2737,6 +2736,46 @@ ${prefix} .hidden-dl-force { display: none !important; visibility: hidden !impor
 .info-icon { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; font-weight: bold; border-radius: 50%; background: #000; color: #fff; margin-right: 6px; font-size: 13px; vertical-align: middle; }
 @keyframes fadeSlideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 `;
+    }
+    if (pattern === 'c') {
+        css += `
+    ${prefix} .notice_set {
+    border-radius: inherit !important;
+    position: relative !important;
+    z-index: 1 !important;
+    box-shadow: none !important;
+    background: none;
+    padding: 10px 10px;
+    margin: 0;
+    }
+    ${prefix} .notice_list {
+    border-bottom: none;
+    }
+    ${prefix} .notice_list:last-child {
+    border-bottom: none !important;
+    padding: 0 !important;
+    }
+    ${prefix} .notice_list > a {
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px 0 !important;
+    }
+    ${prefix} .notice_list > a > p {
+    width: 100px !important; /* 横幅調整：190pxだとスマホで広すぎるため適宜調整 */
+    text-align: center !important;
+    padding: 0 10px !important;
+    }
+    ${prefix} .notice_list > a > dl {
+    width: calc(100% - 110px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    }
+    ${prefix} .notice_list > a > dl > dt {
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+    padding: 0 0 5px !important;
+    }
+    `;
     }
     return css;
 }
