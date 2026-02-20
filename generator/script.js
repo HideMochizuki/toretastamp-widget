@@ -29,7 +29,7 @@ const screens = {
     // スタンプ帳一覧
     stamp: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>    
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -66,7 +66,7 @@ const screens = {
     // スタンプ詳細
     stamp_details: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -108,7 +108,7 @@ const screens = {
     // チケット一覧
     ticket: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>    
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -177,7 +177,7 @@ const screens = {
     // チケット詳細ページ
     ticket_detail: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -224,7 +224,7 @@ const screens = {
     `,
     user: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -290,7 +290,7 @@ const screens = {
     // スタンプ履歴ページ
     history: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -352,7 +352,7 @@ const screens = {
     // screens オブジェクト内に追加
     notice_detail: `
     <div class="mock-header-v2">
-        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" alt="レストラントレタ"></a></h1>
+        <h1><a href="#"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="レストラントレタ"></a></h1>
     </div>
     <div class="mock-headermargin-v2"></div>
     <section class="content">
@@ -611,14 +611,14 @@ function relabelItems() {
             if(headerTop) {
                 headerTop.style.setProperty('display', 'flex', 'important');
                 headerTop.style.setProperty('justify-content', 'flex-start', 'important');
-                headerTop.style.setProperty('padding-left', '15px', 'important');
+                headerTop.style.setProperty('padding-left', '0px', 'important');
                 headerTop.style.setProperty('background-color', 'transparent', 'important');
                 headerTop.style.setProperty('background-image', 'none', 'important');
                 headerTop.style.height = '50px';
             }
             if(headerH1) {
-                headerH1.style.setProperty('margin', '20px 0 0 0', 'important');
-                headerH1.style.setProperty('width', '50px', 'important');
+                headerH1.style.setProperty('margin', '0px 0 0 0', 'important');
+                headerH1.style.setProperty('width', '100px', 'important');
             }
             
             if (!sliderWrap && headerTop) {
@@ -2032,7 +2032,7 @@ function getStampPageCSS() {
         stBorderW === '1px' &&
         stBorderC === '#000000' &&
         stOutlineW === '1.3px' &&
-        stWatermarkUrl === 'https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png' &&
+        stWatermarkUrl === 'https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png' &&
         stTxtColor === '#000000' &&
         stDueTxtColor === '#000000' &&
         stLabelBg === '#ffffff1c' &&
@@ -2585,9 +2585,10 @@ ${hamburgerScript}
     // --- CSSコードの組み立て ---
     const cssOutput = `<style type="text/css">
 /* ページ全体の設定 */
-html, body { background-color: ${bodyBgColor} !important; ${bodyBgCSS} }
-header.top { 
-    background-color: ${getV('cfg-header-bg-val')} !important; 
+html, body { 
+    background-color: ${bodyBgColor} !important; 
+    ${bodyBgCSS} 
+    margin: 0; padding: 0; min-height: 100vh;
 }
 
 ${headerCSS}
