@@ -166,13 +166,13 @@ header.generator img { height: 30px; margin-right: 15px; }
     padding: 25px; margin-bottom: 20px; width: 100%; display: inline-table;
     position: relative;
 }
-.card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-bottom: 25px; }
+.card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-top: 20px; margin-bottom: 25px; }
 
 /* タイトル */
 h2.card-title { 
-    font-weight: bold; margin-bottom: 20px; border-left: 4px solid var(--primary-color); padding-left: 10px; font-size: 1.1rem;
+    font-weight: bold; border-left: 4px solid var(--primary-color); padding-left: 10px; font-size: 1.1rem;
 }
-.card-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
+.card-title { font-weight: bold; font-size: 1.1rem; }
 .card-sub-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
 .column-label { font-size: 18px; font-weight: 700; margin: 0 0 15px 0; color: var(--primary-color); }
 

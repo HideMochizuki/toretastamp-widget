@@ -413,9 +413,11 @@ function createSnsItem() {
     if (snsList.children.length >= 4) return alert("最大4個までです");
 
     const div = document.createElement('div');
-    div.className = 'menu-item sns-item'; // sns-itemクラスを付けてフッターと区別
+    div.className = 'menu-item sns-item';
     div.innerHTML = `
-        <button class="btn-remove" onclick="this.parentElement.remove();updatePreview();"><i class="fa fa-times"></i></button>
+        <button class="btn-remove" onclick="this.parentElement.remove(); saveToLocal(); updatePreview();">
+            <i class="fa fa-times"></i>
+        </button>
         <div class="form-grid">
             <div class="form-group">
                 <label>アイコン</label>
@@ -443,6 +445,7 @@ function createSnsItem() {
     snsList.appendChild(div);
     updatePreview();
 }
+
 
 function toggleSnsOtherInput(select) {
     const wrap = select.closest('.sns-item').querySelector('.field-sns-other-url-wrap');
@@ -601,6 +604,7 @@ function relabelItems() {
         let sliderWrap = mock.querySelector('.header-slider-wrap');
 
         if (headerPattern === 'B') {
+            // --- パターンB (スライダーあり) ---
             if(bSettings) bSettings.style.display = 'block';
             if(headerSpan) headerSpan.style.display = 'none';
 
@@ -609,6 +613,7 @@ function relabelItems() {
                 headerTop.style.setProperty('justify-content', 'flex-start', 'important');
                 headerTop.style.setProperty('padding-left', '15px', 'important');
                 headerTop.style.setProperty('background-color', 'transparent', 'important');
+                headerTop.style.setProperty('background-image', 'none', 'important');
                 headerTop.style.height = '50px';
             }
             if(headerH1) {
@@ -619,7 +624,7 @@ function relabelItems() {
             if (!sliderWrap && headerTop) {
                 const wrap = document.createElement('div');
                 wrap.className = 'header-slider-wrap';
-                wrap.style.height = '250px';
+                wrap.style.height = '250px'; // スライダーの高さ
                 wrap.innerHTML = `<div class="header-slider"><div class="header-slide"></div></div>`;
                 headerTop.after(wrap);
                 sliderWrap = wrap;
@@ -628,25 +633,47 @@ function relabelItems() {
             if(slide) slide.style.backgroundImage = `url('${getV('cfg-header-main-img')}')`;
 
         } else {
+            // --- パターンA (標準) ---
             if(bSettings) bSettings.style.display = 'none';
 
             if(headerTop) {
+                const mainImgUrl = getV('cfg-header-main-img');
+                const isHeaderBgNone = document.getElementById('cfg-header-bg-none')?.checked;
+        
+                if (mainImgUrl) {
+                    // ★リッチ背景画像モード
+                    headerTop.style.setProperty('display', 'flex', 'important');
+                    headerTop.style.setProperty('justify-content', 'center', 'important');
+                    headerTop.style.setProperty('height', '270px', 'important');
+                    headerTop.style.setProperty('background-image', `url('${mainImgUrl}')`, 'important');
+                    headerTop.style.setProperty('background-color', 'initial', 'important');
+                    headerTop.style.setProperty('background-size', 'cover', 'important');
+                    headerTop.style.setProperty('background-position', 'bottom', 'important');
+                } else {
+                    // ★シンプル背景色モード
                     headerTop.style.display = '';
                     headerTop.style.justifyContent = '';
-                    headerTop.style.paddingLeft = '';
-                    headerTop.style.height = '';
+                    headerTop.style.height = ''; 
+                    headerTop.style.backgroundImage = 'none';
                     headerTop.style.setProperty('background-color', getV('cfg-header-bg-val'), 'important');
+                    
+                    const hColor = isHeaderBgNone ? 'transparent' : getV('cfg-header-bg-val');
+                    headerTop.style.setProperty('background-color', hColor, 'important');
                 }
-                if(headerH1) {
-                    headerH1.style.margin = '';
-                    headerH1.style.width = '';
-                }
-                if(headerSpan) {
-                    headerSpan.style.display = '';
-                    headerSpan.style.setProperty('color', getV('cfg-header-text-c-val'), 'important');
-                    headerSpan.style.setProperty('font-size', getV('cfg-header-text-size'), 'important');
-                }
-                if (sliderWrap) sliderWrap.remove();
+                
+                headerTop.style.setProperty('position', 'relative', 'important');
+                headerTop.style.setProperty('z-index', '99', 'important');
+            }
+            if(headerH1) {
+                headerH1.style.margin = '';
+                headerH1.style.width = '';
+            }
+            if(headerSpan) {
+                headerSpan.style.display = '';
+                headerSpan.style.setProperty('color', getV('cfg-header-text-c-val'), 'important');
+                headerSpan.style.setProperty('font-size', getV('cfg-header-text-size'), 'important');
+            }
+            if (sliderWrap) sliderWrap.remove();
         }
         
 
@@ -668,11 +695,15 @@ function relabelItems() {
         const selected = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
         const btn1 = area.querySelector('ul li:nth-child(1)');
         const btn2 = area.querySelector('ul li:nth-child(2)');
-
+        /*
         if (selected === 'A') {
-            apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'));
-            apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-icon-c-val'));
+            apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'), 60);
+            apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-icon-c-val'), 60);
         } else if (selected === 'B') {
+            const d1 = getBData(0); const d2 = getBData(1);
+            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-b-btn1-icon-c-val'), 50);
+            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-b-btn2-icon-c-val'), 50);
+
             const bArea = document.getElementById('pattern-settings-B');
             const cols = bArea.querySelectorAll('.setting-column');
             if (cols.length >= 2) {
@@ -699,6 +730,11 @@ function relabelItems() {
                 `, 'dyn-style-pattern');
             }
         } else if (selected === 'C') {
+            // パターンC：装飾があるので、少し大きく見せたい場合 (例: 65)
+            const d1 = getCData(0); const d2 = getCData(1);
+            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-c-btn1-icon-c-val'), 65);
+            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-c-btn2-icon-c-val'), 65);
+
             const cArea = document.getElementById('pattern-settings-C');
             const cols = cArea.querySelectorAll('.setting-column');
             if (cols.length >= 2) {
@@ -716,6 +752,70 @@ function relabelItems() {
                 if(btn1) btn1.style.borderRadius = d1.radius;
                 
                 apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-c-btn2-icon-c-val'));
+                if(btn2) btn2.style.borderRadius = d2.radius;
+                
+                updateDynamicStyle(`
+                    .mock-screen.pattern-C .top_button ul li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
+                    .mock-screen.pattern-C .top_button ul li:after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; clip-path: ellipse(70% 90% at 50% 100%); z-index: 0; }
+                    .mock-screen.pattern-C .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
+                    .mock-screen.pattern-C .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
+                    .mock-screen.pattern-C .top_button ul li:nth-child(1):after { background: ${d1.afterC} !important; }
+                    .mock-screen.pattern-C .top_button ul li:nth-child(2):after { background: ${d2.afterC} !important; }
+                `, 'dyn-style-pattern');
+            }
+        }
+        */
+        if (selected === 'A') {
+            apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'), 55);
+            apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-icon-c-val'), 55);
+
+        } else if (selected === 'B') {
+            const bArea = document.getElementById('pattern-settings-B');
+            const cols = bArea?.querySelectorAll('.setting-column');
+            if (cols && cols.length >= 2) {
+                const getBData = (idx) => {
+                    const c = cols[idx];
+                    const allTxt = c.querySelectorAll('input[type="text"]');
+                    return {
+                        bg: allTxt[0].value, on: c.querySelector('input[type="checkbox"]').checked,
+                        bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value,
+                        befW: allTxt[4].value, befC: allTxt[5].value, tx: allTxt[6].value
+                    };
+                };
+                const d1 = getBData(0); const d2 = getBData(1);
+                
+                // ★ここでサイズ「50」を指定して適用（1回にまとめます）
+                apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-b-btn1-icon-c-val'), 27);
+                if(btn1) btn1.style.borderRadius = d1.radius;
+                
+                apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-b-btn2-icon-c-val'), 27);
+                if(btn2) btn2.style.borderRadius = d2.radius;
+                
+                updateDynamicStyle(`
+                    .mock-screen.pattern-B .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
+                    .mock-screen.pattern-B .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
+                `, 'dyn-style-pattern');
+            }
+
+        } else if (selected === 'C') {
+            const cArea = document.getElementById('pattern-settings-C');
+            const cols = cArea?.querySelectorAll('.setting-column');
+            if (cols && cols.length >= 2) {
+                const getCData = (idx) => {
+                    const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
+                    const chk = c.querySelector('input[type="checkbox"]');
+                    return {
+                        bg: allTxt[0].value, on: chk.checked, bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value,
+                        befW: allTxt[4].value, befC: allTxt[5].value, afterC: allTxt[6].value, tx: allTxt[7].value
+                    };
+                };
+                const d1 = getCData(0); const d2 = getCData(1);
+                
+                // ★ここでサイズ「65」を指定して適用
+                apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-c-btn1-icon-c-val'), 45);
+                if(btn1) btn1.style.borderRadius = d1.radius;
+                
+                apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-c-btn2-icon-c-val'), 45);
                 if(btn2) btn2.style.borderRadius = d2.radius;
                 
                 updateDynamicStyle(`
@@ -847,10 +947,17 @@ function relabelItems() {
         };
     }
 
+    // --- SNSアイコンの描画処理（配置場所対応版） ---
     if (mock) {
-        const oldSns = mock.querySelector('.sns_btn');
-        if(oldSns) oldSns.remove();
-    
+        // 既存のSNSを削除
+        mock.querySelectorAll('.sns_btn').forEach(el => el.remove());
+
+        // 設定の取得
+        const snsPos = document.querySelector('input[name="sns-position"]:checked')?.value || 'header';
+        const snsColorChoice = getV('cfg-sns-c-val');
+        const filterStyle = (snsColorChoice === '#FFFFFF') ? 'brightness(0) invert(1)' : 'brightness(0)';
+
+        // SNSのHTMLを作成
         const snsBtnDiv = document.createElement('div');
         snsBtnDiv.className = 'sns_btn';
         let snsHtml = '<ul>';
@@ -865,26 +972,31 @@ function relabelItems() {
         });
         snsHtml += '</ul>';
         snsBtnDiv.innerHTML = snsHtml;
-        mock.appendChild(snsBtnDiv);
-    
-        // --- SNSの位置と色の反映 ---
-        const snsColorChoice = getV('cfg-sns-c-val'); // セレクトボックスの値（#FFFFFF か #000000）
-        
-        // 白(#FFFFFF)なら白、それ以外(黒)なら黒にするフィルタ
-        const filterStyle = (snsColorChoice === '#FFFFFF') 
-            ? 'brightness(0) invert(1)' 
-            : 'brightness(0)';
 
-        const snsRightPos = (listPattern === 'B') ? '60px' : '25px';
+        if (snsPos === 'header') {
+            // 【パターンA】ヘッダーに配置
+            mock.appendChild(snsBtnDiv);
+            const snsRightPos = (listPattern === 'B') ? '60px' : '25px';
 
-        updateDynamicStyle(`
-            .mock-screen .sns_btn { position: absolute; top: 14px; right: ${snsRightPos}; z-index: 110; }
-            .mock-screen .sns_btn ul { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; }
-            .mock-screen .sns_btn li img { 
-                width: 25px; 
-                filter: ${filterStyle} !important; 
+            updateDynamicStyle(`
+                .mock-screen .sns_btn { position: absolute; top: 14px; right: ${snsRightPos}; z-index: 110; }
+                .mock-screen .sns_btn ul { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; }
+                .mock-screen .sns_btn li img { width: 25px; filter: ${filterStyle} !important; }
+            `, 'dyn-style-sns');
+        } else {
+            // 【パターンB】フッターメニューリストの後ろに配置
+            const menuUl = mock.querySelector('.menu-sublist ul');
+            if (menuUl) {
+                menuUl.after(snsBtnDiv); // ulの直後に挿入
             }
-        `, 'dyn-style-sns');
+
+            updateDynamicStyle(`
+                .mock-screen .sns_btn { display: block; margin: 20px 0 30px 0; padding: 0; text-align: center; }
+                .mock-screen .sns_btn ul { display: flex; justify-content: center; gap: 10px; list-style: none; margin: 0; padding: 0; align-items: center; }
+                .mock-screen .sns_btn li { display: inline-block; list-style: none; margin: 0; padding: 0; }
+                .mock-screen .sns_btn li img { width: 35px; filter: ${filterStyle} !important; }
+            `, 'dyn-style-sns');
+        }
     }
 
     attachPreviewEvents();
@@ -1237,9 +1349,39 @@ function applyCurrentDesignToMock() {
         const stIconChoice = document.getElementById('cfg-st-icon-choice')?.value;
         const stIconFilter = stIconChoice === 'black' ? 'brightness(0)' : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
 
+        // ロゴの形状設定を取得
+        const wmShape = document.getElementById('cfg-st-watermark-shape')?.value || 'landscape';
+        const wmWidth = (wmShape === 'square') ? '75px' : '100px';
+        const wmHeight = (wmShape === 'square') ? '75px' : '40px';
+
         finalCSS += `
-            .mock-screen .stamp_card { background-color: ${getV('cfg-st-card-bg-val')} !important; border-radius: ${getV('cfg-st-radius')} !important; border: ${borderOn ? `${getV('cfg-st-border-w')} solid ${stColor}` : 'none'} !important; outline: ${borderOn ? `${getV('cfg-st-outline-w')} solid ${stColor}` : 'none'} !important; outline-offset: -7px; position: relative; overflow: hidden; }
-            .mock-screen .stamp_card::before { content: ""; position: absolute; bottom: 5px; right: 5px; width: 100px; height: 50px; background-image: url(${getV('cfg-st-watermark-url')}) !important; background-size: contain; background-repeat: no-repeat; pointer-events: none; }
+            /* カード本体のデザイン */
+            .mock-screen .stamp_card { 
+                background-color: ${getV('cfg-st-card-bg-val')} !important; 
+                border-radius: ${getV('cfg-st-radius')} !important; 
+                border: ${borderOn ? `${getV('cfg-st-border-w')} solid ${stColor}` : 'none'} !important; 
+                outline: ${borderOn ? `${getV('cfg-st-outline-w')} solid ${stColor}` : 'none'} !important; 
+                outline-offset: -7px; 
+                position: relative; 
+                overflow: hidden; 
+            }
+
+            /* カード透かしロゴ（選択したサイズを適用） */
+            .mock-screen .stamp_card::before { 
+                content: ""; 
+                position: absolute; 
+                bottom: 10px; 
+                right: 10px; 
+                width: ${wmWidth} !important; 
+                height: ${wmHeight} !important; 
+                background-image: url(${getV('cfg-st-watermark-url')}) !important; 
+                background-size: contain; 
+                background-repeat: no-repeat; 
+                background-position: right, bottom;
+                pointer-events: none; 
+            }
+
+            /* その他テキスト・アイコンのデザイン */
             .mock-screen .stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stColor} !important; }
             .mock-screen .ticket_list_due { color: ${stDueTxtColor} !important; border: ${borderOn ? '1px solid ' + stColor : 'none'} !important; border-radius: ${getV('cfg-st-label-radius')} !important; background-color: ${getV('cfg-st-label-bg-val')} !important; }
             .mock-screen .stampicon { color: ${stTxtColor} !important; }
@@ -1419,6 +1561,53 @@ function applyCurrentDesignToMock() {
     }
 }
 // アイコン色設定用
+function apply(el, bg, on, bw, bc, tx, iconColor, size = 60) {
+    if(!el) return;
+    
+    el.style.backgroundColor = bg;
+    el.style.setProperty('border', on ? `${bw} solid ${bc}` : 'none', 'important');
+    el.style.transform = 'translateZ(0)'; 
+    
+    const info = el.querySelector('.button_info');
+    if(info) info.style.setProperty('color', tx, 'important');
+
+    const imgDiv = el.querySelector('.button_img');
+    const img = el.querySelector('img');
+
+    if (imgDiv && img) {
+        // 親枠のサイズを変数 size に合わせる
+        imgDiv.style.cssText = `
+            width: ${size}px !important;
+            height: ${size}px !important;
+            min-width: ${size}px !important;
+            flex: 0 0 ${size}px !important;
+            position: relative !important;
+            background: transparent !important;
+            transform: translateZ(0);
+            margin: 0 auto;
+            -webkit-mask: none !important;
+            mask: none !important;
+            overflow: visible !important;
+            clip-path: inset(0px);
+            -webkit-clip-path: inset(0px);
+        `;
+
+        // translateX と drop-shadow の距離を size に合わせる
+        img.style.cssText = `
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
+            position: absolute !important;
+            top: 0; left: 0;
+            opacity: 1 !important;
+            transform: translateX(-${size}px);
+            -webkit-transform: translateX(-${size}px);
+            filter: drop-shadow(${size}px 0 0 ${iconColor}) !important;
+            -webkit-filter: drop-shadow(${size}px 0 0 ${iconColor}) !important;
+        `;
+    }
+}
+/*
 function apply(el, bg, on, bw, bc, tx, iconColor) {
     if(!el) return;
     
@@ -1448,7 +1637,7 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
             margin: 0 auto;
             -webkit-mask: none !important;
             mask: none !important;
-            /* ★ここが変更点：overflowをやめてclip-pathにする */
+
             overflow: visible !important;
             clip-path: inset(0px);
             -webkit-clip-path: inset(0px);
@@ -1462,7 +1651,7 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
             position: absolute !important;
             top: 0; left: 0;
             opacity: 1 !important;
-            /* 左に飛ばして、右に影を落とす */
+
             transform: translateX(-100%);
             -webkit-transform: translateX(-100%);
             filter: drop-shadow(60px 0 0 ${iconColor}) !important;
@@ -1470,6 +1659,7 @@ function apply(el, bg, on, bw, bc, tx, iconColor) {
         `;
     }
 }
+*/
 
 function updateDynamicStyle(css, id = 'dyn-style') {
     let s = document.getElementById(id);
@@ -1478,12 +1668,42 @@ function updateDynamicStyle(css, id = 'dyn-style') {
 }
 
 function switchPattern() {
+    // 1. メインボタン(A/B/C)の切り替え
     const s = document.querySelector('input[name="btn-pattern"]:checked').value;
     document.querySelectorAll('.pattern-fields').forEach(el => el.style.display = 'none');
     const target = document.getElementById(`pattern-settings-${s}`);
     if(target) target.style.display = 'grid';
+
+    // 2. ヘッダーパターン(A/B)の切り替えと表示制御
+    const h = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
+    const bSettings = document.getElementById('header-b-settings');
+    const mainImgInput = document.getElementById('cfg-header-main-img');
+    const defaultImg = "https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/v4AFzVlZMSCffhihwlbX.png";
+
+    if (h === 'B') {
+        // パターンBなら追加設定（スライダー等）を表示
+        if(bSettings) bSettings.style.display = 'block';
+        // パターンBでURLが空なら、デフォルト画像をセットしてあげる（利便性のため）
+        if(mainImgInput && mainImgInput.value === "") {
+            mainImgInput.value = defaultImg;
+        }
+    } else {
+        // パターンAなら追加設定を非表示
+        if(bSettings) bSettings.style.display = 'none';
+        // ★ご要望：パターンAに切り替えた時、デフォルトURLが入っていれば空にする
+        if(mainImgInput && mainImgInput.value === defaultImg) {
+            mainImgInput.value = "";
+        }
+    }
+
+    // 3. プレビュー（モック）のクラス更新
     const mock = document.querySelector('.mock-screen');
-    if(mock) { mock.classList.remove('pattern-A', 'pattern-B', 'pattern-C'); mock.classList.add(`pattern-${s}`); }
+    if(mock) { 
+        // ボタン用のクラス
+        mock.classList.remove('pattern-A', 'pattern-B', 'pattern-C'); 
+        mock.classList.add(`pattern-${s}`); 
+    }
+
     updatePreview();
 }
 
@@ -1579,7 +1799,7 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li:nth-child(1) .button_info { color: ${txt1} !important; }
     /* 左アイコン (Clip-Path) */
     .top_button > ul > li:nth-child(1) .button_img { 
-    width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
+    width: 55px !important; height: 55px !important; min-width: 60px; flex: 0 0 60px;
     position: relative; margin: 0 auto; transform: translateZ(0);
     overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
     }
@@ -1594,7 +1814,7 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li:nth-child(2) .button_info { color: ${txt2} !important; }
     /* 右アイコン (Clip-Path) */
     .top_button > ul > li:nth-child(2) .button_img { 
-    width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
+    width: 55px !important; height: 55px !important; min-width: 60px; flex: 0 0 60px;
     position: relative; margin: 0 auto; transform: translateZ(0);
     overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
     }
@@ -1635,7 +1855,7 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
     /* 左アイコン */
     .top_button > ul > li:nth-child(1) .button_img { 
-    width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
+    width: 27px !important; height: 27px !important; min-width: 60px; flex: 0 0 60px;
     position: relative; margin-right: 10px; transform: translateZ(0);
     overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
     }
@@ -1650,7 +1870,7 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }
     /* 右アイコン */
     .top_button > ul > li:nth-child(2) .button_img { 
-    width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
+    width: 27px !important; height: 27px !important; min-width: 60px; flex: 0 0 60px;
     position: relative; margin-right: 10px; transform: translateZ(0);
     overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
     }
@@ -1692,7 +1912,7 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li:nth-child(1) .button_info { color: ${c1.tx} !important; }
     /* 左アイコン (Clip-Path) */
     .top_button > ul > li:nth-child(1) .button_img { 
-    width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
+    width: 45px !important; height: 45px !important; min-width: 60px; flex: 0 0 60px;
     position: relative; margin: 0 auto; transform: translateZ(0);
     overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
     }
@@ -1709,7 +1929,7 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }
     /* 右アイコン (Clip-Path) */
     .top_button > ul > li:nth-child(2) .button_img { 
-    width: 60px !important; height: 60px !important; min-width: 60px; flex: 0 0 60px;
+    width: 46px !important; height: 45px !important; min-width: 60px; flex: 0 0 60px;
     position: relative; margin: 0 auto; transform: translateZ(0);
     overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
     }
@@ -1726,6 +1946,10 @@ function getButtonPatternCSS(selectedPattern) {
 // 3. ヘッダー（パターンA/B）のCSSを生成する関数
 function getHeaderCSS() {
     const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
+    const mainImgUrl = document.getElementById('cfg-header-main-img')?.value || '';
+    const isHeaderBgNone = document.getElementById('cfg-header-bg-none')?.checked;
+    const headerBgColor = isHeaderBgNone ? 'transparent' : getV('cfg-header-bg-val');
+
 
     // --- パターンB：常にCSSを生成（スライダー等の複雑な構成のため） ---
     if (headerPattern === 'B') {
@@ -1749,18 +1973,38 @@ header.top h1.top span { display: none !important; }
 `;
     } 
     
-    // --- パターンA：初期値（白）から変更がある場合のみ生成 ---
+    // --- パターンA (標準) ---
     else {
-        const headerBg = getV('cfg-header-bg-val').toUpperCase();
-        
-        // デフォルト値が #FFFFFF（白）かつ他の文字サイズ等に変更がない場合の判定
-        // ※必要に応じて文字色やサイズの判定もここに追加できます
-        if (headerBg === '#FFFFFF') {
-            return ""; 
+        if (mainImgUrl) {
+            return `
+        header.top {
+            position: relative !important;
+            display: flex !important;
+            justify-content: center !important;
+            z-index: 99 !important;
+            box-shadow: 0px 0px 0px !important;
+            background-color: initial !important;
+            height: 270px !important;
+            background-image: url('${mainImgUrl}') !important;
+            background-size: cover !important;
+            background-repeat: no-repeat !important;
+            background-position: bottom !important;
+            padding: 10px 0;
         }
-
-        return `header.top { background-color: ${headerBg} !important; display: flex; justify-content: center; align-items: center; padding: 10px 0; }`;
-    }
+        header.top h1 span { color: ${getV('cfg-header-text-c-val')} !important; font-size: ${getV('cfg-header-text-size')} !important; }`;
+                } else {
+                    // 画像がない時：背景色（または透明）のシンプルヘッダー
+                    return `
+        header.top {
+            background-color: ${headerBgColor} !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: 10px 0 !important;
+        }
+        header.top h1 span { color: ${getV('cfg-header-text-c-val')} !important; font-size: ${getV('cfg-header-text-size')} !important; }`;
+                }
+            }
 }
 
 // 4. スタンプ一覧ページのCSSを生成する関数
@@ -1775,7 +2019,7 @@ function getStampPageCSS() {
     const stWatermarkUrl = getV('cfg-st-watermark-url');
     const stTxtColor = getV('cfg-st-txt-c-val').toUpperCase();
     const stDueTxtColor = getV('cfg-st-due-txt-c-val').toUpperCase();
-    const stLabelBg = getV('cfg-st-label-bg-val'); // 透明度を含む場合があるためそのまま比較
+    const stLabelBg = getV('cfg-st-label-bg-val');
     const stLabelRadius = getV('cfg-st-label-radius');
     const stIconBorder = getV('cfg-st-icon-border-val').toUpperCase();
     const stIconChoice = document.getElementById('cfg-st-icon-choice').value;
@@ -1806,6 +2050,9 @@ function getStampPageCSS() {
         : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
 
     const stBorderColor = getV('cfg-st-border-c-val');
+    const wmShape = document.getElementById('cfg-st-watermark-shape')?.value || 'landscape';
+    const wmWidth = (wmShape === 'square') ? '75px' : '100px';
+    const wmHeight = (wmShape === 'square') ? '75px' : '40px';
 
     return `
 /* ====== スタンプ一覧ページ ====== */
@@ -1820,9 +2067,11 @@ body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; 
     position: relative; overflow: hidden;
 }
 #stamp-list .stamp_card::before {
-    content: ""; position: absolute; z-index: 0; bottom: 10px; right: 10px; width: 100px; height: 60px;
+    content: ""; position: absolute; z-index: 0; bottom: 10px; right: 10px; 
+    width: ${wmWidth} !important; 
+    height: ${wmHeight} !important;
     background-image: url(${getV('cfg-st-watermark-url')});
-    background-position: center; background-size: contain; background-repeat: no-repeat; pointer-events: none;
+    background-position: right,bottom; background-size: contain; background-repeat: no-repeat; pointer-events: none;
 }
 .stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stBorderColor} !important; font-size: 20px; }
 .stamp_card .ticket_list_due {
@@ -2105,6 +2354,7 @@ ${prefix}.ticket_title {
     color: ${titleColor} !important;
     font-size: ${titleSize} !important;
     font-weight: ${titleWeight} !important;
+    padding: 20px 20px 15px;
 }
 ${prefix}.ticket_due {
     font-size: ${dueSize} !important;
@@ -2183,26 +2433,22 @@ document.getElementById('generate-btn').onclick = () => {
     // 全体背景色の判定
     const isBodyBgNone = getC('cfg-body-bg-none');
     const bodyBgColor = isBodyBgNone ? 'transparent' : getV('cfg-body-bg-val');
+
+    const isHeaderBgNone = getC('cfg-header-bg-none');
+    const headerBgColor = isHeaderBgNone ? 'transparent' : getV('cfg-header-bg-val');
+
     // ボタンエリア背景色の判定
     const isBtnAreaNone = getC('cfg-btn-area-bg-none');
     const btnAreaColor = isBtnAreaNone ? 'transparent' : getV('cfg-btn-area-bg-val');
 
-    // SNSアイコンのCSSとHTMLの生成
-    const snsIconColorVal = getV('cfg-sns-c-val');
-    // 白なら白、黒なら黒のフィルタを決定
-    const snsFilter = (snsIconColorVal === '#FFFFFF') ? 'brightness(0) invert(1)' : 'brightness(0)';
-    
     const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
-    const snsRightOffset = (listPattern === 'B') ? '60px' : '15px';
+        
+    // --- 2. SNSアイコンのCSSとHTMLの生成（配置場所対応版） ---
+    const snsPos = document.querySelector('input[name="sns-position"]:checked')?.value || 'header';
+    const snsIconColorVal = getV('cfg-sns-c-val');
+    const snsFilter = (snsIconColorVal === '#FFFFFF') ? 'brightness(0) invert(1)' : 'brightness(0)';
 
-    const headerSnsCSS = `
-/* ヘッダーSNSアイコン */
-.sns_btn { position: fixed; top: 14px; right: ${snsRightOffset}; z-index: 1002; display: block; }
-.sns_btn ul { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; align-items: center; }
-.sns_btn li { margin: 0; padding: 0; line-height: 1; }
-.sns_btn li img { width: 28px; filter: ${snsFilter} !important; }
-    `;
-
+    // SNSアイテムデータの取得とHTML組み立て
     const snsDataArray = [];
     document.querySelectorAll('.sns-item').forEach(el => {
         const type = el.querySelector('.field-sns-type').value;
@@ -2212,12 +2458,40 @@ document.getElementById('generate-btn').onclick = () => {
             target: el.querySelector('.field-sns-ext').checked ? ' target="_blank" rel="noopener noreferrer"' : ""
         });
     });
-
-    const snsItemsHtml = snsDataArray.map(item => {
-        return `<li><a href="${item.href}"${item.target}><img src="${item.iconUrl}"></a></li>`;
-    }).join('');
-
+    const snsItemsHtml = snsDataArray.map(item => `<li><a href="${item.href}"${item.target}><img src="${item.iconUrl}"></a></li>`).join('');
     const snsFinalHtml = snsDataArray.length > 0 ? `<div class="sns_btn"><ul>${snsItemsHtml}</ul></div>` : "";
+
+    // 配置場所によって配布用CSSとJS挿入コマンドを出し分け
+    let snsCSS = "";
+    let snsInsertJS = "";
+
+    if (snsPos === 'header') {
+        // 【A】ヘッダー配置用
+        const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
+        const snsRightOffset = (listPattern === 'B') ? '60px' : '15px';
+        
+        snsCSS = `
+    /* ヘッダーSNSアイコン */
+    .sns_btn { position: fixed; top: 14px; right: ${snsRightOffset}; z-index: 1002; display: block; }
+    .sns_btn ul { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; align-items: center; }
+    .sns_btn li { margin: 0; padding: 0; line-height: 1; }
+    .sns_btn li img { width: 28px; filter: ${snsFilter} !important; }`;
+
+        // bodyの最後に挿入
+        snsInsertJS = `document.body.insertAdjacentHTML('beforeend', \`${snsFinalHtml}\`);`;
+
+    } else {
+        // 【B】フッターメニュー内配置用
+        snsCSS = `
+    /* フッターSNSアイコン */
+    .sns_btn { display: block; margin: 20px 0 30px 0; padding: 0; text-align: center; }
+    .sns_btn ul { display: flex; justify-content: center; gap: 10px; list-style: none; margin: 0; padding: 0; align-items: center; }
+    .sns_btn li { display: inline-block; list-style: none; margin: 0 5px; padding: 0; }
+    .sns_btn li img { width: 35px; filter: ${snsFilter} !important; }`;
+
+        // メニューリストのulの後ろに挿入
+        snsInsertJS = `const footerUl = document.querySelector(".menu-sublist ul"); if(footerUl) { footerUl.insertAdjacentHTML('afterend', \`${snsFinalHtml}\`); }`;
+    }
 
     // 3. 各パーツの配布用CSS生成
     const bodyBgCSS = getBodyBgCSS();
@@ -2309,8 +2583,7 @@ window.onload = () => {
     document.body.insertAdjacentHTML('beforeend', footerHTML);
     
     // SNSアイコンの挿入
-    const snsHTML = \`${snsFinalHtml}\`;
-    if (snsHTML) { document.body.insertAdjacentHTML('beforeend', snsHTML); }
+    ${snsInsertJS}
 };
 ${hamburgerScript}
 <\/script>`;
@@ -2324,7 +2597,7 @@ header.top {
 }
 
 ${headerCSS}
-${headerSnsCSS}
+${snsCSS}
 ${subPageHeaderCSS}
 .top_button { background-color: ${btnAreaColor} !important; }
 .top_button > ul { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 0 15px; margin: 0; list-style: none; }
@@ -2412,6 +2685,12 @@ function getAllSettings() {
     });
     settings['saved_menu_items'] = items;
 
+
+
+
+
+
+
     // (D) SNS項目の保存
     const snsItems = [];
     const snsContainer = document.getElementById('sns-list');
@@ -2427,7 +2706,16 @@ function getAllSettings() {
     }
     settings['saved_sns_items'] = snsItems;
 
+    // 配置場所（ヘッダーかフッターか）を保存
+    settings['sns-position'] = document.querySelector('input[name="sns-position"]:checked')?.value || 'header';
+
     return settings;
+
+
+
+
+
+
 }
 
 // 2. 保存を実行する関数
@@ -2451,7 +2739,13 @@ function loadFromLocal() {
         // (A) 各種入力項目の復元
         Object.keys(settings).forEach(key => {
             // ラジオボタンの復元
-            if (key === 'btn-pattern' || key === 'header-pattern' || key === 'cfg-mock-logo-align' || key === 'list-pattern' || key === 'notice-pattern') {
+            if (key === 'btn-pattern' || 
+                key === 'header-pattern' || 
+                key === 'cfg-mock-logo-align' || 
+                key === 'list-pattern' || 
+                key === 'notice-pattern' || 
+                key === 'sns-position') {
+                
                 const val = settings[key];
                 const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
                 if (radio) radio.checked = true;
@@ -2488,6 +2782,8 @@ function loadFromLocal() {
             });
         }
 
+
+        // (C) SNS項目の復元
         if (settings['saved_sns_items']) {
             const snsList = document.getElementById('sns-list');
             if (snsList) {
@@ -2506,7 +2802,24 @@ function loadFromLocal() {
             }
         }
 
-        // (C) カラーピッカーとテキストボックスの同期
+        // 配置場所（ヘッダーかフッターか）を復元
+        if (settings['sns-position']) {
+            const radio = document.querySelector(`input[name="sns-position"][value="${settings['sns-position']}"]`);
+            if (radio) radio.checked = true;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        // (D) カラーピッカーとテキストボックスの同期
         // 保存されたテキスト値(#XXXXXX)を、カラーピッカー側にも反映させる
         if (typeof syncPairs !== 'undefined') {
             syncPairs.forEach(pair => {
@@ -2521,7 +2834,7 @@ function loadFromLocal() {
             });
         }
         
-        // (D) 表示の切り替えを反映
+        // (E) 表示の切り替えを反映
         if(typeof switchPattern === 'function') switchPattern();
         if(typeof switchListPattern === 'function') switchListPattern();
         if(typeof switchNoticePattern === 'function') switchNoticePattern();
@@ -2587,7 +2900,8 @@ function loadFromLocal() {
             key === 'header-pattern' || 
             key === 'cfg-mock-logo-align' || 
             key === 'list-pattern' ||
-            key === 'notice-pattern') {
+            key === 'notice-pattern' ||
+            key === 'sns-position') {
             
             const val = settings[key];
             const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
