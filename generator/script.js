@@ -2281,20 +2281,14 @@ ${baseSelector} {
     background-color: ${cardBg} !important;
     border: ${cardBorderCSS} !important;
 }
-
-/* 区切り線：親要素を「利用可能」に限定して、その中の aタグ を指定 */
 ${baseSelector} > .ticket_list > a {
     border-bottom: 1px dashed ${lineColor} !important;
 }
-
-/* タイトル：親要素を「利用可能」に限定して指定 */
 ${baseSelector} > .ticket_list > a > dl > dt {
     font-size: ${titleSize} !important;
     font-weight: ${titleWeight} !important;
     color: ${titleColor} !important;
 }
-
-/* 有効期限：親要素を「利用可能」に限定して指定 */
 ${baseSelector} .ticket_list_due {
     font-size: ${dueSize} !important;
     background-color: ${dueBg} !important;
