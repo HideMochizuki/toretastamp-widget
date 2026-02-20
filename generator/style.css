@@ -244,6 +244,10 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     
 }
 
+.phone-mock .ticket_list_due {
+    font-size: 12px;
+}
+
 /* ==========================================
    4. フッターメニュー編集（Sortable用）
    ========================================== */
@@ -319,7 +323,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .mock-header-v2 h1 img {
     height: 35px !important; /* 1枚目の写真に近い高さに固定 */
     width: auto !important;   /* 横幅は自動計算 */
-    max-width: 80%;
+    max-width: 100%;
     object-fit: contain;
 }
 

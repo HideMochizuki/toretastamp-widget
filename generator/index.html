@@ -49,6 +49,34 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="sub-config-box" style="margin-top: 15px;">
+                    <div class="card-sub-title" style="font-size: 12px; margin-bottom: 8px;">フォント設定</div>
+                    <div class="form-grid-mini">
+                        <div class="form-group">
+                            <label>基本フォント選択</label>
+                            <select id="cfg-font-family-select" onchange="updatePreview()">
+                                <option value="sans-serif">ゴシック体（標準）</option>
+                                <option value='"Helvetica Neue", "Helvetica", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Arial, sans-serif'>
+                                    モダン・ゴシック（iOS/Mac推奨）
+                                </option>
+                                <option value='"Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif'>
+                                    丸ゴシック（柔らかい印象）
+                                </option>
+                                <option value='"YuMincho", "Hiragino Mincho ProN", serif'>
+                                    明朝体（高級感・和風）
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>自由入力（Google Fontsなど）</label>
+                            <input type="text" id="cfg-font-family-custom" placeholder="'Noto Sans JP' など" oninput="updatePreview()">
+                        </div>
+                    </div>
+                    <small style="font-size: 10px; color: #888; margin-top: 5px; display: block;">
+                        ※自由入力がある場合はそちらが優先されます。
+                    </small>
+                </div>
             
                 <div class="sub-config-box">
                     <div class="form-group full-width">
