@@ -462,6 +462,7 @@ const syncPairs = [
     // 共通・Aパターン・Bパターン
     ['cfg-body-bg', 'cfg-body-bg-val'],
     ['cfg-font-family-select', 'cfg-font-family-custom'],
+    ['cfg-h3-color', 'cfg-h3-color-val'],
     ['cfg-btn1-icon-c', 'cfg-btn1-icon-c-val'],
     ['cfg-btn2-icon-c', 'cfg-btn2-icon-c-val'],
     ['cfg-b-btn1-icon-c', 'cfg-b-btn1-icon-c-val'],
@@ -469,7 +470,7 @@ const syncPairs = [
     ['cfg-c-btn1-icon-c', 'cfg-c-btn1-icon-c-val'],
     ['cfg-c-btn2-icon-c', 'cfg-c-btn2-icon-c-val'],
     
-    // ★ヘッダー用
+    // ヘッダー用
     ['cfg-header-bg', 'cfg-header-bg-val'],
     ['cfg-header-text-c', 'cfg-header-text-c-val'],
     ['cfg-mock-header-bg', 'cfg-mock-header-bg-val'],
@@ -506,15 +507,15 @@ const syncPairs = [
     ['cfg-st-due-txt-c', 'cfg-st-due-txt-c-val'],
     ['cfg-st-label-bg', 'cfg-st-label-bg-val'],
     ['cfg-st-icon-border', 'cfg-st-icon-border-val'],
-    // ★共通ボタン用
+    // 共通ボタン用
     ['cfg-pgbtn-bg-c', 'cfg-pgbtn-bg-val'],
     ['cfg-pgbtn-txt-c', 'cfg-pgbtn-txt-val'],
     ['cfg-pgbtn-border-c', 'cfg-pgbtn-border-c-val'],
-    // ★追加：オレンジボタン用
+    // オレンジボタン用
     ['cfg-pgbtn-org-bg-c', 'cfg-pgbtn-org-bg-val'],
     ['cfg-pgbtn-org-txt-c', 'cfg-pgbtn-org-txt-val'],
     ['cfg-pgbtn-org-border-c', 'cfg-pgbtn-org-border-c-val'],
-    // ★お知らせ用
+    // お知らせ用
     ['cfg-notice-color', 'cfg-notice-color-val'],
 
     // ▼ スタンプ詳細ページ用
@@ -1009,6 +1010,15 @@ function relabelItems() {
         }
     }
 
+    // updatePreview 関数内の適当な場所（applyCurrentDesignToMock の前など）
+    const h3Elements = mock.querySelectorAll('.titleh3');
+    h3Elements.forEach(el => {
+        el.style.setProperty('font-size', getV('cfg-h3-size'), 'important');
+        el.style.setProperty('font-weight', getV('cfg-h3-weight'), 'important');
+        el.style.setProperty('color', getV('cfg-h3-color-val'), 'important');
+        el.style.setProperty('line-height', getV('cfg-h3-lh'), 'important');
+    });
+
     attachPreviewEvents();
 }
 
@@ -1254,9 +1264,14 @@ function changeMockScreen(screenKey) {
 
         // デザインの再適用（DOM書き換えで消えることがあるため念押し）
         applyCurrentDesignToMock();
+
+        setTimeout(() => {
+            applyCurrentDesignToMock();
+        }, 100);
+
         updatePreview();
 
-    }, 10); // 10ms待ってからイベントを貼る
+    }, 50); // 50ms待ってからイベントを貼る
 }
 
 // プレビュー画面へのデザイン反映処理
@@ -1350,6 +1365,19 @@ function applyCurrentDesignToMock() {
     // ★プレビュー専用CSSをまとめて管理する変数
     let finalCSS = "";
 
+    finalCSS += `
+        /* 全ページ共通の見出しスタイルを強制適用 */
+        .mock-screen .titleh3, 
+        .mock-screen .titleh3 b,
+        .mock-screen section.content .titleh3 { 
+            font-size: ${getV('cfg-h3-size')} !important; 
+            font-weight: ${getV('cfg-h3-weight')} !important; 
+            color: ${getV('cfg-h3-color-val')} !important; 
+            line-height: ${getV('cfg-h3-lh')} !important; 
+            display: block !important;
+        }
+    `;
+
     // --- 4. スタンプ帳デザインCSSの生成 ---
     if (mock.dataset.currentScreen === 'stamp') {
         const stColor = getV('cfg-st-border-c-val');
@@ -1428,6 +1456,7 @@ function applyCurrentDesignToMock() {
     if (typeof updateDynamicStyle === 'function') {
         updateDynamicStyle(finalCSS, 'dyn-style-main');
     }
+    
 
     // ==========================================
     // ★復活：共通ボタン・オレンジボタンの直塗り処理
@@ -1460,7 +1489,6 @@ function applyCurrentDesignToMock() {
         });
     }
 
-    // ② オレンジボタン (.page_button.orange)
     // ② オレンジボタン (.page_button.orange)
     const orgBtns = mock.querySelectorAll('.page_button.orange');
     if (orgBtns.length > 0) {
@@ -1569,6 +1597,9 @@ function applyCurrentDesignToMock() {
             spans.forEach(s => s.style.setProperty('background-color', hamLineColor, 'important'));
         };
     }
+
+
+
 }
 // アイコン色設定用
 function apply(el, bg, on, bw, bc, tx, iconColor, size = 60) {
@@ -2400,6 +2431,17 @@ document.getElementById('generate-btn').onclick = () => {
         }
     }
     
+    // --- 共通見出し (.titleh3) の判定ロジック ---
+    const h3Size = getV('cfg-h3-size');
+    const h3Weight = getV('cfg-h3-weight');
+    const h3Color = getV('cfg-h3-color-val').toUpperCase();
+    const h3Lh = getV('cfg-h3-lh');
+
+    let h3Output = "";
+    // 初期値と異なる場合のみCSSを生成
+    if (h3Size !== '16px' || h3Weight !== '600' || h3Color !== '#333333' || h3Lh !== '1.5') {
+        h3Output = `.titleh3 { font-size: ${h3Size} !important; font-weight: ${h3Weight} !important; color: ${h3Color} !important; line-height: ${h3Lh} !important; }\n`;
+    }
 
     // --- 2. 各パーツの配布用CSS生成（getHeaderCSSなども同様に内部で判定させる） ---
     const headerCSS = getHeaderCSS(); 
@@ -2501,6 +2543,7 @@ document.getElementById('generate-btn').onclick = () => {
     // --- CSSの組み立て（htmlBodyOutput と btnAreaOutput を使用） ---
     const cssOutput = `<style type="text/css">
 ${htmlBodyOutput}
+${h3Output}
 ${headerCSS}
 ${snsCSS}
 ${subPageHeaderCSS}
@@ -2589,12 +2632,6 @@ function getAllSettings() {
     });
     settings['saved_menu_items'] = items;
 
-
-
-
-
-
-
     // (D) SNS項目の保存
     const snsItems = [];
     const snsContainer = document.getElementById('sns-list');
@@ -2614,11 +2651,6 @@ function getAllSettings() {
     settings['sns-position'] = document.querySelector('input[name="sns-position"]:checked')?.value || 'header';
 
     return settings;
-
-
-
-
-
 
 }
 
