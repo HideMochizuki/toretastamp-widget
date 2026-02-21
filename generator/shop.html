@@ -69,11 +69,30 @@
     </header>
     
     
+    
     <div class="app-container">
-        <div class="sidebar">
-            <a href="index.html" class="nav-item"><i class="fa fa-home"></i> ホーム</a>
-            <a href="index.html" class="nav-item"><i class="fa fa-list"></i> UIデザイン設定</a>
-            <a href="shop.html" class="nav-item  active"><i class="fa fa-store"></i> 店舗情報設定</a>
+        <div class="sidebar" style="width: 200px; background-color: #1e293b; color: #fff; height: 100vh; padding: 20px 0; box-shadow: 4px 0 10px rgba(0,0,0,0.1);">
+            <div style="padding: 0 20px 30px; border-bottom: 1px solid #334155; margin-bottom: 20px;">
+                <p style="font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Widget Generator</p>
+            </div>
+    
+            <nav>
+                <a href="index.html" class="nav-item">
+                    <i class="fa fa-home" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ホーム
+                </a>
+                
+                <a href="index.html" class="nav-item">
+                    <i class="fa fa-paint-brush" style="width: 20px; margin-right: 10px;"></i> UIデザイン設定
+                </a>
+                
+                <a href="shop.html" class="nav-item  active">
+                    <i class="fa fa-store" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> 店舗情報設定
+                </a>
+            </nav>
+    
+            <div style="position: absolute; bottom: 20px; left: 20px; color: #475569; font-size: 10px;">
+                ver 2.0.0
+            </div>
         </div>
 
         
@@ -82,6 +101,163 @@
     
     
             <div class="config-side">
+                <div class="card-wrapper">
+                    <h2 class="card-title">基本・スイッチ設定</h2>
+                    <span class="badge all">全ページ</span>
+                    <div class="card full-width">
+                        <div class="card-sub-title">実行・機能制限スイッチ</div>
+                
+                        <div class="form-row">
+                            <div class="form-label-side">
+                                <span class="badge-required">必須</span>メインスイッチ
+                            </div>
+                            <div class="form-input-side">
+                                <select id="cfg-main-sw" style="width: 200px;">
+                                    <option value="1" selected>ON (実行する)</option>
+                                    <option value="2">OFF (停止)</option>
+                                </select>
+                                <span style="font-size: 11px; color: #94a3b8; margin-left: 10px;">※ウィジェット全体の実行を制御します。</span>
+                            </div>
+                        </div>
+                
+                        <div class="sub-config-box">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">各機能の表示・しきい値設定</p>
+                
+                            <div class="form-row">
+                                <div class="form-label-side" style="width: 160px;">検索機能設定</div>
+                                <div class="form-input-side">
+                                    <select id="cfg-search-sw" style="width: 120px;">
+                                        <option value="1">有効</option>
+                                        <option value="2" selected>無効</option>
+                                    </select>
+                                    <span style="font-size: 13px; color: #475569; margin-left: 15px;">表示しきい値:</span>
+                                    <input type="number" id="cfg-search-thr" value="20" style="width: 80px;">
+                                    <span style="font-size: 12px; color: #94a3b8;">店舗数</span>
+                                </div>
+                            </div>
+                
+                            <div class="form-row">
+                                <div class="form-label-side" style="width: 160px;">ブランドバナー</div>
+                                <div class="form-input-side">
+                                    <select id="cfg-brand-sw" style="width: 120px;">
+                                        <option value="1" selected>表示</option>
+                                        <option value="2">非表示</option>
+                                    </select>
+                                    <span style="font-size: 13px; color: #475569; margin-left: 15px;">表示しきい値:</span>
+                                    <input type="number" id="cfg-brand-thr" value="2" style="width: 80px;">
+                                    <span style="font-size: 12px; color: #94a3b8;">ブランド数</span>
+                                </div>
+                            </div>
+                
+                            <div class="form-row">
+                                <div class="form-label-side" style="width: 160px;">エリア表示</div>
+                                <div class="form-input-side">
+                                    <select id="cfg-area-sw" style="width: 120px;">
+                                        <option value="1" selected>表示</option>
+                                        <option value="2">非表示</option>
+                                    </select>
+                                    <span style="font-size: 13px; color: #475569; margin-left: 15px;">表示しきい値:</span>
+                                    <input type="number" id="cfg-area-thr" value="2" style="width: 80px;">
+                                    <span style="font-size: 12px; color: #94a3b8;">都道府県数</span>
+                                </div>
+                            </div>
+                
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side" style="width: 160px;">店舗一覧リスト</div>
+                                <div class="form-input-side">
+                                    <select id="cfg-shoplist-sw" style="width: 120px;">
+                                        <option value="1" selected>表示</option>
+                                        <option value="2">非表示</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-wrapper">
+                    <h2 class="card-title">ブランド・店舗CSVデータ登録</h2>
+                    <span class="badge all" style="background-color: #f1f5f9; color: #475569;">データ連携</span>
+                    
+                    <div class="card full-width">
+                        <div class="form-row">
+                            <div class="form-label-side">サンプルデータ</div>
+                            <div class="form-input-side">
+                                <a href="https://drive.google.com/drive/folders/1XPqb1B6UQrTdbJDH0P2RO71Dv-N5oLgS" 
+                                   target="_blank" 
+                                   style="color: #3b82f6; text-decoration: none; font-size: 13px; font-weight: bold;">
+                                   <i class="fa fa-external-link-alt"></i> CSVファイルサンプルをダウンロードする
+                                </a>
+                            </div>
+                        </div>
+                
+                        <div class="sub-config-box">
+                            <div class="form-row" style="align-items: flex-start;">
+                                <div class="form-label-side" style="padding-top: 10px;">ブランドデータ</div>
+                                <div class="form-input-side">
+                                    <textarea id="cfg-brand-data"
+                                              class="data-input-area" 
+                                              style="width: 100%; height: 120px; font-family: monospace; line-height: 1.6;" 
+                                              placeholder="brand_id,slug,name,logo,bg,description,url"></textarea>
+                                    <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">※CSV形式（1行目はヘッダー）で入力してください。</p>
+                                </div>
+                            </div>
+                
+                            <div class="form-row" style="align-items: flex-start; margin-bottom: 20px;">
+                                <div class="form-label-side" style="padding-top: 10px;">店舗データ</div>
+                                <div class="form-input-side">
+                                    <textarea id="cfg-shop-data"
+                                              class="data-input-area"
+                                              style="width: 100%; height: 160px; font-family: monospace; line-height: 1.6;" 
+                                              placeholder="id,brand_id,name,address,tel,lat,lng,menu,reserve,hours"></textarea>
+                                    <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">※店舗情報の一覧をCSV形式で入力してください。</p>
+                                </div>
+                            </div>
+                
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side"></div>
+                                <div class="form-input-side">
+                                    <button class="btn" style="background-color: #1e293b; color: #fff; padding: 10px 30px; font-size: 14px;" 
+                                            onclick="applyDataToPreview()">
+                                        <i class="fa fa-sync-alt"></i> プレビューに反映する
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div style="margin-top: 50px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
+                    <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                                <i class="fab fa-js-square" style="color: #f7df1e; margin-right: 5px;"></i> 【1】JavaScriptコード
+                            </label>
+                            <button class="btn" onclick="copyText('out-js')" style="background: #1e293b; color: #fff; padding: 5px 15px; font-size: 12px; border-radius: 4px;">
+                                <i class="fa fa-copy"></i> コードをコピー
+                            </button>
+                        </div>
+                        <textarea id="out-js" class="output-area data-input-area" readonly 
+                                  style="height: 250px; background-color: #0f172a; color: #94a3b8; border: none;" 
+                                  placeholder="生成ボタンを押してください"></textarea>
+                    </div>
+                
+                    <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0; margin-top: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                                <i class="fa fa-css3-alt" style="color: #264de4; margin-right: 5px;"></i> 【2】CSSコード (styleタグ付)
+                            </label>
+                            <button class="btn" onclick="copyText('out-css')" style="background: #1e293b; color: #fff; padding: 5px 15px; font-size: 12px; border-radius: 4px;">
+                                <i class="fa fa-copy"></i> コードをコピー
+                            </button>
+                        </div>
+                        <textarea id="out-css" class="output-area data-input-area" readonly 
+                                  style="height: 250px; background-color: #0f172a; color: #94a3b8; border: none;" 
+                                  placeholder="生成ボタンを押してください"></textarea>
+                    </div>
+                </div>
+                <!--
                 <div class="card-wrapper">
                     <h2 class="card-title">基本・スイッチ設定</h2>
                     <div class="card">
@@ -146,8 +322,8 @@
                         </div>
                     </div>
                 </div>
-
-
+                -->
+                <!--
                 <div class="card-wrapper">
                     <h2 class="card-title">ブランド・店舗CSVデータ登録</h2>
                     <div class="card">
@@ -163,18 +339,21 @@
                         <button class="btn btn-generate" onclick="applyDataToPreview()">プレビューに反映する</button>
                     </div>
                 </div>
+                -->
 
                 <!--
                 <div class="button-group" style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn btn-generate" id="generate-btn" style="flex: 1;">配布用コードを生成する</button>    
                 </div>
                 -->
+                <!--
                 <div style="margin-top: 40px;">
                     <div style="overflow: hidden;"><label style="font-weight: bold; color: var(--primary-color);">【1】JavaScriptコード</label><button class="btn btn-copy" onclick="copyText('out-js')">コピー</button></div>
                     <textarea id="out-js" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
                     <div style="overflow: hidden; margin-top: 25px;"><label style="font-weight: bold; color: var(--primary-color);">【2】CSSコード (styleタグ付)</label><button class="btn btn-copy" onclick="copyText('out-css')">コピー</button></div>
                     <textarea id="out-css" class="output-area" readonly placeholder="生成ボタンを押してください"></textarea>
                 </div>
+                -->
                 
     
             </div>
@@ -183,7 +362,32 @@
             <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/style_default.css" rel="stylesheet" />
             <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/common.css" rel="stylesheet" />
             <link rel="stylesheet" href="preview-footer.css">
-    
+
+            <div class="preview-side">
+                <p style="font-weight: bold; margin-bottom: 20px; text-align: center; color: #1e293b; font-size: 16px;">
+                    <i class="fa fa-store"></i> 店舗一覧プレビュー
+                </p>
+            
+                <div class="phone-mock" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid #1e293b; border-radius: 36px; overflow: hidden; background: #fff;">
+                    <div class="mock-screen" id="store-preview-screen" style="height: 600px; overflow-y: auto; background-color: #f8fafc;">
+                        <div style="display:flex; flex-direction: column; align-items:center; justify-content:center; height:100%; color:#94a3b8; font-size:13px; text-align:center; padding:30px; line-height: 1.6;">
+                            <i class="fa fa-table" style="font-size: 30px; margin-bottom: 15px; color: #e2e8f0;"></i>
+                            CSVデータを入力して<br>
+                            <span style="font-weight: bold; color: #64748b;">「反映ボタン」</span>を押すと<br>
+                            ここに店舗一覧が表示されます
+                        </div>
+                    </div>
+                </div>
+            
+                <div style="margin: 20px auto 0; text-align: center;">
+                    <button class="btn" onclick="location.reload()" 
+                            style="background-color: #94a3b8; color: #fff; width: 140px; height: 36px; font-size: 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; transition: background 0.2s;">
+                        <i class="fa fa-sync-alt"></i> 全設定をリセット
+                    </button>
+                    <p style="font-size: 10px; color: #94a3b8; margin-top: 10px;">※ページを再読み込みして全ての入力を初期化します</p>
+                </div>
+            </div>
+            <!--
             <div class="preview-side">
                 <p style="font-weight: bold; margin-bottom: 15px; text-align: center;">UIプレビュー</p>
                 <div class="phone-mock">
@@ -197,6 +401,7 @@
                     <button class="btn" onclick="location.reload()" style="background-color: #6c757d; color: #fff; width: 120px; font-size: 12px;">設定リセット</button>
                 </div>
             </div>
+            -->
     
         </div><!-- main-wrapper -->
     </div>

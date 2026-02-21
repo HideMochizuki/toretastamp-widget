@@ -1,3 +1,198 @@
+header.generator {
+    background: #fff;
+    padding: 0 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    height: 60px;
+    flex-shrink: 0;
+    z-index: 1000;
+}
+header.generator img { height: 35px; margin-right: 15px; }
+
+.app-container { display: flex; flex: 1; overflow: hidden; }
+
+/* サイドバー */
+.sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    border-right: 1px solid var(--border-admin);
+    padding-top: 20px;
+    flex-shrink: 0;
+    transition: margin-left 0.3s ease;
+}
+.sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); }
+
+.nav-item {
+    display: flex; align-items: center; padding: 14px 25px;
+    color: #475569; text-decoration: none; font-size: 0.9rem; border-left: 4px solid transparent;
+    white-space: nowrap;
+}
+.nav-item i { margin-right: 12px; width: 20px; text-align: center; color: #94a3b8; }
+.nav-item.active {
+    background: #f8fafc; color: var(--primary-color); font-weight: bold; border-left-color: var(--primary-color);
+}
+.nav-item.active i { color: var(--primary-color); }
+
+/* メインコンテンツエリア */
+.main-wrapper {
+    flex: 1; display: flex; padding: 30px; gap: 30px; overflow-y: auto;
+}
+.config-side { flex: 1; min-width: 0; }
+.preview-side { width: 320px; position: sticky; top: 0; height: fit-content; }
+
+/* --- 設定カードの装飾 --- */
+.card-wrapper {
+    background: #fff; border-radius: 4px; border: 1px solid var(--border-admin);
+    padding: 30px; margin-bottom: 25px; position: relative;
+}
+.card {
+    background: #fff; border: 1px solid #f1f5f9; padding: 25px;
+    margin-top: 15px; border-radius: 4px;
+}
+/*
+h2.card-title {
+    font-weight: bold; font-size: 1.1rem; border-left: 4px solid var(--primary-color);
+    padding-left: 12px; margin: 0 0 20px 0; color: #1e293b;
+}
+*/
+.card-sub-title {
+    font-size: 0.95rem; font-weight: bold; color: #334155;
+    padding-bottom: 12px; margin-bottom: 25px; border-bottom: 2px solid #f8fafc;
+}
+
+/* --- 【最重要】水平レイアウト (ラベル左 | 入力右) --- */
+.form-row {
+    display: flex; margin-bottom: 22px; min-height: 40px;
+}
+.form-label-side {
+    width: 210px; flex-shrink: 0; padding-right: 25px;
+    display: flex; align-items: center; justify-content: flex-end; /* 右寄せ */
+    text-align: right; font-size: 13px; font-weight: bold; color: #475569;
+}
+.form-input-side {
+    flex-grow: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+}
+
+/* 必須バッジ */
+.badge-required {
+    background-color: #ff5e5e; color: #fff; font-size: 10px;
+    padding: 2px 5px; border-radius: 3px; margin-right: 8px; font-weight: normal;
+}
+
+/* バッジ (カテゴリー用) */
+.badge {
+    position: absolute; top: 30px; right: 30px; font-size: 11px;
+    padding: 3px 12px; border-radius: 4px;
+}
+.badge.all { background: #f0f9e8; color: #8ace36; }
+.badge.top { background: #fff4e5; color: #ff9800; }
+.badge.stamp { background: #eef4ff; color: #3f7efc; }
+.badge.ticket { background: #fff0f0; color: #f44336; }
+
+/* --- フォーム部品の洗練 --- */
+input[type="text"], input[type="number"], select, textarea {
+    height: 38px; border: 1px solid #cbd5e1; border-radius: 4px;
+    padding: 0 12px; background-color: var(--input-bg); font-size: 14px;
+    box-sizing: border-box; transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--primary-color); outline: none; }
+input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+.color-picker-group {
+    display: flex; align-items: center; gap: 8px; background: #f8fafc;
+    border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 10px; width: fit-content;
+}
+.color-picker-group input[type="text"] { width: 75px; border: none; background: transparent; padding: 0; font-family: monospace; }
+.color-picker-group input[type="color"] { width: 30px; height: 30px; border: none; padding: 0; background: none; cursor: pointer; }
+
+/* サブ設定用グレーボックス */
+.sub-config-box {
+    background: #f8fafc; border: 1px solid var(--border-admin); padding: 25px;
+    border-radius: 4px; margin-top: 15px;
+}
+
+/* ボタン */
+.btn { padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
+.btn-add { background: #fff; border: 1px dashed var(--primary-color); color: var(--primary-color); width: 100%; }
+.btn-generate { background: var(--primary-color); color: #fff; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 20px; box-shadow: 0 4px 6px rgba(138, 206, 54, 0.2); }
+.btn-copy { background: #64748b; color: #fff; font-size: 11px; padding: 5px 15px; margin-bottom: 8px; float: right; border-radius: 3px; }
+
+
+/* 出力エリア */
+.output-area { 
+    width: 100%; height: 150px !important; display: block; font-family: 'Courier New', monospace; 
+    font-size: 0.8rem; background: #1e293b; color: #cbd5e1; padding: 15px; border-radius: 4px; resize: vertical; box-sizing: border-box; 
+}
+
+/* ラベルの装飾 */
+.check-label { font-weight: normal; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+
+/* Sortable用ドラッグハンドル */
+.drag-handle { cursor: grab; color: #cbd5e1; padding: 10px; }
+.menu-item { background: #fff; border: 1px solid #e2e8f0; padding: 15px 15px 15px 45px; border-radius: 5px; margin-bottom: 12px; position: relative; }
+
+
+/* テキストエリアのスタイル */
+textarea.data-input-area {
+    width: 100%;
+    background-color: #1e293b; /* 濃い紺色・黒に近い */
+    color: #e2e8f0;            /* 薄いグレー（文字） */
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* 等幅フォント */
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;          /* 縦方向のみリサイズ可能 */
+}
+
+textarea.data-input-area:focus {
+    outline: none;
+    border-color: #3b82f6;     /* フォーカス時に青く光る */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+
+/* サイドバーの基本スタイル */
+.sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 24px;
+    color: #94a3b8; /* 通常時の文字色（少し薄く） */
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent; /* アクティブ時のバー用 */
+}
+
+/* ホバー時 */
+.sidebar .nav-item:hover {
+    background-color: #334155;
+    color: #f8fafc;
+}
+
+/* アクティブ（現在地）の時 */
+.sidebar .nav-item.active {
+    background-color: #0f172a;
+    color: #ffffff;
+    border-left: 4px solid #8ace36; /* トレタスタンプらしいアクセントカラー */
+}
+
+.sidebar .nav-item.active i {
+    color: #8ace36; /* アイコンもアクセントカラーに */
+    opacity: 1;
+}
+
+
+
+
+
+
+
+
+
 /* ==========================================
    1. 変数とベース（基本設定）
    ========================================== */
@@ -109,13 +304,6 @@ body {
 .badge.ticket { background-color: #fff0f0; color: #f44336; }  /* チケット(予定) */
 .badge.article { background-color: #f5f5f5; color: #666666; } /* 記事ページ(予定) */
 
-/* カードタイトルの微調整（バッジを右側に並べるため） */
-.card-wrapper .card-title {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    box-sizing: border-box;
-}
 
 /* ==========================================
    2. レイアウト（ヘッダー・サイドバー・メイン）
@@ -160,7 +348,7 @@ header.generator img { height: 30px; margin-right: 15px; }
 /* ==========================================
    3. コンポーネント（カード・フォーム・ボタン）
    ========================================== */
-/* カード */
+
 .card-wrapper {
     background: #fff; border-radius: 8px; border: 1px solid var(--border-color);
     padding: 25px; margin-bottom: 20px; width: 100%; display: inline-table;
@@ -168,15 +356,15 @@ header.generator img { height: 30px; margin-right: 15px; }
 }
 .card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-top: 20px; margin-bottom: 25px; }
 
-/* タイトル */
+
 h2.card-title { 
     font-weight: bold; border-left: 4px solid var(--primary-color); padding-left: 10px; font-size: 1.1rem;
 }
 .card-title { font-weight: bold; font-size: 1.1rem; }
-.card-sub-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
+/*.card-sub-title { font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }*/
 .column-label { font-size: 18px; font-weight: 700; margin: 0 0 15px 0; color: var(--primary-color); }
 
-/* フォーム部品 */
+
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .form-group { display: flex; flex-direction: column; margin-bottom: 10px; }
 .form-group label { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #666; }
@@ -186,7 +374,6 @@ input, select { padding: 8px; border: 1px solid var(--border-color); border-radi
 input:focus { border-color: var(--primary-color); }
 input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 
-/* カラーピッカー設定 */
 .color-picker-group {
     display: flex; align-items: center; gap: 8px; background: #fff;
     border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; width: fit-content; min-width: 160px;
@@ -194,7 +381,6 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .color-picker-group input[type="text"] { width: 80px; border: none; font-family: monospace; font-size: 0.9rem; padding: 0; }
 .color-picker-group input[type="color"] { width: 32px; height: 32px; border: none; padding: 0; background: none; cursor: pointer; }
 
-/* 正方形の「□」カラーピッカー用 */
 .custom-color-input {
     width: 30px !important; height: 30px !important; padding: 0 !important;
     border: 1px solid #dee2e6 !important; border-radius: 4px !important; cursor: pointer;
@@ -202,8 +388,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .custom-color-input::-webkit-color-swatch-wrapper { padding: 0; }
 .custom-color-input::-webkit-color-swatch { border: none; border-radius: 3px; }
 
-/* ボタン類 */
-.btn { padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
+.btn { padding: 10px 1px; border-radius: 4px; cursor: pointer; font-weight: bold; border: none; transition: 0.2s; }
 .btn-add { background: #fff; border: 1px dashed var(--primary-color); color: var(--primary-color); width: 100%; margin-top: 10px; }
 .btn-generate { background: var(--primary-color); color: #fff; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 20px; }
 .btn-copy { background: #6c757d; color: #fff; font-size: 0.75rem; padding: 5px 12px; float: right; margin-bottom: 5px; }
@@ -212,7 +397,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
 .mock-screen.pattern-A .top_button ul li .button_img { width: 50%;}
 .mock-screen.pattern-B .top_button ul li .button_img { width: 35%;}
 .mock-screen.pattern-B .button_info { padding: 0;}
-/* Bパターン: 疑似要素の共通土台 */
+
 .mock-screen.pattern-B .top_button ul li {
     position: relative;
 }
@@ -296,7 +481,7 @@ input:disabled { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
     pointer-events: auto !important;
     cursor: pointer !important;
 }
-.mock-screen section.content { padding-top: 20px; margin-bottom: 80px; }
+.mock-screen section.content { padding-top: 20px; margin-bottom: 60px; }
 
 /* プレビュー画面内の仮想ヘッダー専用スタイル */
 .mock-header-v2 {

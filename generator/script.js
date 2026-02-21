@@ -113,7 +113,7 @@ const screens = {
     <div class="mock-headermargin-v2"></div>
     <section class="content">
         <h3 class="titleh3"><b>チケット一覧</b>
-            <select class="ticket_sort_select" style="font-size:10px; padding:5px 2px;">
+            <select class="ticket_sort_select" style="font-size:10px; padding:5px 10px; height: 20px;">
                 <option>有効期限順 ▼</option>
             </select>
         </h3>
@@ -1374,7 +1374,6 @@ function applyCurrentDesignToMock() {
             font-weight: ${getV('cfg-h3-weight')} !important; 
             color: ${getV('cfg-h3-color-val')} !important; 
             line-height: ${getV('cfg-h3-lh')} !important; 
-            display: block !important;
         }
     `;
 
