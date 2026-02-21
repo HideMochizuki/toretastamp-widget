@@ -11,20 +11,14 @@
     <link rel="stylesheet" href="store-info.css"> 
     
     <style>
-        /* 1. ジェネレーター画面のデザイン調整 */
         .data-input-area { 
             width: 100%; height: 150px !important; font-family: 'Courier New', monospace; 
             font-size: 0.8rem; background: var(--dark-bg); color: #f8f8f2; 
             padding: 15px; border-radius: 4px; box-sizing: border-box; resize: vertical; border: none;
         }
-
-        /* 2. 【重要】スマホ枠内（プレビュー）専用のCSS強制適用設定 */
-        /* これにより、プレビュー画面の中だけWEB実装版と同じ見た目になります */
         #store-preview-screen {
             position: relative; height: 100%; background-color: #f5f5f5; overflow-x: hidden; overflow-y: auto; text-align: left;
         }
-
-        /* ロゴボックスのサイズと配置をプレビュー枠に最適化 */
         #store-preview-screen .logo-box {
             width: 110px !important; height: 110px !important; min-width: 110px !important; 
             border-radius: 24px !important; background: #fff; display: flex !important; 
@@ -32,8 +26,6 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important; margin: 0 auto !important; overflow: hidden !important;
         }
         #store-preview-screen .menu_banner img { width: 80% !important; height: 80% !important; object-fit: contain !important; }
-        
-        /* 店舗リストのカードデザイン（WEB実装版をプレビュー内で再現） */
         #store-preview-screen .shop {
             background: #fff !important; border-radius: 10px !important; padding: 10px 12px !important;
             margin: 10px 15px 12px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
@@ -48,7 +40,6 @@
         #store-preview-screen .shop-btn { background: #fff !important; color: #444 !important; border: 1px solid #444 !important; }
         #store-preview-screen .reserve-btn { font-size: 7px; background: #f08519 !important; color: #fff !important; border: none;}
         .mock-screen a span { font-size: 8px; color: #000; text-align: center;}
-        /* エリア・ブランド横スクロール設定 */
         #store-preview-screen .menu_banners.scrollable, 
         #store-preview-screen .area-scroll {
             display: flex !important; overflow-x: auto !important; gap: 12px !important; padding: 10px 15px !important; -webkit-overflow-scrolling: touch;
@@ -411,7 +402,7 @@
 <script>    
 /**
  * 1. 強化版データ解析ロジック（CSV/Numbers自動判別・省略なし）
- * カンマ区切り、またはNumbersのコピー（タブ区切り）を自動判別し、1列もズラさずに解析します。
+ * カンマ区切り、またはNumbersのコピー（タブ区切り）を自動判別し、1列もズラさずに解析
  */
  function parseFlexibleData(text) {
     if (!text) return [];
@@ -503,7 +494,8 @@ function applyDataToPreview() {
 
         renderPreviewUI();
         generateOutputCode(); // 配布コードも自動更新
-        alert("プレビューを更新しました！");
+        showToast("プレビューを更新しました！");
+        
 
     } catch (e) {
         console.error(e);
@@ -512,8 +504,7 @@ function applyDataToPreview() {
 }
 
 /**
- * 4. プレビューUI描画（WEB実装版を100%再現）
- * 沖縄の表示対応および情報の省略なし版です。
+ * 4. プレビューUI描画
  */
 function renderPreviewUI() {
     const $screen = $('#store-preview-screen');
@@ -1147,10 +1138,16 @@ h3.titleh3.shop-list-title {margin: 10px 0 20px;}
 
     document.getElementById('out-js').value = jsCode;
     document.getElementById('out-css').value = cssCode;
-    alert("配布用コードを正常に生成しました！");
+    showToast("配布用コードを正常に生成しました！");
+    
 }
 
 </script>
-
+<div id="custom-toast" class="toast-hidden">
+    <div class="toast-content">
+        <i class="fa fa-check-circle"></i>
+        <span id="toast-message">メッセージがここに入ります</span>
+    </div>
+</div>
 </body>
 </html>

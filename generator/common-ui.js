@@ -32,6 +32,21 @@ window.copyText = (id) => {
     if (el) {
         el.select();
         document.execCommand('copy');
-        alert("コピーしました");
+        showToast("コピーしました");
     }
 };
+
+
+// カスタム通知を表示する関数
+function showToast(message) {
+    const toast = document.getElementById('custom-toast');
+    const toastMsg = document.getElementById('toast-message');
+    
+    toastMsg.innerText = message;
+    toast.className = 'toast-visible';
+    
+    // 3秒後に自動で消す
+    setTimeout(() => {
+        toast.className = 'toast-hidden';
+    }, 3000);
+}

@@ -2570,7 +2570,7 @@ ${footerIconCSS}
 
     document.getElementById('out-js').value = jsOutput;
     document.getElementById('out-css').value = cssOutput;
-    alert("配布用コードを生成しました！");
+    showToast("配布用コードを正常に生成しました！");
 };
 
 
@@ -2594,7 +2594,7 @@ function createItem(isFirst = false) {
 }
 createItem(true);
 document.getElementById('add-item').onclick = () => createItem();
-window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.select(); document.execCommand('copy'); alert("コピーしました"); } };
+window.copyText = (id) => { const el = document.getElementById(id); if(el){ el.select(); document.execCommand('copy'); showToast("クリップボードにコピーしました！"); } };
 
 /* ==========================================================
    データの保存・読み込み (LocalStorage) 

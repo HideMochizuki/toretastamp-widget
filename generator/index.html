@@ -317,7 +317,7 @@
                     <div class="form-row">
                         <div class="form-label-side">アイコンの色</div>
                         <div class="form-input-side">
-                            <select id="cfg-sns-c-val" style="width: 140px;" onchange="updatePreview()">
+                            <select id="cfg-sns-c-val" style="width: 190px;" onchange="updatePreview()">
                                 <option value="#FFFFFF" selected>ホワイト (#FFFFFF)</option>
                                 <option value="#000000">ブラック (#000000)</option>
                             </select>
@@ -528,7 +528,7 @@
                             <div class="form-label-side" style="width: 140px;">区切り線設定</div>
                             <div class="form-input-side">
                                 <label class="check-label"><input type="checkbox" id="cfg-list-border-on" checked onchange="updatePreview()"> 有効</label>
-                                <input type="text" id="cfg-list-border-w" value="2px" style="width: 50px;" placeholder="太さ">
+                                <input type="text" id="cfg-list-border-w" value="2px" style="width: 70px;" placeholder="太さ">
                                 <div class="color-picker-group">
                                     <input type="color" id="cfg-list-border-c" value="#a9a9a9">
                                     <input type="text" id="cfg-list-border-c-val" value="#A9A9A92B">
@@ -2513,5 +2513,11 @@
 
 <script src="common-ui.js"></script>
 <script src="script.js"></script>
+<div id="custom-toast" class="toast-hidden">
+    <div class="toast-content">
+        <i class="fa fa-check-circle"></i>
+        <span id="toast-message">メッセージがここに入ります</span>
+    </div>
+</div>
 </body>
 </html>
