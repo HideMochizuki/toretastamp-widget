@@ -685,3 +685,57 @@ input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
     top: 20px !important;
     opacity: 1;
 }
+
+
+/* ==========================================
+   編集用テーブルのスタイル(shop.html)
+   ========================================== */
+.edit-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    font-size: 13px;
+}
+.edit-table th, .edit-table td {
+    border: 1px solid #e2e8f0;
+    padding: 10px;
+    text-align: left;
+}
+.edit-table th {
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: bold;
+}
+.edit-table tr:hover {
+    background: #f8fafc;
+}
+/* ドラッグ中のスタイル */
+.sortable-chosen {
+    background: #f0f9e8 !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.drag-handle-cell {
+    cursor: grab;
+    color: #cbd5e1;
+    text-align: center !important;
+}
+/* トースト通知のスタイル */
+#custom-toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.toast-content {
+    background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 50px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); display: flex; align-items: center;
+    gap: 10px; font-size: 14px; font-weight: bold; border: 2px solid #8ace36;
+}
+.toast-content i { color: #8ace36; font-size: 18px; }
+.toast-hidden { top: -100px !important; opacity: 0; }
+.toast-visible { top: 20px !important; opacity: 1; }
+
+/* 並び替えテーブル用スタイル */
+.edit-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13px; }
+.edit-table th, .edit-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+.edit-table th { background: #f1f5f9; color: #475569; }
+.drag-handle-cell { cursor: grab; color: #cbd5e1; text-align: center !important; width: 40px; }
+.sortable-ghost { opacity: 0.4; background: #f0f9e8; border: 2px dashed #8ace36; }
