@@ -218,6 +218,46 @@
                     </div>
                 </div>
 
+                <div id="data-edit-section" style="display: none; margin-top: 30px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
+                    <div class="card-sub-title">読み込みデータの並び替え編集</div>
+                    <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 15px;">
+                        <i class="fa fa-info-circle"></i> 行をドラッグして並び順を変更できます。変更は即座に配布コードに反映されます。
+                    </p>
+                
+                    <div class="sub-config-box" style="margin-bottom: 25px;">
+                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">ブランド順序設定 (brand_id)</p>
+                        <div style="overflow-x: auto;">
+                            <table class="edit-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;"></th>
+                                        <th>brand_id</th>
+                                        <th>ブランド名</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="brand-edit-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                
+                    <div class="sub-config-box">
+                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">店舗表示順設定 (id)</p>
+                        <div style="overflow-x: auto;">
+                            <table class="edit-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;"></th>
+                                        <th>id</th>
+                                        <th>店舗名</th>
+                                        <th>所属ブランド</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shop-edit-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div style="margin-top: 50px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
                     <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
@@ -398,6 +438,7 @@
     </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="common-ui.js"></script>
 <script>    
 /**
@@ -501,6 +542,17 @@ function applyDataToPreview() {
         console.error(e);
         alert("データの解析に失敗しました。1行目の項目名が正しいか確認してください。");
     }
+
+    // 編集セクションを表示
+    document.getElementById('data-edit-section').style.display = 'block';
+    
+    // テーブルを描画
+    renderEditTables();
+    
+    // プレビューとコード生成を実行
+    renderPreviewUI();
+    generateOutputCode();
+    showToast("データを読み込みました。並び替えが可能です。");
 }
 
 /**
@@ -587,408 +639,1143 @@ function generateOutputCode() {
     // 配布用JavaScriptの組み立て（省略なし）
     const jsCode = `<script>
 $(document).ready(function () {
-    // ===============================
-    // ✅ スクリプト実行スイッチ（設定値反映）
-    // ===============================
-    const mainSwitch = ${config.mainSwitch};
-    const searchBoxSwitch = ${config.searchBoxSwitch};
-    const searchBoxThreshold = ${config.searchBoxThreshold};
-    const brandBoxSwitch = ${config.brandBoxSwitch};
-    const brandBoxThreshold = ${config.brandBoxThreshold};
-    const areaBoxSwitch = ${config.areaBoxSwitch};
-    const areaBoxThreshold = ${config.areaBoxThreshold};
-    const shopListSwitch = ${config.shopListSwitch};
+// ===============================
+// ✅ スクリプト実行スイッチ
+// ===============================
+const mainSwitch = ${config.mainSwitch}; // ← ここを2にすると全機能停止します
 
-    // ===============================
-    // ✅ OFFなら即リターン
-    // ===============================
-    if (mainSwitch !== 1) {
-        console.log("ブランドモーダルスクリプト：OFF状態のため実行されません。");
-        return;
-    } 
+const searchBoxSwitch = ${config.searchBoxSwitch};   // 1=有効, 2=無効（常に非表示）
+const searchBoxThreshold = ${config.searchBoxThreshold}; // ← この数以上の店舗がある時だけ表示
+const brandBoxSwitch = ${config.brandBoxSwitch};        // 1=ON, 2=OFF
+const brandBoxThreshold = ${config.brandBoxThreshold};     // ブランド数がこの数以上で表示
+const areaBoxSwitch = ${config.areaBoxSwitch};         // 1=ON, 2=OFF（ブランドとは独立制御）
+const areaBoxThreshold = ${config.areaBoxThreshold};        // ← この数以上の都道府県がある時のみ表示
+const shopListSwitch = ${config.shopListSwitch};  // 1=ON, 2=OFF
 
-    // ===============================
-    // データ展開
-    // ===============================
-    window.brandData = ${brandJson};
-    const shopData = ${shopJson};
+// ===============================
+// ✅ OFFなら即リターン
+// ===============================
+if (mainSwitch !== 1) {
+    console.log("ブランドモーダルスクリプト：OFF状態のため実行されません。");
+    return;
+}
+// ===============================
+// ブランドデータ統合版
+// ===============================
+window.brandData = ${brandJson};
 
+// ===============================
+// 1) 店舗データ：ここが唯一の「単一ソース」
+// ===============================
+const shopData = ${shopJson};
 
-    // ===============================
-    // ⚙️ 動的ブランド判定ロジック (CSVデータから自動判別)
-    // ===============================
-    function getBrandKey(targetName) {
-        if (!targetName) return null;
-        // brandDataのキー(brand001等)をループして、名前が一致するものを探す
-        const keys = Object.keys(window.brandData);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            const brandName = window.brandData[key].name;
-            // 店舗名の中にブランド名が含まれているか判定
-            if (targetName.includes(brandName)) {
-                return key;
-            }
+// ===============================
+// ブランド名からキー(brand001)を判定
+// ===============================
+function getBrandKey(name) {
+    if (!name) return null;
+    // brandDataのキー(brand001等)をループして、名前が一致するものを探す
+    const keys = Object.keys(window.brandData);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const brandName = window.brandData[key].name;
+        // 店舗名の中にブランド名が含まれているか判定
+        if (name.includes(brandName)) {
+            return key;
         }
-        return null;
     }
+    return null;
+}
 
-    // ===============================
-    // 駅情報・距離計算ロジック
-    // ===============================
-    const stations = [
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "新橋駅", pref: "東京都", lat: 35.666195, lng: 139.758587 },
-        { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
-        { name: "大崎駅", pref: "東京都", lat: 35.619772, lng: 139.728439 },
-        { name: "五反田駅", pref: "東京都", lat: 35.625974, lng: 139.723822 },
-        { name: "目黒駅", pref: "東京都", lat: 35.633923, lng: 139.715775 },
-        { name: "恵比寿駅", pref: "東京都", lat: 35.646685, lng: 139.710070 },
-        { name: "渋谷駅", pref: "東京都", lat: 35.658871, lng: 139.701238 },
-        { name: "原宿駅", pref: "東京都", lat: 35.670646, lng: 139.702592 },
-        { name: "代々木駅", pref: "東京都", lat: 35.683061, lng: 139.702042 },
-        { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
-        { name: "新大久保駅", pref: "東京都", lat: 35.700875, lng: 139.700261 },
-        { name: "高田馬場駅", pref: "東京都", lat: 35.712677, lng: 139.703715 },
-        { name: "田端駅", pref: "東京都", lat: 35.737781, lng: 139.761229 },
-        { name: "西日暮里駅", pref: "東京都", lat: 35.731954, lng: 139.766857 },
-        { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
-        { name: "鶯谷駅", pref: "東京都", lat: 35.721484, lng: 139.778015 },
-        { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
-        { name: "御徒町駅", pref: "東京都", lat: 35.707282, lng: 139.774727 },
-        { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
-        { name: "神田駅", pref: "東京都", lat: 35.691173, lng: 139.770641 },
-        { name: "有楽町駅", pref: "東京都", lat: 35.675441, lng: 139.763806 },
-        { name: "浜松町駅", pref: "東京都", lat: 35.655391, lng: 139.757135 },
-        { name: "田町駅", pref: "東京都", lat: 35.645736, lng: 139.747575 },
-        { name: "高輪ゲートウェイ駅", pref: "東京都", lat: 35.635500, lng: 139.740700 },
-        { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
-        { name: "市ケ谷駅", pref: "東京都", lat: 35.691000, lng: 139.735583 },
-        { name: "飯田橋駅", pref: "東京都", lat: 35.701835, lng: 139.745143 },
-        { name: "水道橋駅", pref: "東京都", lat: 35.702039, lng: 139.754312 },
-        { name: "御茶ノ水駅", pref: "東京都", lat: 35.699605, lng: 139.764955 },
-        { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
-        { name: "浅草橋駅", pref: "東京都", lat: 35.697403, lng: 139.784427 },
-        { name: "両国駅", pref: "東京都", lat: 35.695790, lng: 139.793334 },
-        { name: "錦糸町駅", pref: "東京都", lat: 35.696802, lng: 139.814136 },
-        { name: "亀戸駅", pref: "東京都", lat: 35.697345, lng: 139.826262 },
-        { name: "平井駅", pref: "東京都", lat: 35.706430, lng: 139.842181 },
-        { name: "新小岩駅", pref: "東京都", lat: 35.716903, lng: 139.857777 },
-        { name: "小岩駅", pref: "東京都", lat: 35.733207, lng: 139.881755 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "新日本橋駅", pref: "東京都", lat: 35.688687, lng: 139.773230 },
-        { name: "馬喰町駅", pref: "東京都", lat: 35.693365, lng: 139.782380 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
-        { name: "尾久駅", pref: "東京都", lat: 35.746830, lng: 139.753846 },
-        { name: "赤羽駅", pref: "東京都", lat: 35.778026, lng: 139.720928 },
-        { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
-        { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
-        { name: "三河島駅", pref: "東京都", lat: 35.733383, lng: 139.777131 },
-        { name: "南千住駅", pref: "東京都", lat: 35.734033, lng: 139.799400 },
-        { name: "北千住駅", pref: "東京都", lat: 35.749677, lng: 139.804872 },
-        { name: "綾瀬駅", pref: "東京都", lat: 35.762222, lng: 139.825019 },
-        { name: "亀有駅", pref: "東京都", lat: 35.766527, lng: 139.847573 },
-        { name: "金町駅", pref: "東京都", lat: 35.769582, lng: 139.870482 },
-        { name: "大崎駅", pref: "東京都", lat: 35.619772, lng: 139.728439 },
-        { name: "恵比寿駅", pref: "東京都", lat: 35.646685, lng: 139.710070 },
-        { name: "新大塚駅", pref: "東京都", lat: 35.72569, lng: 139.729971 },
-        { name: "茗荷谷駅", pref: "東京都", lat: 35.716989, lng: 139.737184 },
-        { name: "後楽園駅", pref: "東京都", lat: 35.707898, lng: 139.751864 },
-        { name: "本郷三丁目駅", pref: "東京都", lat: 35.706671, lng: 139.759914 },
-        { name: "御茶ノ水駅", pref: "東京都", lat: 35.700614, lng: 139.763952 },
-        { name: "淡路町駅", pref: "東京都", lat: 35.6953595, lng: 139.7675149 },
-        { name: "大手町駅", pref: "東京都", lat: 35.686564, lng: 139.7662 },
-        { name: "東京駅", pref: "東京都", lat: 35.681753, lng: 139.764708 },
-        { name: "霞ケ関駅", pref: "東京都", lat: 35.673838, lng: 139.750899 },
-        { name: "国会議事堂前駅", pref: "東京都", lat: 35.67393, lng: 139.745219 },
-        { name: "四ツ谷駅", pref: "東京都", lat: 35.684586, lng: 139.729947 },
-        { name: "四谷三丁目駅", pref: "東京都", lat: 35.687958, lng: 139.720103 },
-        { name: "新宿御苑前駅", pref: "東京都", lat: 35.688588, lng: 139.71069 },
-        { name: "新宿三丁目駅", pref: "東京都", lat: 35.690847, lng: 139.704895 },
-        { name: "新宿駅", pref: "東京都", lat: 35.69235, lng: 139.700711 },
-        { name: "西新宿駅", pref: "東京都", lat: 35.694298, lng: 139.692778 },
-        { name: "中野坂上駅", pref: "東京都", lat: 35.69792, lng: 139.68291 },
-        { name: "新中野駅", pref: "東京都", lat: 35.697491, lng: 139.66903 },
-        { name: "東高円寺駅", pref: "東京都", lat: 35.697802, lng: 139.657822 },
-        { name: "新高円寺駅", pref: "東京都", lat: 35.697985, lng: 139.648068 },
-        { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "新橋駅", pref: "東京都", lat: 35.666195, lng: 139.758587 },
-        { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
-        { name: "西大井駅", pref: "東京都", lat: 35.601616, lng: 139.721729 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
-        { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "神田駅", pref: "東京都", lat: 35.691173, lng: 139.770641 },
-        { name: "御茶ノ水駅", pref: "東京都", lat: 35.699605, lng: 139.764955 },
-        { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
-        { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
-        { name: "中野駅", pref: "東京都", lat: 35.705765, lng: 139.665835 },
-        { name: "高円寺駅", pref: "東京都", lat: 35.705326, lng: 139.649664 },
-        { name: "阿佐ケ谷駅", pref: "東京都", lat: 35.704818, lng: 139.635868 },
-        { name: "荻窪駅", pref: "東京都", lat: 35.704523, lng: 139.620109 },
-        { name: "西荻窪駅", pref: "東京都", lat: 35.703842, lng: 139.599361 },
-        { name: "荻窪駅", pref: "東京都", lat: 35.704523, lng: 139.620109 },
-        { name: "阿佐ケ谷駅", pref: "東京都", lat: 35.704818, lng: 139.635868 },
-        { name: "高円寺駅", pref: "東京都", lat: 35.705326, lng: 139.649664 },
-        { name: "中野駅", pref: "東京都", lat: 35.705765, lng: 139.665835 },
-        { name: "東中野駅", pref: "東京都", lat: 35.706529, lng: 139.684436 },
-        { name: "大久保駅", pref: "東京都", lat: 35.700784, lng: 139.697320 },
-        { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
-        { name: "代々木駅", pref: "東京都", lat: 35.683061, lng: 139.702042 },
-        { name: "千駄ケ谷駅", pref: "東京都", lat: 35.681231, lng: 139.711644 },
-        { name: "信濃町駅", pref: "東京都", lat: 35.680031, lng: 139.720729 },
-        { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
-        { name: "市ケ谷駅", pref: "東京都", lat: 35.691000, lng: 139.735583 },
-        { name: "飯田橋駅", pref: "東京都", lat: 35.701835, lng: 139.745143 },
-        { name: "水道橋駅", pref: "東京都", lat: 35.702039, lng: 139.754312 },
-        { name: "御茶ノ水駅", pref: "東京都", lat: 35.699605, lng: 139.764955 },
-        { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
-        { name: "浅草橋駅", pref: "東京都", lat: 35.697403, lng: 139.784427 },
-        { name: "両国駅", pref: "東京都", lat: 35.695790, lng: 139.793334 },
-        { name: "錦糸町駅", pref: "東京都", lat: 35.696802, lng: 139.814136 },
-        { name: "亀戸駅", pref: "東京都", lat: 35.697345, lng: 139.826262 },
-        { name: "平井駅", pref: "東京都", lat: 35.706430, lng: 139.842181 },
-        { name: "新小岩駅", pref: "東京都", lat: 35.716903, lng: 139.857777 },
-        { name: "小岩駅", pref: "東京都", lat: 35.733207, lng: 139.881755 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "新日本橋駅", pref: "東京都", lat: 35.688687, lng: 139.773230 },
-        { name: "馬喰町駅", pref: "東京都", lat: 35.693365, lng: 139.782380 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
-        { name: "尾久駅", pref: "東京都", lat: 35.746830, lng: 139.753846 },
-        { name: "赤羽駅", pref: "東京都", lat: 35.778026, lng: 139.720928 },
-        { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
-        { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
-        { name: "三河島駅", pref: "東京都", lat: 35.733383, lng: 139.777131 },
-        { name: "南千住駅", pref: "東京都", lat: 35.734033, lng: 139.799400 },
-        { name: "北千住駅", pref: "東京都", lat: 35.749677, lng: 139.804872 },
-        { name: "綾瀬駅", pref: "東京都", lat: 35.762222, lng: 139.825019 },
-        { name: "亀有駅", pref: "東京都", lat: 35.766527, lng: 139.847573 },
-        { name: "金町駅", pref: "東京都", lat: 35.769582, lng: 139.870482 },
-        { name: "大崎駅", pref: "東京都", lat: 35.619772, lng: 139.728439 },
-        { name: "恵比寿駅", pref: "東京都", lat: 35.646685, lng: 139.710070 },
-        { name: "中野駅", pref: "東京都", lat: 35.705765, lng: 139.665835 },
-        { name: "落合駅", pref: "東京都", lat: 35.710976, lng: 139.687284 },
-        { name: "高田馬場駅", pref: "東京都", lat: 35.713338, lng: 139.704745 },
-        { name: "早稲田駅", pref: "東京都", lat: 35.705723, lng: 139.721319 },
-        { name: "神楽坂駅", pref: "東京都", lat: 35.70379, lng: 139.734546 },
-        { name: "飯田橋駅", pref: "東京都", lat: 35.701725, lng: 139.745986 },
-        { name: "九段下駅", pref: "東京都", lat: 35.695589, lng: 139.751948 },
-        { name: "竹橋駅", pref: "東京都", lat: 35.690662, lng: 139.756817 },
-        { name: "大手町駅", pref: "東京都", lat: 35.684801, lng: 139.766086 },
-        { name: "日本橋駅", pref: "東京都", lat: 35.682078, lng: 139.773516 },
-        { name: "茅場町駅", pref: "東京都", lat: 35.679752, lng: 139.780005 },
-        { name: "門前仲町駅", pref: "東京都", lat: 35.671851, lng: 139.796209 },
-        { name: "木場駅", pref: "東京都", lat: 35.669351, lng: 139.807042 },
-        { name: "東陽町駅", pref: "東京都", lat: 35.669629, lng: 139.817596 },
-        { name: "南砂町駅", pref: "東京都", lat: 35.668796, lng: 139.83065 },
-        { name: "北千住駅", pref: "東京都", lat: 35.748916, lng: 139.804276 },
-        { name: "南千住駅", pref: "東京都", lat: 35.733398, lng: 139.799273 },
-        { name: "三ノ輪駅", pref: "東京都", lat: 35.729623, lng: 139.791485 },
-        { name: "入谷駅", pref: "東京都", lat: 35.719862, lng: 139.783924 },
-        { name: "上野駅", pref: "東京都", lat: 35.711482, lng: 139.777122 },
-        { name: "仲御徒町駅", pref: "東京都", lat: 35.706649, lng: 139.776138 },
-        { name: "秋葉原駅", pref: "東京都", lat: 35.698162, lng: 139.775459 },
-        { name: "小伝馬町駅", pref: "東京都", lat: 35.690737, lng: 139.778433 },
-        { name: "人形町駅", pref: "東京都", lat: 35.686307, lng: 139.782285 },
-        { name: "茅場町駅", pref: "東京都", lat: 35.679752, lng: 139.780005 },
-        { name: "八丁堀駅", pref: "東京都", lat: 35.674851, lng: 139.776982 },
-        { name: "築地駅", pref: "東京都", lat: 35.668115, lng: 139.772603 },
-        { name: "東銀座駅", pref: "東京都", lat: 35.669464, lng: 139.767253 },
-        { name: "銀座駅", pref: "東京都", lat: 35.671989, lng: 139.763965 },
-        { name: "日比谷駅", pref: "東京都", lat: 35.67459, lng: 139.76017 },
-        { name: "霞ケ関駅", pref: "東京都", lat: 35.673838, lng: 139.750899 },
-        { name: "虎ノ門ヒルズ駅", pref: "東京都", lat: 35.667444, lng: 139.747778 },
-        { name: "神谷町駅", pref: "東京都", lat: 35.662978, lng: 139.745069 },
-        { name: "六本木駅", pref: "東京都", lat: 35.662836, lng: 139.731443 },
-        { name: "広尾駅", pref: "東京都", lat: 35.652279, lng: 139.722202 },
-        { name: "恵比寿駅", pref: "東京都", lat: 35.647332, lng: 139.708988 },
-        { name: "中目黒駅", pref: "東京都", lat: 35.643854, lng: 139.698621 },
-        { name: "渋谷駅", pref: "東京都", lat: 35.658871, lng: 139.701238 },
-        { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
-        { name: "池袋駅", pref: "東京都", lat: 35.730256, lng: 139.711086 },
-        { name: "十条駅", pref: "東京都", lat: 35.760321, lng: 139.722233 },
-        { name: "赤羽駅", pref: "東京都", lat: 35.778026, lng: 139.720928 },
-        { name: "北赤羽駅", pref: "東京都", lat: 35.787007, lng: 139.705690 },
-        { name: "浮間舟渡駅", pref: "東京都", lat: 35.791209, lng: 139.691341 },
-        { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
-        { name: "尾久駅", pref: "東京都", lat: 35.746830, lng: 139.753846 },
-        { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
-        { name: "八丁堀駅", pref: "東京都", lat: 35.674617, lng: 139.777705 },
-        { name: "越中島駅", pref: "東京都", lat: 35.667946, lng: 139.792713 },
-        { name: "潮見駅", pref: "東京都", lat: 35.658702, lng: 139.817341 },
-        { name: "新木場駅", pref: "東京都", lat: 35.646172, lng: 139.827402 },
-        { name: "葛西臨海公園駅", pref: "東京都", lat: 35.644392, lng: 139.861529 },
-        { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
-        { name: "東十条駅", pref: "東京都", lat: 35.763803, lng: 139.726858 },
-        { name: "王子駅", pref: "東京都", lat: 35.752538, lng: 139.738090 },
-        { name: "上中里駅", pref: "東京都", lat: 35.747280, lng: 139.745769 },
-        { name: "田端駅", pref: "東京都", lat: 35.737781, lng: 139.761229 },
-        { name: "西日暮里駅", pref: "東京都", lat: 35.731954, lng: 139.766857 },
-        { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
-        { name: "鶯谷駅", pref: "東京都", lat: 35.721484, lng: 139.778015 },
-        { name: "御徒町駅", pref: "東京都", lat: 35.707282, lng: 139.774727 },
-        { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
-        { name: "神田駅", pref: "東京都", lat: 35.691173, lng: 139.770641 },
-        { name: "有楽町駅", pref: "東京都", lat: 35.675441, lng: 139.763806 },
-        { name: "新橋駅", pref: "東京都", lat: 35.666195, lng: 139.758587 },
-        { name: "浜松町駅", pref: "東京都", lat: 35.655391, lng: 139.757135 },
-        { name: "田町駅", pref: "東京都", lat: 35.645736, lng: 139.747575 },
-        { name: "たまプラーザ駅", pref: "神奈川県", lat: 35.579174, lng: 139.558869 },
-        { name: "新百合ヶ丘駅", pref: "神奈川県", lat: 35.604194, lng: 139.507121 },
-        { name: "青葉台駅", pref: "神奈川県", lat: 35.553779, lng: 139.517895 },
-        { name: "日吉駅", pref: "神奈川県", lat: 35.554142, lng: 139.646817 },
-        { name: "武蔵小杉駅", pref: "神奈川県", lat: 35.576457, lng: 139.661365 },
-        { name: "駒沢大学駅", pref: "東京都", lat: 35.626225, lng: 139.661278 },
-        { name: "永田町駅", pref: "東京都", lat: 35.678278, lng: 139.737771 },
-        { name: "麹町駅", pref: "東京都", lat: 35.685703, lng: 139.74163 },
-        { name: "立川駅", pref: "東京都", lat: 35.698683, lng: 139.414993 },
-        { name: "県庁前駅", pref: "沖縄県", lat: 26.2159, lng: 127.681 },
-        { name: "那覇空港駅", pref: "沖縄県", lat: 26.206515, lng: 127.652214 },
-        { name: "赤嶺駅", pref: "沖縄県", lat: 26.193289, lng: 127.660348 },
-        { name: "小禄駅", pref: "沖縄県", lat: 26.196455, lng: 127.666853 },
-        { name: "奥武山公園駅", pref: "沖縄県", lat: 26.200714, lng: 127.675252 },
-        { name: "壺川駅", pref: "沖縄県", lat: 26.205927, lng: 127.678344 },
-        { name: "旭橋駅", pref: "沖縄県", lat: 26.211910, lng: 127.675515 },
-        { name: "県庁前駅", pref: "沖縄県", lat: 26.214446, lng: 127.679343 },
-        { name: "美栄橋駅", pref: "沖縄県", lat: 26.219245, lng: 127.684328 },
-        { name: "牧志駅", pref: "沖縄県", lat: 26.217248, lng: 127.692550 },
-        { name: "安里駅", pref: "沖縄県", lat: 26.216737, lng: 127.695736 },
-        { name: "おもろまち駅", pref: "沖縄県", lat: 26.222701, lng: 127.698391 },
-        { name: "古島駅", pref: "沖縄県", lat: 26.230919, lng: 127.703079 },
-        { name: "市立病院前駅", pref: "沖縄県", lat: 26.227548, lng: 127.710003 },
-        { name: "儀保駅", pref: "沖縄県", lat: 26.224663, lng: 127.719039 },
-        { name: "首里駅", pref: "沖縄県", lat: 26.219191, lng: 127.725492 },
-        { name: "石嶺駅", pref: "沖縄県", lat: 26.227222, lng: 127.729167 },
-        { name: "経塚駅", pref: "沖縄県", lat: 26.236667, lng: 127.728333 },
-        { name: "浦添前田駅", pref: "沖縄県", lat: 26.243889, lng: 127.732278 },
-        { name: "てだこ浦西駅", pref: "沖縄県", lat: 26.241778, lng: 127.741861 }
-    ];
-
-    function getDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-    }
-
-    function getNearestStation(lat, lng) {
-        if (!lat || !lng) return null;
-        let nearest = null;
-        let minDist = Infinity;
-        stations.forEach(st => {
-            const dist = getDistance(lat, lng, st.lat, st.lng);
-            if (dist < minDist) { minDist = dist; nearest = st; }
-        });
-        return nearest ? { name: nearest.name, distance: minDist } : null;
-    }
-
-    function areaFromAddress(addr) {
-        if (!addr) return 'その他';
-        if (addr.includes('神奈川')) return '神奈川';
-        if (addr.includes('東京都') || addr.includes('東京')) return '東京';
-        if (addr.includes('沖縄')) return '沖縄';
-        return 'その他';
-    }
-
-    // ===============================
-    // テンプレート出力ロジック
-    // ===============================
-    function shopCard(s) {
-        return \`
-            <div class="shop" data-brand="\${s.brand}">
-                <p class="shop-name"><strong>\${s.name}</strong></p>
-                <p><a href="https://maps.google.com/?q=\${encodeURIComponent(s.address)}" target="_blank" class="shop-address-link">\${s.address}</a></p>
-                <p class="tel">\${s.tel ? \`<a href="tel:\${s.tel.replace(/-/g, '')}" class="tel-link">📞 \${s.tel}</a>\` : ''}</p>
-                \${s.hours ? \`<p class="shop-hours">\${s.hours}</p>\` : ''}
-                <div class="shop-btns">
-                    \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : ''}
-                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : ''}
-                </div>
-            </div>\`;
-    }
-
-    function renderBrandTemplate(brandKey) {
-        const brandShops = shopData.filter(s => s.brand === brandKey);
-        const groups = {};
-        brandShops.forEach(s => {
-            const area = areaFromAddress(s.address);
-            (groups[area] = groups[area] || []).push(s);
-        });
-        const areaOrder = ['神奈川', '東京', '沖縄', 'その他'];
-        const validAreas = areaOrder.filter(a => groups[a] && groups[a].length > 0);
-        let html = \`<div class="area-section"><h4>店舗一覧</h4>\`;
-        validAreas.forEach(area => {
-            html += \`<button class="area-btn"><span class="arrow">▶︎</span>\${area}</button>
-                     <div class="shop-list">\${groups[area].map(shop => shopCard(shop)).join('')}</div>\`;
-        });
-        return html + \`</div>\`;
-    }
-
-    // ===============================
-    // モーダル生成・開閉ロジック
-    // ===============================
-    if (!$('#brandModal').length) {
-        $('body').append(\`<div id="brandModal" class="brand-modal" style="display:none;"><div class="brand-modal-overlay"></div><button class="modal-close">閉じる</button><div class="brand-modal-window"><div class="brand-modal-content"><h3 class="modal-title"></h3><div class="modal-body"></div></div></div></div>\`);
-    }
-
-    window.openBrandModal = function (titleHtml, contentHtml) {
-        const $modal = $('#brandModal');
-        $modal.find('.modal-title').html(titleHtml);
-        $modal.find('.modal-body').html(contentHtml);
-        $modal.fadeIn(100, () => { $('.brand-modal-window').addClass('slide-in'); });
+// ===============================
+// ブランドデータ取得関数
+// ===============================
+function getBrandData(name) {
+    const key = getBrandKey(name);
+    return window.brandData[key] || {
+        name: "不明なブランド",
+        logo: "",
+        bg: "https://toretastamp-prod.s3.amazonaws.com/static/front/images/noimage.png",
+        description: "",
+        url: "#"
     };
+}
+// ===============================
+// 駅情報 住所または座標から最寄駅を判定
+// ===============================
+const stations = [
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "新橋駅", pref: "東京都", lat: 35.666195, lng: 139.758587 },
+    { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
+    { name: "大崎駅", pref: "東京都", lat: 35.619772, lng: 139.728439 },
+    { name: "五反田駅", pref: "東京都", lat: 35.625974, lng: 139.723822 },
+    { name: "目黒駅", pref: "東京都", lat: 35.633923, lng: 139.715775 },
+    { name: "恵比寿駅", pref: "東京都", lat: 35.646685, lng: 139.710070 },
+    { name: "渋谷駅", pref: "東京都", lat: 35.658871, lng: 139.701238 },
+    { name: "原宿駅", pref: "東京都", lat: 35.670646, lng: 139.702592 },
+    { name: "代々木駅", pref: "東京都", lat: 35.683061, lng: 139.702042 },
+    { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
+    { name: "新大久保駅", pref: "東京都", lat: 35.700875, lng: 139.700261 },
+    { name: "高田馬場駅", pref: "東京都", lat: 35.712677, lng: 139.703715 },
+    { name: "田端駅", pref: "東京都", lat: 35.737781, lng: 139.761229 },
+    { name: "西日暮里駅", pref: "東京都", lat: 35.731954, lng: 139.766857 },
+    { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
+    { name: "鶯谷駅", pref: "東京都", lat: 35.721484, lng: 139.778015 },
+    { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
+    { name: "御徒町駅", pref: "東京都", lat: 35.707282, lng: 139.774727 },
+    { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
+    { name: "神田駅", pref: "東京都", lat: 35.691173, lng: 139.770641 },
+    { name: "有楽町駅", pref: "東京都", lat: 35.675441, lng: 139.763806 },
+    { name: "浜松町駅", pref: "東京都", lat: 35.655391, lng: 139.757135 },
+    { name: "田町駅", pref: "東京都", lat: 35.645736, lng: 139.747575 },
+    { name: "高輪ゲートウェイ駅", pref: "東京都", lat: 35.635500, lng: 139.740700 },
+    { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
+    { name: "市ケ谷駅", pref: "東京都", lat: 35.691000, lng: 139.735583 },
+    { name: "飯田橋駅", pref: "東京都", lat: 35.701835, lng: 139.745143 },
+    { name: "水道橋駅", pref: "東京都", lat: 35.702039, lng: 139.754312 },
+    { name: "御茶ノ水駅", pref: "東京都", lat: 35.699605, lng: 139.764955 },
+    { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
+    { name: "浅草橋駅", pref: "東京都", lat: 35.697403, lng: 139.784427 },
+    { name: "両国駅", pref: "東京都", lat: 35.695790, lng: 139.793334 },
+    { name: "錦糸町駅", pref: "東京都", lat: 35.696802, lng: 139.814136 },
+    { name: "亀戸駅", pref: "東京都", lat: 35.697345, lng: 139.826262 },
+    { name: "平井駅", pref: "東京都", lat: 35.706430, lng: 139.842181 },
+    { name: "新小岩駅", pref: "東京都", lat: 35.716903, lng: 139.857777 },
+    { name: "小岩駅", pref: "東京都", lat: 35.733207, lng: 139.881755 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "新日本橋駅", pref: "東京都", lat: 35.688687, lng: 139.773230 },
+    { name: "馬喰町駅", pref: "東京都", lat: 35.693365, lng: 139.782380 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
+    { name: "尾久駅", pref: "東京都", lat: 35.746830, lng: 139.753846 },
+    { name: "赤羽駅", pref: "東京都", lat: 35.778026, lng: 139.720928 },
+    { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
+    { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
+    { name: "三河島駅", pref: "東京都", lat: 35.733383, lng: 139.777131 },
+    { name: "南千住駅", pref: "東京都", lat: 35.734033, lng: 139.799400 },
+    { name: "北千住駅", pref: "東京都", lat: 35.749677, lng: 139.804872 },
+    { name: "綾瀬駅", pref: "東京都", lat: 35.762222, lng: 139.825019 },
+    { name: "亀有駅", pref: "東京都", lat: 35.766527, lng: 139.847573 },
+    { name: "金町駅", pref: "東京都", lat: 35.769582, lng: 139.870482 },
+    { name: "大崎駅", pref: "東京都", lat: 35.619772, lng: 139.728439 },
+    { name: "恵比寿駅", pref: "東京都", lat: 35.646685, lng: 139.710070 },
+    { name: "新大塚駅", pref: "東京都", lat: 35.72569, lng: 139.729971 },
+    { name: "茗荷谷駅", pref: "東京都", lat: 35.716989, lng: 139.737184 },
+    { name: "後楽園駅", pref: "東京都", lat: 35.707898, lng: 139.751864 },
+    { name: "本郷三丁目駅", pref: "東京都", lat: 35.706671, lng: 139.759914 },
+    { name: "御茶ノ水駅", pref: "東京都", lat: 35.700614, lng: 139.763952 },
+    { name: "淡路町駅", pref: "東京都", lat: 35.6953595, lng: 139.7675149 },
+    { name: "大手町駅", pref: "東京都", lat: 35.686564, lng: 139.7662 },
+    { name: "東京駅", pref: "東京都", lat: 35.681753, lng: 139.764708 },
+    { name: "霞ケ関駅", pref: "東京都", lat: 35.673838, lng: 139.750899 },
+    { name: "国会議事堂前駅", pref: "東京都", lat: 35.67393, lng: 139.745219 },
+    { name: "四ツ谷駅", pref: "東京都", lat: 35.684586, lng: 139.729947 },
+    { name: "四谷三丁目駅", pref: "東京都", lat: 35.687958, lng: 139.720103 },
+    { name: "新宿御苑前駅", pref: "東京都", lat: 35.688588, lng: 139.71069 },
+    { name: "新宿三丁目駅", pref: "東京都", lat: 35.690847, lng: 139.704895 },
+    { name: "新宿駅", pref: "東京都", lat: 35.69235, lng: 139.700711 },
+    { name: "西新宿駅", pref: "東京都", lat: 35.694298, lng: 139.692778 },
+    { name: "中野坂上駅", pref: "東京都", lat: 35.69792, lng: 139.68291 },
+    { name: "新中野駅", pref: "東京都", lat: 35.697491, lng: 139.66903 },
+    { name: "東高円寺駅", pref: "東京都", lat: 35.697802, lng: 139.657822 },
+    { name: "新高円寺駅", pref: "東京都", lat: 35.697985, lng: 139.648068 },
+    { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "新橋駅", pref: "東京都", lat: 35.666195, lng: 139.758587 },
+    { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
+    { name: "西大井駅", pref: "東京都", lat: 35.601616, lng: 139.721729 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
+    { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "神田駅", pref: "東京都", lat: 35.691173, lng: 139.770641 },
+    { name: "御茶ノ水駅", pref: "東京都", lat: 35.699605, lng: 139.764955 },
+    { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
+    { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
+    { name: "中野駅", pref: "東京都", lat: 35.705765, lng: 139.665835 },
+    { name: "高円寺駅", pref: "東京都", lat: 35.705326, lng: 139.649664 },
+    { name: "阿佐ケ谷駅", pref: "東京都", lat: 35.704818, lng: 139.635868 },
+    { name: "荻窪駅", pref: "東京都", lat: 35.704523, lng: 139.620109 },
+    { name: "西荻窪駅", pref: "東京都", lat: 35.703842, lng: 139.599361 },
+    { name: "荻窪駅", pref: "東京都", lat: 35.704523, lng: 139.620109 },
+    { name: "阿佐ケ谷駅", pref: "東京都", lat: 35.704818, lng: 139.635868 },
+    { name: "高円寺駅", pref: "東京都", lat: 35.705326, lng: 139.649664 },
+    { name: "中野駅", pref: "東京都", lat: 35.705765, lng: 139.665835 },
+    { name: "東中野駅", pref: "東京都", lat: 35.706529, lng: 139.684436 },
+    { name: "大久保駅", pref: "東京都", lat: 35.700784, lng: 139.697320 },
+    { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
+    { name: "代々木駅", pref: "東京都", lat: 35.683061, lng: 139.702042 },
+    { name: "千駄ケ谷駅", pref: "東京都", lat: 35.681231, lng: 139.711644 },
+    { name: "信濃町駅", pref: "東京都", lat: 35.680031, lng: 139.720729 },
+    { name: "四ツ谷駅", pref: "東京都", lat: 35.686041, lng: 139.730644 },
+    { name: "市ケ谷駅", pref: "東京都", lat: 35.691000, lng: 139.735583 },
+    { name: "飯田橋駅", pref: "東京都", lat: 35.701835, lng: 139.745143 },
+    { name: "水道橋駅", pref: "東京都", lat: 35.702039, lng: 139.754312 },
+    { name: "御茶ノ水駅", pref: "東京都", lat: 35.699605, lng: 139.764955 },
+    { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
+    { name: "浅草橋駅", pref: "東京都", lat: 35.697403, lng: 139.784427 },
+    { name: "両国駅", pref: "東京都", lat: 35.695790, lng: 139.793334 },
+    { name: "錦糸町駅", pref: "東京都", lat: 35.696802, lng: 139.814136 },
+    { name: "亀戸駅", pref: "東京都", lat: 35.697345, lng: 139.826262 },
+    { name: "平井駅", pref: "東京都", lat: 35.706430, lng: 139.842181 },
+    { name: "新小岩駅", pref: "東京都", lat: 35.716903, lng: 139.857777 },
+    { name: "小岩駅", pref: "東京都", lat: 35.733207, lng: 139.881755 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "新日本橋駅", pref: "東京都", lat: 35.688687, lng: 139.773230 },
+    { name: "馬喰町駅", pref: "東京都", lat: 35.693365, lng: 139.782380 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
+    { name: "尾久駅", pref: "東京都", lat: 35.746830, lng: 139.753846 },
+    { name: "赤羽駅", pref: "東京都", lat: 35.778026, lng: 139.720928 },
+    { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
+    { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
+    { name: "三河島駅", pref: "東京都", lat: 35.733383, lng: 139.777131 },
+    { name: "南千住駅", pref: "東京都", lat: 35.734033, lng: 139.799400 },
+    { name: "北千住駅", pref: "東京都", lat: 35.749677, lng: 139.804872 },
+    { name: "綾瀬駅", pref: "東京都", lat: 35.762222, lng: 139.825019 },
+    { name: "亀有駅", pref: "東京都", lat: 35.766527, lng: 139.847573 },
+    { name: "金町駅", pref: "東京都", lat: 35.769582, lng: 139.870482 },
+    { name: "大崎駅", pref: "東京都", lat: 35.619772, lng: 139.728439 },
+    { name: "恵比寿駅", pref: "東京都", lat: 35.646685, lng: 139.710070 },
+    { name: "中野駅", pref: "東京都", lat: 35.705765, lng: 139.665835 },
+    { name: "落合駅", pref: "東京都", lat: 35.710976, lng: 139.687284 },
+    { name: "高田馬場駅", pref: "東京都", lat: 35.713338, lng: 139.704745 },
+    { name: "早稲田駅", pref: "東京都", lat: 35.705723, lng: 139.721319 },
+    { name: "神楽坂駅", pref: "東京都", lat: 35.70379, lng: 139.734546 },
+    { name: "飯田橋駅", pref: "東京都", lat: 35.701725, lng: 139.745986 },
+    { name: "九段下駅", pref: "東京都", lat: 35.695589, lng: 139.751948 },
+    { name: "竹橋駅", pref: "東京都", lat: 35.690662, lng: 139.756817 },
+    { name: "大手町駅", pref: "東京都", lat: 35.684801, lng: 139.766086 },
+    { name: "日本橋駅", pref: "東京都", lat: 35.682078, lng: 139.773516 },
+    { name: "茅場町駅", pref: "東京都", lat: 35.679752, lng: 139.780005 },
+    { name: "門前仲町駅", pref: "東京都", lat: 35.671851, lng: 139.796209 },
+    { name: "木場駅", pref: "東京都", lat: 35.669351, lng: 139.807042 },
+    { name: "東陽町駅", pref: "東京都", lat: 35.669629, lng: 139.817596 },
+    { name: "南砂町駅", pref: "東京都", lat: 35.668796, lng: 139.83065 },
+    { name: "北千住駅", pref: "東京都", lat: 35.748916, lng: 139.804276 },
+    { name: "南千住駅", pref: "東京都", lat: 35.733398, lng: 139.799273 },
+    { name: "三ノ輪駅", pref: "東京都", lat: 35.729623, lng: 139.791485 },
+    { name: "入谷駅", pref: "東京都", lat: 35.719862, lng: 139.783924 },
+    { name: "上野駅", pref: "東京都", lat: 35.711482, lng: 139.777122 },
+    { name: "仲御徒町駅", pref: "東京都", lat: 35.706649, lng: 139.776138 },
+    { name: "秋葉原駅", pref: "東京都", lat: 35.698162, lng: 139.775459 },
+    { name: "小伝馬町駅", pref: "東京都", lat: 35.690737, lng: 139.778433 },
+    { name: "人形町駅", pref: "東京都", lat: 35.686307, lng: 139.782285 },
+    { name: "茅場町駅", pref: "東京都", lat: 35.679752, lng: 139.780005 },
+    { name: "八丁堀駅", pref: "東京都", lat: 35.674851, lng: 139.776982 },
+    { name: "築地駅", pref: "東京都", lat: 35.668115, lng: 139.772603 },
+    { name: "東銀座駅", pref: "東京都", lat: 35.669464, lng: 139.767253 },
+    { name: "銀座駅", pref: "東京都", lat: 35.671989, lng: 139.763965 },
+    { name: "日比谷駅", pref: "東京都", lat: 35.67459, lng: 139.76017 },
+    { name: "霞ケ関駅", pref: "東京都", lat: 35.673838, lng: 139.750899 },
+    { name: "虎ノ門ヒルズ駅", pref: "東京都", lat: 35.667444, lng: 139.747778 },
+    { name: "神谷町駅", pref: "東京都", lat: 35.662978, lng: 139.745069 },
+    { name: "六本木駅", pref: "東京都", lat: 35.662836, lng: 139.731443 },
+    { name: "広尾駅", pref: "東京都", lat: 35.652279, lng: 139.722202 },
+    { name: "恵比寿駅", pref: "東京都", lat: 35.647332, lng: 139.708988 },
+    { name: "中目黒駅", pref: "東京都", lat: 35.643854, lng: 139.698621 },
+    { name: "渋谷駅", pref: "東京都", lat: 35.658871, lng: 139.701238 },
+    { name: "新宿駅", pref: "東京都", lat: 35.689729, lng: 139.700464 },
+    { name: "池袋駅", pref: "東京都", lat: 35.730256, lng: 139.711086 },
+    { name: "十条駅", pref: "東京都", lat: 35.760321, lng: 139.722233 },
+    { name: "赤羽駅", pref: "東京都", lat: 35.778026, lng: 139.720928 },
+    { name: "北赤羽駅", pref: "東京都", lat: 35.787007, lng: 139.705690 },
+    { name: "浮間舟渡駅", pref: "東京都", lat: 35.791209, lng: 139.691341 },
+    { name: "上野駅", pref: "東京都", lat: 35.713790, lng: 139.777043 },
+    { name: "尾久駅", pref: "東京都", lat: 35.746830, lng: 139.753846 },
+    { name: "東京駅", pref: "東京都", lat: 35.681391, lng: 139.766103 },
+    { name: "八丁堀駅", pref: "東京都", lat: 35.674617, lng: 139.777705 },
+    { name: "越中島駅", pref: "東京都", lat: 35.667946, lng: 139.792713 },
+    { name: "潮見駅", pref: "東京都", lat: 35.658702, lng: 139.817341 },
+    { name: "新木場駅", pref: "東京都", lat: 35.646172, lng: 139.827402 },
+    { name: "葛西臨海公園駅", pref: "東京都", lat: 35.644392, lng: 139.861529 },
+    { name: "品川駅", pref: "東京都", lat: 35.628760, lng: 139.738999 },
+    { name: "東十条駅", pref: "東京都", lat: 35.763803, lng: 139.726858 },
+    { name: "王子駅", pref: "東京都", lat: 35.752538, lng: 139.738090 },
+    { name: "上中里駅", pref: "東京都", lat: 35.747280, lng: 139.745769 },
+    { name: "田端駅", pref: "東京都", lat: 35.737781, lng: 139.761229 },
+    { name: "西日暮里駅", pref: "東京都", lat: 35.731954, lng: 139.766857 },
+    { name: "日暮里駅", pref: "東京都", lat: 35.727908, lng: 139.771287 },
+    { name: "鶯谷駅", pref: "東京都", lat: 35.721484, lng: 139.778015 },
+    { name: "御徒町駅", pref: "東京都", lat: 35.707282, lng: 139.774727 },
+    { name: "秋葉原駅", pref: "東京都", lat: 35.698619, lng: 139.773288 },
+    { name: "神田駅", pref: "東京都", lat: 35.691173, lng: 139.770641 },
+    { name: "有楽町駅", pref: "東京都", lat: 35.675441, lng: 139.763806 },
+    { name: "新橋駅", pref: "東京都", lat: 35.666195, lng: 139.758587 },
+    { name: "浜松町駅", pref: "東京都", lat: 35.655391, lng: 139.757135 },
+    { name: "田町駅", pref: "東京都", lat: 35.645736, lng: 139.747575 },
+    { name: "たまプラーザ駅", pref: "神奈川県", lat: 35.579174, lng: 139.558869 },
+    { name: "新百合ヶ丘駅", pref: "神奈川県", lat: 35.604194, lng: 139.507121 },
+    { name: "青葉台駅", pref: "神奈川県", lat: 35.553779, lng: 139.517895 },
+    { name: "日吉駅", pref: "神奈川県", lat: 35.554142, lng: 139.646817 },
+    { name: "武蔵小杉駅", pref: "神奈川県", lat: 35.576457, lng: 139.661365 },
+    { name: "駒沢大学駅", pref: "東京都", lat: 35.626225, lng: 139.661278 },
+    { name: "永田町駅", pref: "東京都", lat: 35.678278, lng: 139.737771 },
+    { name: "麹町駅", pref: "東京都", lat: 35.685703, lng: 139.74163 },
+    { name: "立川駅", pref: "東京都", lat: 35.698683, lng: 139.414993 },
+    { name: "県庁前駅", pref: "沖縄県", lat: 26.2159, lng: 127.681 },
+    { name: "那覇空港駅", pref: "沖縄県", lat: 26.206515, lng: 127.652214 },
+    { name: "赤嶺駅", pref: "沖縄県", lat: 26.193289, lng: 127.660348 },
+    { name: "小禄駅", pref: "沖縄県", lat: 26.196455, lng: 127.666853 },
+    { name: "奥武山公園駅", pref: "沖縄県", lat: 26.200714, lng: 127.675252 },
+    { name: "壺川駅", pref: "沖縄県", lat: 26.205927, lng: 127.678344 },
+    { name: "旭橋駅", pref: "沖縄県", lat: 26.211910, lng: 127.675515 },
+    { name: "県庁前駅", pref: "沖縄県", lat: 26.214446, lng: 127.679343 },
+    { name: "美栄橋駅", pref: "沖縄県", lat: 26.219245, lng: 127.684328 },
+    { name: "牧志駅", pref: "沖縄県", lat: 26.217248, lng: 127.692550 },
+    { name: "安里駅", pref: "沖縄県", lat: 26.216737, lng: 127.695736 },
+    { name: "おもろまち駅", pref: "沖縄県", lat: 26.222701, lng: 127.698391 },
+    { name: "古島駅", pref: "沖縄県", lat: 26.230919, lng: 127.703079 },
+    { name: "市立病院前駅", pref: "沖縄県", lat: 26.227548, lng: 127.710003 },
+    { name: "儀保駅", pref: "沖縄県", lat: 26.224663, lng: 127.719039 },
+    { name: "首里駅", pref: "沖縄県", lat: 26.219191, lng: 127.725492 },
+    { name: "石嶺駅", pref: "沖縄県", lat: 26.227222, lng: 127.729167 },
+    { name: "経塚駅", pref: "沖縄県", lat: 26.236667, lng: 127.728333 },
+    { name: "浦添前田駅", pref: "沖縄県", lat: 26.243889, lng: 127.732278 },
+    { name: "てだこ浦西駅", pref: "沖縄県", lat: 26.241778, lng: 127.741861 }
+];
 
-    $(document).on('click', '.modal-close, .brand-modal-overlay, .back-btn, .simple-close', function(){
-        $('.brand-modal-window').removeClass('slide-in');
-        $('#brandModal, #shopModal').fadeOut(150);
+function getNearestStation(lat, lng) {
+    if (!lat || !lng || !Array.isArray(stations)) return null;
+
+    let nearest = null;
+    let minDist = Infinity;
+
+    stations.forEach(st => {
+        const dist = getDistance(lat, lng, st.lat, st.lng);
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = st;
+        }
     });
 
-    // ===============================
-    // 検索・エリア・バナーの各機能初期化
-    // ===============================
-    if ($('body').hasClass('SyFLdCxCbsFfSEbKqHBjof')) {
-        // エリアから探す
-        if (areaBoxSwitch === 1) {
-            const areas = [...new Set(shopData.map(s => areaFromAddress(s.address)))];
-            if (areas.length >= areaBoxThreshold) {
-                $('.top_button').after(\`<h3 class="titleh3 area-box">エリアから探す</h3><div class="area-scroll">\${areas.map(a => \`<button class="area-banner" data-area="\${a}">\${a}</button>\`).join('')}</div>\`);
-            }
-        }
-        // ブランドバナー
-        if (brandBoxSwitch === 1 && Object.keys(brandData).length >= brandBoxThreshold) {
-            $('.top_button').after(\`<h3 class="titleh3 brand-box">BRAND</h3><div class="menu_banners scrollable">\${Object.keys(brandData).map(k => \`<a href="#" class="menu_banner" data-brand="\${k}"><div class="logo-box"><img src="\${brandData[k].logo}"></div><span>\${brandData[k].name}</span></a>\`).join('')}</div>\`);
+    return nearest ? { name: nearest.name, distance: minDist } : null;
+}
+// ===============================
+// 2) 共通：距離計算 (km)
+// ===============================
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 +
+        Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+        Math.sin(dLon/2)**2;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+} 
+
+// ===============================
+// 3) 共通：住所→エリア分類
+// ===============================
+function areaFromAddress(addr) {
+    if (!addr) return 'その他';
+    if (addr.includes('神奈川')) return '神奈川';
+    if (addr.includes('東京都') || addr.includes('東京')) return '東京';
+    if (addr.includes('千葉')) return '千葉';
+    if (addr.includes('埼玉')) return '埼玉';
+    if (addr.includes('静岡')) return '静岡';
+    if (addr.includes('沖縄')) return '沖縄';
+    if (addr.includes('大阪')) return '大阪';
+    return 'その他';
+}
+// ===============================
+// 4) ブランド別テンプレートHTMLを動的生成
+// ===============================
+function renderBrandTemplate(brandKey) {
+    const brand = window.brandData[brandKey];
+    const brandShops = shopData.filter(s => s.brand === brandKey);
+
+    if (brandShops.length === 0) {
+        const brandName = brand ? brand.name : brandKey;
+        // ★ \${ } と \` をエスケープして、配布先で初めて動くようにします
+        return \`<p style="padding:10px;">\${brandName} の店舗情報は近日公開予定です。</p>\`;
+    }
+
+    const groups = {};
+    brandShops.forEach(s => {
+        const area = areaFromAddress(s.address);
+        (groups[area] = groups[area] || []).push(s);
+    });
+
+    const areaOrder = ['神奈川', '東京', '沖縄', '大阪', 'その他'];
+    const validAreas = areaOrder.filter(a => groups[a] && groups[a].length > 0);
+
+    const title = validAreas.length < areaBoxThreshold ? "店舗一覧" : "エリア";
+
+    let html = \`<div class="area-section"><h4>\${title}</h4>\`;
+
+    if (validAreas.length < areaBoxThreshold) {
+        validAreas.forEach(area => {
+            html += \`
+            <div class="shop-list" style="display:block;">
+                \${groups[area].map(shop => shopCard(shop)).join('')}
+            </div>\`;
+        });
+    } else {
+        validAreas.forEach(area => {
+            html += \`
+            <button class="area-btn"><span class="arrow">▶︎</span>\${area}</button>
+            <div class="shop-list">
+                \${groups[area].map(shop => shopCard(shop)).join('')}
+            </div>\`;
+        });
+    }
+
+    html += \`</div>\`;
+    return html;
+}
+
+// ===============================
+// 電話リンク生成
+// ===============================
+function telLink(t) {
+    return t ? \`<a href="tel:\${t.replace(/-/g, '')}" class="tel-link">📞 \${t}</a>\` : '';
+}
+
+// ===============================
+// 店舗カードHTML生成
+// ===============================
+function shopCard(s) {
+    return \`
+        <div class="shop" data-brand="\${s.brand}">
+            <p class="shop-name"><strong>\${s.name}</strong></p>
+            <p><a href="https://www.google.com/maps?q=$\${encodeURIComponent(s.address)}"
+                target="_blank" rel="noopener noreferrer"
+                class="shop-address-link">
+                \${s.address}
+            </a></p>
+            <p class="tel">\${telLink(s.tel)}</p>
+            \${s.hours ? \`<p class="shop-hours">\${s.hours}</p>\` : ''}
+            <div class="shop-btns">
+                \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : ''}
+                \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : ''}
+            </div>
+        </div>\`;
+}
+// ===============================
+// 5) 近い店舗TOP3（横スクロール版）🚉対応
+// ===============================
+function renderNearbySection(top3) {
+    return \`
+        <div class="nearby-section-wrapper">
+            <h4 class="nearby-section-h4">📍 お近くの店舗</h4>
+            <div class="nearby-scroll">
+                \${top3.map((s, i) => {
+                    const brand = window.brandData[s.brand];
+                    const assets = {
+                        img: brand ? brand.bg : "https://toretastamp-prod.s3.amazonaws.com/static/front/images/noimage.png",
+                        logo: brand ? brand.logo : ""
+                    };
+
+                    // 🚉 最寄駅を取得
+                    const nearest = getNearestStation(s.lat, s.lng);
+                    const nearestText = nearest
+                        ? \`🚉 \${nearest.name}（約\${nearest.distance.toFixed(1)}km）\`
+                        : \`約\${s.distance.toFixed(1)}km\`;
+
+                    return \`
+                        <div class="shop-card" data-brand="\${s.brand}">
+                            <div class="shop-bg" style="background-image:url('\${assets.img}');">
+                                <div class="shop-logo-circle">
+                                    \${assets.logo ? \`<img src="\${assets.logo}" alt="\${s.name}">\` : \`\` }
+                                </div>
+                            </div>
+                            <div class="shop-info">
+                                <p class="shop-info-name"><strong>\${i + 1}. \${s.name}</strong></p>
+                                <p><a href="https://www.google.com/maps?q=$\${encodeURIComponent(s.address)}"
+                                    target="_blank" rel="noopener noreferrer"
+                                    class="shop-address-link">
+                                    \${s.address}</a></p>
+                                <p class="tel">\${telLink(s.tel)}</p>
+                                <p class="distance">\${nearestText}</p>
+                                <div class="btn-wrap">
+                                    \${s.menu ? \`<button class="menu-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : \`\` }
+                                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : \`\` }
+                                </div>
+                            </div>
+                        </div>\`;
+                }).join('')}
+            </div>
+        </div>\`;
+}
+
+function renderNearbyError() {
+    return \`
+        <div class="nearby-section-wrapper">
+            <h4 class="nearby-section-h4">📍 お近くの店舗</h4>
+            <div class="nearby-error">
+                <p>位置情報を取得することが出来ませんでした</p>
+                <button class="retry-geolocate">再取得</button>
+            </div>
+        </div>\`;
+}
+
+function calcTop3ByGeolocation() {
+    if (!navigator.geolocation) return Promise.reject();
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const lat1 = pos.coords.latitude;
+                const lng1 = pos.coords.longitude;
+                const withDist = shopData.map(s => ({
+                    ...s,
+                    distance: getDistance(lat1, lng1, s.lat, s.lng)
+                }));
+                const top3 = withDist.sort((a, b) => a.distance - b.distance).slice(0, 3);
+                resolve(top3);
+            },
+            () => reject()
+        );
+    });
+}
+
+function showNearbyShops() {
+    $('#brandModal .nearby-section-wrapper').remove();
+    calcTop3ByGeolocation()
+        .then(top3 => {
+            const html = renderNearbySection(top3);
+            setTimeout(() => { $('.brand-select-grid').before(html); }, 50);
+        })
+        .catch(() => {
+            const html = renderNearbyError();
+            setTimeout(() => { $('.brand-select-grid').before(html); }, 50);
+        });
+}
+
+$(document)
+    .off('click.retryGeolocate')
+    .on('click.retryGeolocate', '.retry-geolocate', function () {
+        showNearbyShops();
+    });
+
+
+
+// ===============================
+// .shop-cardクリック → 店舗詳細テンプレートHTMLを動的生成
+// ===============================
+function openShopModal(shop) {
+    if (!shop) return;
+    const brand = window.brandData[shop.brand] || {};
+
+    let nearestStationText = "";
+    if (shop.lat && shop.lng && typeof getNearestStation === "function") {
+        const nearest = getNearestStation(shop.lat, shop.lng);
+        if (nearest) {
+            const dist = nearest.distance < 1
+                ? \`約\${Math.round(nearest.distance * 1000)}m\`
+                : \`約\${nearest.distance.toFixed(1)}km\`;
+            nearestStationText = \`🚉 \${nearest.name}（\${dist}）\`;
         }
     }
 
-    // 各クリックイベント
-    $(document).on('click', '.menu_banner', function (e) {
-        e.preventDefault();
-        const k = $(this).data('brand');
-        const b = brandData[k];
-        const header = \`<div class="modal-header-vertical"><button class="back-btn">←</button><div class="brand-logo-area" style="background-image:url('\${b.bg}');"><div class="brand-logo-circle"><img src="\${b.logo}"></div></div><span class="modal-header-title">\${b.name}</span><p class="modal-header-description">\${b.description}</p></div>\`;
-        openBrandModal(header, renderBrandTemplate(k));
-    });
+    const mapUrl = (shop.lat && shop.lng)
+        ? \`https://www.google.com/maps?q=\${shop.lat},\${shop.lng}&output=embed\`
+        : \`https://www.google.com/maps?q=\${encodeURIComponent(shop.address)}&output=embed\`;
 
-    $(document).on('click', '.area-btn', function () {
-        $(this).next('.shop-list').slideToggle(250);
-        $(this).toggleClass('open');
-        $(this).find('.arrow').text($(this).hasClass('open') ? '▼' : '▶︎');
-    });
+    const modalHtml = \`
+        <div id="shopModal" class="shop-modal brand-modal" style="display:none;">
+            <div class="brand-modal-overlay"></div>
+            <button class="modal-close">閉じる</button>
 
-    // ===============================
-    // ✅ GTMトラッキング初期化
-    // ===============================
-    window.dataLayer = window.dataLayer || [];
-    $(document).on("click", ".shop", function () {
-        const name = $(this).find("strong").text().trim();
-        window.dataLayer.push({ event: "shop_click", shop_name: name });
-    });
+            <div class="brand-modal-window slide-in">
+                <div class="brand-modal-content">
+
+                    <h3 class="modal-title">
+                        <div class="modal-header-vertical">
+                            <button class="back-btn">←</button>
+
+                            \${brand.bg ? \`
+                            <div class="brand-logo-area" style="background-image:url('\${brand.bg}');">
+                                <div class="brand-logo-circle">
+                                    <img src="\${brand.logo}" alt="\${brand.name}" class="brand-logo-title">
+                                </div>
+                            </div>\` : ""}
+
+                            <span class="modal-header-title">\${brand.name || ""}</span>
+
+                            \${
+                                brand.description
+                                ? \`<p class="modal-header-description">\${brand.description}</p>\`
+                                : ""
+                            }
+
+                            \${
+                                brand.url
+                                ? \`<p class="modal-header-link"><a href="\${brand.url}" target="_blank">ブランド紹介サイト</a></p>\`
+                                : ""
+                            }
+                        </div>
+                    </h3>
+
+                    <div class="area-shop-list">
+                        <div class="shop" data-brand="\${shop.brand}">
+                            <p class="shop-name"><strong>\${shop.name}</strong></p>
+                            <p>📍 <a href="https://www.google.com/maps?q=\${encodeURIComponent(shop.address)}"
+                                target="_blank" class="shop-address-link">\${shop.address}</a></p>
+                            \${shop.tel ? \`<p><a href="tel:\${shop.tel.replace(/-/g, '')}" class="tel-link">📞 \${shop.tel}</a></p>\` : ""}
+                            \${shop.hours ? \`<p class="shop-hours">\${shop.hours}</p>\` : ""}
+                            <div class="shop-btns">
+                                \${shop.menu ? \`<button class="shop-btn" onclick="window.open('\${shop.menu}','_blank')">menu</button>\` : ""}
+                                \${shop.reserve ? \`<button class="reserve-btn" onclick="window.open('\${shop.reserve}','_blank')">RESERVATION</button>\` : ""}
+                            </div>
+                            \${nearestStationText ? \`<p class="nearest-station">\${nearestStationText}</p>\` : ""}
+                            <iframe src="\${mapUrl}" loading="lazy" allowfullscreen
+                                style="width:100%;height:250px;border-radius:10px;margin-top:15px;">
+                            </iframe>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>\`;
+
+    $('.shop-modal').remove();
+    $('body').append(modalHtml);
+    $('#shopModal').fadeIn(200);
+}
+// ===============================
+// .shop-card（お近くの店舗）クリック処理
+// ===============================
+$(document).on('click', '.shop-card', function () {
+    const brand = $(this).data('brand');
+    
+    const shopName = $(this).find('.shop-info-name strong').text().replace(/^\\d+\\.\\s*/, '').trim();
+    const shop = shopData.find(s => s.brand === brand && s.name === shopName);
+    if (shop) openShopModal(shop);
 });
 
+
+// ===============================
+// 検索結果内の .shop クリック処理
+// ===============================
+$(document).on('click', '#searchResults .shop', function () {
+    const name = $(this).find('strong').text().trim();
+    const shop = shopData.find(s => s.name === name);
+    if (shop) openShopModal(shop);
+});
+
+// Googleマップリンクなどのクリック時に親要素のイベント発火を防止
+$(document).on('click', '.shop-address-link', function (e) {
+    e.stopPropagation();
+});
+// ===============================
+// 6) モーダル生成＆開閉（右からスライド）
+// ===============================
+// ページ内にモーダルが存在しない場合のみHTMLを追加
+if (!$('#brandModal').length) {
+    $('body').append(\`
+        <div id="brandModal" class="brand-modal" style="display:none;">
+            <div class="brand-modal-overlay"></div>
+            <button class="modal-close">閉じる</button>
+            <div class="brand-modal-window">
+                <div class="brand-modal-content">
+                    <h3 class="modal-title"></h3>
+                    <div class="modal-body"></div>
+                </div>
+            </div>
+        </div>
+    \`);
+}
+
+// モーダルを開く共通関数
+window.openBrandModal = function (titleHtml, contentHtml) {
+    const $modal = $('#brandModal');
+    $modal.find('.modal-title').html(titleHtml);
+    $modal.find('.modal-body').html(contentHtml);
+    $modal.fadeIn(100, () => {
+        $('.brand-modal-window').addClass('slide-in');
+
+        // 中身が空の場合のメッセージ表示
+        const $areaShopList = $modal.find('.area-shop-list');
+        if ($areaShopList.length && $.trim($areaShopList.html()) === '') {
+            $areaShopList.append(\`
+                <div class="no-shop-message">
+                    <i class="fas fa-store-slash"></i><br>
+                    現在、このエリアに該当する店舗はありません。
+                </div>
+            \`);
+        }
+    });
+};
+
+// モーダルを閉じる関数
+function closeBrandModal() {
+    $('.brand-modal-window').removeClass('slide-in');
+    $('#brandModal').fadeOut(150);
+}
+
+// オーバーレイや閉じるボタンクリック時のイベント
+$(document).on('click', '.modal-close, .brand-modal-overlay, .simple-close', function(){
+    closeBrandModal();
+});
+
+// ===============================
+// 7) エリアから探す（独立処理）
+// ===============================
+if (areaBoxSwitch === 1) {
+    // スタンプTOPページのクラス名（2DspnTxybSyLHoxnfe5CRY）があるか判定
+    if ($('body').hasClass('2DspnTxybSyLHoxnfe5CRY')) {
+        const areas = [...new Set(shopData.map(s => areaFromAddress(s.address)))];
+
+        if (areas.length >= areaBoxThreshold) {
+            const areaSection = \`
+                <h3 class="titleh3 area-box">エリアから探す</h3>
+                <div class="area-scroll">
+                    \${areas.map(a => \`<button class="area-banner" data-area="\${a}">\${a}</button>\`).join('')}
+                </div>\`;
+            $('.top_button').after(areaSection);
+        }
+    }
+}
+
+// ===============================
+// 8) ブランド横スクロールバナー（TOPページ）
+// ===============================
+if (brandBoxSwitch === 1 && Object.keys(window.brandData).length >= brandBoxThreshold) {
+    if ($('body').hasClass('2DspnTxybSyLHoxnfe5CRY')) {
+        $('.menu_banners').remove(); // 重複防止
+
+        const banners = \`
+            <h3 class="titleh3 brand-box">BRAND</h3>
+            <div class="menu_banners scrollable">
+            \${Object.keys(window.brandData)
+                .map(k => {
+                    const brand = window.brandData[k];
+                    return \`
+                        <a href="#" class="menu_banner" data-brand="\${k}">
+                            <div class="logo-box"><img src="\${brand.logo}" alt="\${brand.name}"></div>
+                            <span>\${brand.name}</span>
+                        </a>\`;
+                })
+                .join('')}
+            </div>\`;
+        $('.top_button').after(banners);
+    }
+}
+// ===============================
+// ブランドバナークリック時のイベント
+// ===============================
+$(document).off('click.brandOpen').on('click.brandOpen', '.menu_banner, .brand-option', function (e) {
+    e.preventDefault();
+
+    // data-brand または data-target 属性からブランドIDを取得
+    const brand = $(this).data('brand') || $(this).data('target');
+    const b = window.brandData[brand]; 
+    if (!b) return;
+
+    // ブランド別の店舗一覧HTMLを生成（ステップ7で作成した関数を使用）
+    const bodyHtml = renderBrandTemplate(brand);
+
+    // モーダルのヘッダー部分を構築
+    const header = \`
+        <div class="modal-header-vertical">
+            <button class="back-btn">←</button>
+
+            \${b.logo ? \`
+            <div class="brand-logo-area" style="background-image:url('\${b.bg}');">
+                <div class="brand-logo-circle">
+                    <img src="\${b.logo}" alt="\${b.name}" class="brand-logo-title">
+                </div>
+            </div>\` : \`\` }
+
+            <span class="modal-header-title">\${b.name}</span>
+
+            \${b.description ? \`
+                <p class="modal-header-description">\${b.description}</p>
+                \${b.url ? \`
+                    <p class="modal-header-link">
+                        <a href="\${b.url}" target="_blank" rel="noopener noreferrer">ブランド紹介サイト</a>
+                    </p>
+                \` : \`\` }
+            \` : \`\` }
+        </div>
+    \`;
+
+    // メインモーダルを開く（ステップ11で作成した関数を使用）
+    openBrandModal(header, bodyHtml);
+});
+
+// ===============================
+// モーダル内の「戻る」ボタン処理
+// ===============================
+$(document).off('click.backBtn').on('click.backBtn', '.back-btn', function () {
+    $('.brand-modal-window').removeClass('slide-in');
+    setTimeout(() => {
+        $('.brand-modal').fadeOut(200);
+    }, 250);
+});
+// ===============================
+// エリアクリックでモーダルを開く（ブランドロゴ付き詳細表示）
+// ===============================
+
+// 住所から市区町村名を抜き出すヘルパー関数
+function cityFromAddress(addr) {
+    const match = addr.match(/(都|道|府|県)(.+?[市区町村])/);
+    return match ? match[2] : "その他";
+}
+
+$(document).on('click.areaOpen', '.area-banner', function (e) {
+    e.preventDefault();
+    const area = $(this).data('area');
+    const areaShops = shopData.filter(s => s.address.includes(area));
+
+    // 区市町村ごとにグループ化
+    const groups = {};
+    areaShops.forEach(s => {
+        const city = cityFromAddress(s.address);
+        (groups[city] = groups[city] || []).push(s);
+    });
+
+    let html = '<div class="area-shop-list">';
+    
+    // 市区町村を50音順（または地域順）にソートしてループ
+    const sortedCities = Object.keys(groups).sort((a, b) => {
+        if (a === "その他") return 1;
+        if (b === "その他") return -1;
+        return a.localeCompare(b, "ja");
+    });
+
+    sortedCities.forEach(city => {
+        html += \`<h4 class="city-title"><span class="dli-pin"></span>\${city}</h4>\`;
+
+        // 同じエリア内の店舗をブランド順に並び替え
+        const cityShops = groups[city].sort((a, b) => a.brand.localeCompare(b.brand));
+        let currentBrand = null;
+
+        cityShops.forEach((s) => {
+            // ブランドが変わるタイミングでブランドロゴ（セパレーター）を挿入
+            if (s.brand !== currentBrand) {
+                currentBrand = s.brand;
+                const b = window.brandData[s.brand];
+                html += \`
+                    <div class="brand-separator">
+                        \${b && b.logo ? \`<img src="\${b.logo}" alt="\${b.name}">\` : \`\` }
+                    </div>\`;
+            }
+            // 店舗カードを追加
+            html += shopCard(s);
+        });
+    });
+
+    html += '</div>';
+
+    // モーダルのヘッダーを構築
+    const titleHtml = \`
+        <div class="modal-header-vertical">
+            <button class="simple-close">←</button>
+            <span class="modal-header-title">\${area}エリアの店舗</span>
+        </div>\`;
+
+    // モーダルを表示
+    openBrandModal(titleHtml, html);
+
+    // 最初の市区町村タイトルの余白を微調整
+    setTimeout(() => {
+        const $modal = $('#brandModal');
+        $modal.find('.area-shop-list .city-title').first().addClass('first-city');
+    }, 100);
+});
+// ===============================
+// 8) フッター固定メニュー（予約ボタン等）クリック処理
+// ===============================
+$(document).on('click', '.open-reserve', function (e) {
+    e.preventDefault();
+
+    // ブランドをグリッド状に並べるHTMLを生成
+    const selectHtml = \`
+        <div class="brand-select-grid">
+        \${Object.keys(window.brandData).map(k => {
+            const b = window.brandData[k];
+            return \`<div class="brand-option" data-target="\${k}"><div class="logo-box"><img src="\${b.logo}"></div><span>\${b.name}</span></div>\`;
+        }).join('')}
+        </div>
+    \`;
+
+    // ヘッダー（戻るボタン付き）の生成
+    const headerHtml = \`
+        <div class="modal-header-vertical">
+            <button class="simple-close">←</button>
+            <span class="modal-header-title">BRAND SELECTION</span>
+        </div>
+    \`;
+
+    // ブランド一覧モーダルを開き、同時にお近くの店舗を計算・表示
+    openBrandModal(headerHtml, selectHtml);
+    showNearbyShops();
+});
+
+// ===============================
+// 9) エリアリストの開閉（アコーディオン）制御
+// ===============================
+$(document).on('click', '.area-btn', function () {
+    const $btn = $(this);
+    const $icon = $btn.find('.arrow');
+    const $list = $btn.next('.shop-list');
+    
+    $list.slideToggle(250);
+    
+    if ($btn.hasClass('open')) { 
+        $btn.removeClass('open'); 
+        $icon.text('▶︎'); 
+    } else { 
+        $btn.addClass('open'); 
+        $icon.text('▼'); 
+    }
+});
+
+//--------------------------------------
+// 10) 店舗検索機能（駅名対応＋未登録駅メッセージ付き）
+//--------------------------------------
+if (searchBoxSwitch === 1) {
+    if ($('body').hasClass('2DspnTxybSyLHoxnfe5CRY')) {
+
+        const searchBox = \`
+        <h3 class="titleh3 shop-search-title">店舗検索</h3>
+        <div class="shop-search-box">
+            <div class="search-box">
+                <i class="fa fa-search search-icon"></i>
+                <input type="text" id="shopSearchInput" placeholder="店舗名・住所・駅名で検索...">
+                <span class="clear-icon" style="display:none;">✕</span>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+        </div>\`;
+        $('.top_button').after(searchBox);
+
+        $('#shopSearchInput').on('input', function () {
+            const keyword = $(this).val().trim();
+            const $results = $('#searchResults');
+            const $clear = $('.clear-icon');
+            
+            if (!keyword) {
+                $results.empty();
+                $clear.hide();
+                return;
+            }
+            $clear.show();
+
+            const words = keyword.split(/[\\s　]+/).filter(w => w !== "");
+
+            function normalize(str) {
+                return str.toLowerCase()
+                .replace(/[ぁ-ん]/g, s => String.fromCharCode(s.charCodeAt(0) + 0x60))
+                .replace(/ー/g, '');
+            }
+
+            const stationMatches = stations.filter(st =>
+                words.every(w => normalize(st.name).includes(normalize(w)))
+            );
+
+            let matched = [];
+            let stationMessage = '';
+
+            if (stationMatches.length > 0) {
+                const station = stationMatches[0];
+                matched = shopData
+                .map(s => ({
+                    ...s,
+                    distance: getDistance(station.lat, station.lng, s.lat, s.lng)
+                }))
+                .filter(s => s.distance <= 3.0)
+                .sort((a, b) => a.distance - b.distance);
+
+                stationMessage = \`<p style="margin-top:3px;font-size:12px;color: #fff;border: 1px solid #333;border-radius: 10px;background-color: #333; padding: 5px 0;">🚉「\${station.name}」駅周辺（3km以内）</p>\`;
+            } else if (/駅$/.test(keyword)) {
+                stationMessage = \`<p style="margin-top:8px;margin-bottom:5px;font-size:14px;color:#d33;">🚉「\${keyword}」は現在登録されていません</p>\`;
+            }
+
+            const normalMatched = shopData.filter(s => {
+                const brandName = window.brandData[s.brand]?.name || '';
+                const target = normalize(\`\${s.name} \${s.address} \${brandName}\`);
+                return words.every(w => target.includes(normalize(w)));
+            });
+
+            matched = [...new Set([...matched, ...normalMatched])];
+
+            if (matched.length === 0) {
+                $results.html(\`<div style="margin-top:10px;">\${stationMessage}<p>該当する店舗が見つかりません。</p></div>\`);
+                return;
+            }
+
+            const html = matched.map(s => {
+                const b = window.brandData[s.brand] || {};
+                const nearest = getNearestStation(s.lat, s.lng);
+                const nearestText = nearest ? \`🚉 \${nearest.name}（約\${nearest.distance.toFixed(1)}km）\` : '';
+
+                return \`
+                <div class="shop" data-brand="\${s.brand}">
+                    <div class="shop-logo">
+                        <img src="\${b.logo || 'https://toretastamp-prod.s3.amazonaws.com/static/front/images/noimage.png'}"
+                            style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:1px solid #ddd; padding:7px;">
+                    </div>
+                    <div class="shop-info" style="flex:1;">
+                        <p><strong>\${s.name}</strong></p>
+                        <p><a href="https://www.google.com/maps?q=\${encodeURIComponent(s.address)}"
+                            target="_blank" class="shop-address-link">\${s.address}</a></p>
+                        <p class="distance">\${nearestText}</p>
+                        \${s.tel ? \`<p><a href="tel:\${s.tel.replace(/-/g,'')}" class="tel-link">\${s.tel}</a></p>\` : ''}
+                        <div class="shop-btns">
+                            \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : ''}
+                            \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : ''}
+                        </div>
+                    </div>
+                </div>\`;
+            }).join('');
+
+            $results.html(\`
+                <div style="margin-top:-25px;background:#fff;border-radius:10px;padding:15px 15px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                    \${stationMessage}
+                    \${html}
+                </div>\`);
+        });
+    }
+}
+// ===============================
+// 11) 店舗情報一覧を .menu-sublist の上に表示
+// ===============================
+if (shopListSwitch === 1 && $('body').hasClass('2DspnTxybSyLHoxnfe5CRY')) {
+
+    // ✅ shopData を利用して全店舗HTMLを生成
+    const html = shopData.map(s => {
+        const b = window.brandData[s.brand] || {};
+        return \`
+            <div class="shop" data-brand="\${s.brand}">
+                <div class="shop-logo">
+                    <img src="\${b.logo || 'https://toretastamp-prod.s3.amazonaws.com/static/front/images/noimage.png'}"
+                        alt="\${b.name || s.name}" style="width:48px;height:48px;object-fit:cover;border-radius:50%;border:1px solid #ddd; padding: 7px;">
+                </div>  
+                <div class="shop-info" style="flex:1;">
+                    <p><strong>\${s.name}</strong></p>
+                    <p><a href="https://www.google.com/maps/search/?api=1&query=\${encodeURIComponent(s.address)}" target="_blank" class="shop-address-link">\${s.address}</a></p>
+                    <p>\${s.tel ? \`<a href="tel:\${s.tel.replace(/-/g,'')}" class="tel-link">📞 \${s.tel}</a>\` : ''}</p>
+                    \${s.hours ? \`<p class="shop-hours">\${s.hours}</p>\` : ''}
+                    <div class="shop-btns">
+                        \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : ''}
+                        \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : ''}
+                    </div>
+                </div>
+            </div>\`;
+    }).join('');
+
+    const shopSection = \`
+        <div id="shopListSection" class="shop-list-section">
+            <h3 class="titleh3 shop-list-title">店舗情報一覧</h3>
+            <div id="searchResults" class="search-results">
+                <div style="margin-top:10px;background:#fff;border-radius:10px;padding:15px 15px 0;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                    \${html}
+                </div>
+            </div>
+        </div>\`;
+
+    // ✅ .menu-sublist（フッター付近の要素）の直前に挿入
+    $('.menu-sublist').before(shopSection);
+}
+
+// ===============================
+// 検索窓のクリアアイコン（×）クリックイベント【スマホ対応版】
+// ===============================
+$(document).on('mousedown touchstart', '.clear-icon', function (e) {
+    // iPhoneでのフォーカス外れによるイベント消失を防ぐ
+    e.preventDefault(); 
+
+    const $input = $('#shopSearchInput');
+    $input.val('');
+    $input.trigger('input'); // 検索結果をリセット
+    
+    // アイコンを隠す
+    $(this).hide();
+
+    // ✕を押した後にキーボードが閉じないようにフォーカスを戻す（任意）
+    $input.focus();
+});
+
+// ===============================
+    // 店舗情報モーダル専用：閉じる / 戻るボタン対応
+    // ===============================
+    $(document).off('click.shopModalClose').on('click.shopModalClose', '.modal-close, .brand-modal-overlay, .back-btn', function (e) {
+        const $modal = $('#shopModal');
+        $modal.find('.brand-modal-window').removeClass('slide-in');
+
+        setTimeout(() => {
+            $modal.fadeOut(200, function () {
+                $(this).remove(); // 完全にDOMから削除してリセット
+            });
+        }, 200);
+    });
+
+    // ===============================
+    // URLパラメータまたはパスからモーダルを自動表示
+    // ===============================
+    let urlParams = new URLSearchParams(window.location.search);
+    let brandParamRaw = urlParams.get('brand');
+    let areaParam = urlParams.get('area');
+    let shopParam = urlParams.get('shop_id') || urlParams.get('store') || urlParams.get('shp');
+
+    // ✅ パス形式 (/brand/brand001/) にも対応
+    if (!brandParamRaw) {
+        const pathMatch = window.location.pathname.match(/\\/brand\\/([^/]+)/);
+        if (pathMatch && pathMatch[1]) brandParamRaw = pathMatch[1].trim();
+    }
+
+    const brandParam = brandParamRaw;
+
+    // --- 1. ブランド指定起動（?brand=brand001 など） ---
+    if (brandParam) {
+        const brandKey = Object.keys(window.brandData).find(
+            key => key === brandParam || window.brandData[key].slug === brandParam
+        );
+
+        if (brandKey) {
+            const b = window.brandData[brandKey];
+            const bh = renderBrandTemplate(brandKey);
+            const header = \`
+                <div class="modal-header-vertical">
+                    <button class="back-btn">←</button>
+                    \${b.logo ? \`<div class="brand-logo-area" style="background-image:url('\${b.bg}')"><div class="brand-logo-circle"><img src="\${b.logo}"></div></div>\` : ''}
+                    <span class="modal-header-title">\${b.name}</span>
+                </div>\`;
+            openBrandModal(header, bh);
+        }
+    }
+
+    // --- 2. エリア指定起動（?area=東京 など） ---
+    if (areaParam) {
+        const area = decodeURIComponent(areaParam.trim());
+        const areaShops = shopData.filter(s => s.address.includes(area));
+        let html = '<div class="area-shop-list">';
+
+        if (areaShops.length > 0) {
+            const groups = {};
+            areaShops.forEach(s => {
+                const city = cityFromAddress(s.address);
+                (groups[city] = groups[city] || []).push(s);
+            });
+            Object.keys(groups).sort().forEach(city => {
+                html += \`<h4 class="city-title"><span class="dli-pin"></span>\${city}</h4>\`;
+                let currentBrand = null;
+                groups[city].sort((a,b) => a.brand.localeCompare(b.brand)).forEach(s => {
+                    if (s.brand !== currentBrand) {
+                        currentBrand = s.brand;
+                        const b = window.brandData[s.brand];
+                        html += \`<div class="brand-separator">\${b && b.logo ? \`<img src="\${b.logo}">\` : ''}</div>\`;
+                    }
+                    html += shopCard(s);
+                });
+            });
+        } else {
+            html += \`<div class="no-shop-message"><i class="fas fa-store-slash"></i><br>該当する店舗はありません。</div>\`;
+        }
+        html += '</div>';
+        openBrandModal(\`<div class="modal-header-vertical"><button class="simple-close">←</button><span class="modal-header-title">\${area}エリアの店舗</span></div>\`, html);
+    }
+
+    // --- 3. 店舗指定起動（?shop_id=shop001 など） ---
+    if (shopParam) {
+        const targetShop = shopData.find(s => s.id === decodeURIComponent(shopParam.trim()));
+        if (targetShop) openShopModal(targetShop);
+    }
+
+});
 <\/script>`;
 
 
@@ -1134,6 +1921,7 @@ h3.titleh3.shop-list-title {margin: 10px 0 20px;}
 .shop-list-section .shop:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);}
 @media (max-width: 600px) { .shop-list-section .shop-logo img { width: 50px !important; height: 50px !important; }}
 .shop .nearest-station { margin-top: 10px;margin-bottom: -10px; font-size: 12px; color: #444;}
+.clear-icon { z-index: 100; pointer-events: auto; padding: 10px;}
 </style>`;
 
     document.getElementById('out-js').value = jsCode;
@@ -1142,6 +1930,110 @@ h3.titleh3.shop-list-title {margin: 10px 0 20px;}
     
 }
 
+/**
+ * 5. 編集用テーブルの描画
+ */
+function renderEditTables() {
+    const brandBody = document.getElementById('brand-edit-body');
+    const shopBody = document.getElementById('shop-edit-body');
+    
+    // ブランドテーブル
+    brandBody.innerHTML = Object.keys(window.brandData).map(key => {
+        const b = window.brandData[key];
+        return `<tr data-id="${key}">
+            <td class="drag-handle-cell"><i class="fa fa-grip-vertical"></i></td>
+            <td><code>${key}</code></td>
+            <td>${b.name}</td>
+        </tr>`;
+    }).join('');
+
+    // 店舗テーブル
+    shopBody.innerHTML = window.shopData.map(s => {
+        return `<tr data-id="${s.id}">
+            <td class="drag-handle-cell"><i class="fa fa-grip-vertical"></i></td>
+            <td><code>${s.id}</code></td>
+            <td>${s.name}</td>
+            <td><span class="badge" style="position:static; padding:2px 8px; background:#e2e8f0; color:#475569;">${s.brand}</span></td>
+        </tr>`;
+    }).join('');
+
+    // Sortableの有効化
+    initSortable();
+}
+
+function initSortable() {
+    // ブランドの並び替え
+    new Sortable(document.getElementById('brand-edit-body'), {
+        handle: '.drag-handle-cell',
+        animation: 150,
+        onEnd: function() {
+            updateDataOrder();
+        }
+    });
+
+    // 店舗の並び替え
+    new Sortable(document.getElementById('shop-edit-body'), {
+        handle: '.drag-handle-cell',
+        animation: 150,
+        onEnd: function() {
+            updateDataOrder();
+        }
+    });
+}
+
+// 並び替え結果をデータに反映し、ブランドと店舗を連動させる
+function updateDataOrder() {
+    // A. 新しいブランド順序の配列を作成
+    const newBrandOrder = Array.from(document.querySelectorAll('#brand-edit-body tr')).map(tr => tr.dataset.id);
+    
+    // B. ブランドデータを新しい順序で再構築
+    const newBrandData = {};
+    newBrandOrder.forEach(id => {
+        newBrandData[id] = window.brandData[id];
+    });
+    window.brandData = newBrandData;
+
+    // C. 店舗データの並び替え（★ここが連動のキモです）
+    // 1. まず現在のテーブル上の店舗順序を取得
+    const currentTableShopOrder = Array.from(document.querySelectorAll('#shop-edit-body tr')).map(tr => tr.dataset.id);
+    const sortedShops = currentTableShopOrder.map(id => window.shopData.find(s => s.id === id));
+
+    // 2. ブランドの並び順に従って、店舗をグループ化して再配置する
+    // これにより、ブランドAを一番上に持ってきたら、店舗データ内でもブランドAの店舗が一番上にまとまります
+    const finalShopData = [];
+    newBrandOrder.forEach(bId => {
+        const shopsOfThisBrand = sortedShops.filter(s => s.brand === bId);
+        finalShopData.push(...shopsOfThisBrand);
+    });
+    
+    window.shopData = finalShopData;
+
+    // D. UIプレビュー、配布コード、そして「店舗編集テーブル」自体も最新順序で再描画
+    renderPreviewUI();
+    renderEditTables(); // 店舗テーブル側の「所属ブランド」順も自動で整列し直されます
+    generateOutputCode();
+    
+    showToast("並び順を更新し、関連データを同期しました");
+}
+
+/**
+ * カスタム通知を表示する関数
+ */
+ function showToast(message) {
+    const toast = document.getElementById('custom-toast');
+    const toastMsg = document.getElementById('toast-message');
+    if(!toast || !toastMsg) return;
+
+    toastMsg.innerText = message;
+    toast.classList.remove('toast-hidden');
+    toast.classList.add('toast-visible');
+    
+    // 3秒後に自動で消す
+    setTimeout(() => {
+        toast.classList.remove('toast-visible');
+        toast.classList.add('toast-hidden');
+    }, 3000);
+}
 </script>
 <div id="custom-toast" class="toast-hidden">
     <div class="toast-content">
