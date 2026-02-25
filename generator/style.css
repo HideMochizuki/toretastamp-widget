@@ -336,7 +336,7 @@ input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
     pointer-events: auto !important;
     cursor: pointer !important;
 }
-.mock-screen section.content { padding-top: 20px; margin-bottom: 60px; }
+.mock-screen section.content { margin-bottom: 60px; }
 .mock-header-v2 {
     position: absolute !important;
     top: 0;

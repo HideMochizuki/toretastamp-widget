@@ -1836,42 +1836,68 @@ function getButtonPatternCSS(selectedPattern) {
 
         // ★共通レイアウト(commonUlStyle)と個別デザインを合体させて返す
         return `\n${commonUlStyle}\n` + `
-    /* --- Bパターン専用 --- */
-    .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; transform: translateZ(0); }
-    .top_button > ul > li > a { display: flex; align-items: center; padding: 15px 10px; text-decoration: none; }
-    .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; }
-    .top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
-    .top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
+/* --- Bパターン専用：修正後の生成コード --- */
+.top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; transform: translateZ(0); }
 
-    /* 左ボタン */
-    .top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
-    .top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
-    /* 左アイコン */
-    .top_button > ul > li:nth-child(1) .button_img { 
-        width: 27px !important; height: 27px !important; min-width: 60px; flex: 0 0 60px;
-        position: relative; margin-right: 10px; transform: translateZ(0);
-        overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
-    }
-    .top_button > ul > li:nth-child(1) .button_img img {
-        width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
-        transform: translateX(-100%); -webkit-transform: translateX(-100%);
-        filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
-    }
+/* aタグ：横並び(row)を明示し、高さをアイコンに合わせる */
+.top_button > ul > li > a { 
+    display: flex !important; 
+    flex-direction: row !important; 
+    align-items: center !important; 
+    justify-content: center !important; /* 中央寄せ */
+    padding: 15px 15px !important; 
+    text-decoration: none !important; 
+}
 
-    /* 右ボタン */
-    .top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
-    .top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }
-    /* 右アイコン */
-    .top_button > ul > li:nth-child(2) .button_img { 
-        width: 27px !important; height: 27px !important; min-width: 60px; flex: 0 0 60px;
-        position: relative; margin-right: 10px; transform: translateZ(0);
-        overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
-    }
-    .top_button > ul > li:nth-child(2) .button_img img {
-        width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
-        transform: translateX(-100%); -webkit-transform: translateX(-100%);
-        filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
-    }`;
+/* 左上の装飾角 */
+.top_button > ul > li:before { content: ""; content: ""; position: absolute; width: 7px; height: 7px; right: 12px; top: 50%; margin-top: -4px; z-index: 3;left: auto; transform: rotateZ(-45deg);}
+
+.top_button > ul > li:nth-child(1):before { border-bottom: ${b1.befW} solid ${b1.befC}; border-right: ${b1.befW} solid ${b1.befC}; }
+.top_button > ul > li:nth-child(2):before { border-bottom: ${b2.befW} solid ${b2.befC}; border-right: ${b2.befW} solid ${b2.befC}; }
+
+/* --- ボタン個別スタイル --- */
+.top_button > ul > li:nth-child(1) { background-color: ${b1.bg} !important; border: ${b1.on ? b1.bw+' solid '+b1.bc : 'none'} !important; border-radius: ${b1.radius} !important; }
+.top_button > ul > li:nth-child(2) { background-color: ${b2.bg} !important; border: ${b2.on ? b2.bw+' solid '+b2.bc : 'none'} !important; border-radius: ${b2.radius} !important; }
+
+/* テキストスタイル：余白を調整 */
+.top_button > ul > li .button_info { 
+    color: inherit; 
+    font-size: 14px; 
+    font-weight: 700; 
+    padding: 0 !important; 
+    margin-left: 8px !important; /* アイコンとの間隔 */
+    text-align: left !important;
+}
+.top_button > ul > li:nth-child(1) .button_info { color: ${b1.tx} !important; }
+.top_button > ul > li:nth-child(2) .button_info { color: ${b2.tx} !important; }
+
+/* アイコン枠：サイズを27pxに厳密に固定 */
+.top_button > ul > li .button_img { 
+    width: 27px !important; 
+    height: 27px !important; 
+    min-width: 27px !important; 
+    flex: 0 0 27px !important;
+    position: relative !important; 
+    transform: translateZ(0);
+    overflow: visible !important; 
+    clip-path: inset(0px); 
+    -webkit-clip-path: inset(0px);
+}
+
+/* アイコン画像：27pxの移動距離で正確に影を落とす */
+.top_button > ul > li .button_img img {
+    width: 100% !important; 
+    height: 100% !important; 
+    object-fit: contain !important; 
+    position: absolute !important; 
+    left: 0; top: 0;
+    transform: translateX(-27px) !important; 
+    -webkit-transform: translateX(-27px) !important;
+}
+/* アイコンの色（ドロップシャドウ） */
+.top_button > ul > li:nth-child(1) .button_img img { filter: drop-shadow(27px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(27px 0 0 ${icon1}) !important; }
+.top_button > ul > li:nth-child(2) .button_img img { filter: drop-shadow(27px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(27px 0 0 ${icon2}) !important; }
+`;
     }
 
     // --- Cパターン ---
@@ -1896,7 +1922,8 @@ function getButtonPatternCSS(selectedPattern) {
     .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; transform: translateZ(0); }
     .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 15px 20px 0px; text-decoration: none; font-weight: bold; position: relative; z-index: 2; }
     .button_info { width: 100%; text-align: center; padding: 25px 0 5px; font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
-    .top_button > ul > li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
+    .top_button > ul > li:before { content: ""; content: ""; position: absolute; width: 7px; height: 7px; right: 12px; top: 50%; margin-top: -4px; z-index: 3;left: auto; transform: rotateZ(-45deg);}
+
     .top_button > ul > li::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; z-index: 0; clip-path: ellipse(70% 90% at 50% 100%); }
 
     /* 左ボタン */
@@ -1951,7 +1978,25 @@ function getHeaderCSS() {
     if (pattern === 'B') {
         if (!mainImgUrl) return "";
         // パターンBのロジック（省略）
-        return `/* パターンBのCSS */`; 
+        return `/* パターンBのCSS */
+header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: transparent !important; position: relative; z-index: 20; padding-left: 15px !important; }
+header.top h1.top { margin: 0 !important; }
+header.top h1.top span { display: none !important; }
+header.top h1.top img {width: 110px; border-radius: unset; height: auto;}
+
+/* ==================== スライダー外枠 ====================== */
+.header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: -50px; margin-bottom: -50px; height: 380px; }
+/* ==================== スライダー本体 ====================== */
+.header-slider { width: 100%; height: 100%; display: flex; transition: transform 0.8s ease-in-out; touch-action: pan-y; will-change: transform; }
+/* ==================== 各スライド ====================== */
+.header-slide { width: 100%; height: 100%; flex-shrink: 0; background-size: cover; background-position: center; background-repeat: no-repeat; pointer-events: auto; }
+.header-slider-wrap.swiping .header-slide { pointer-events: none; }
+/* ==================== ドット ====================== */
+.header-dots-wrap { text-align: center; margin-top: 15px; margin-bottom: 0px; }
+.header-dots { display: flex; justify-content: center; gap: 8px; }
+.header-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(117,117,117,0.5); cursor: pointer; }
+.header-dots .dot.active { background: #333; transform: scale(1.2); }
+`; 
     } 
 
     // 3. パターンAの「初期値チェック」
@@ -1992,42 +2037,44 @@ header.top h1 span { color: ${tColor} !important; font-size: ${tSize} !important
 
 // 4. スタンプ一覧ページのCSSを生成する関数
 function getStampPageCSS() {
+    const getV = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+    };
+
     // 1. 各種設定値を取得
     const stCardBg = getV('cfg-st-card-bg-val').toUpperCase();
-    const stRadius = getV('cfg-st-radius');
-    const stBorderOn = document.getElementById('cfg-st-border-on').checked;
-    const stBorderW = getV('cfg-st-border-w');
     const stBorderC = getV('cfg-st-border-c-val').toUpperCase();
-    const stOutlineW = getV('cfg-st-outline-w');
-    const stWatermarkUrl = getV('cfg-st-watermark-url');
     const stTxtColor = getV('cfg-st-txt-c-val').toUpperCase();
     const stDueTxtColor = getV('cfg-st-due-txt-c-val').toUpperCase();
-    const stLabelBg = getV('cfg-st-label-bg-val');
-    const stLabelRadius = getV('cfg-st-label-radius');
+    const stLabelBg = getV('cfg-st-label-bg-val').toUpperCase();
     const stIconBorder = getV('cfg-st-icon-border-val').toUpperCase();
-    const stIconChoice = document.getElementById('cfg-st-icon-choice').value;
+
+    const stRadius = getV('cfg-st-radius');
+    const stBorderW = getV('cfg-st-border-w');
+    const stOutlineW = getV('cfg-st-outline-w');
+    const stLabelRadius = getV('cfg-st-label-radius');
+    const stWatermarkUrl = getV('cfg-st-watermark-url');
+    const stIconChoice = document.getElementById('cfg-st-icon-choice')?.value || 'black';
     const wmShape = document.getElementById('cfg-st-watermark-shape')?.value || 'landscape';
+    const stBorderOn = document.getElementById('cfg-st-border-on')?.checked || false;
 
     // 2. デフォルト状態（初期値）の判定
-    // ユーザーが一つも設定をいじっていない状態を定義します
     const isDefault = (
-        stCardBg === '#FFFFFF' &&
-        stRadius === '16px' &&
+        (stCardBg === '#FFFFFF' || stCardBg === '') &&
+        (stRadius === '16px' || stRadius === '16' || stRadius === '') &&
         stBorderOn === false &&
-        stBorderW === '1px' &&
-        stBorderC === '#000000' &&
-        stOutlineW === '1.3px' &&
-        stWatermarkUrl === 'https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png' &&
-        stTxtColor === '#000000' &&
-        stDueTxtColor === '#000000' &&
-        stLabelBg === '#ffffff1c' &&
-        stLabelRadius === '30px' &&
-        stIconBorder === '#000000' &&
+        (stBorderC === '#000000' || stBorderC === '') &&
+        (stWatermarkUrl === '' || stWatermarkUrl.includes('TCNteaCYUPectHdLS0JD.png')) && 
+        (stTxtColor === '#000000' || stTxtColor === '') &&
+        (stDueTxtColor === '#000000' || stDueTxtColor === '') &&
+        (stLabelBg === '#EB843A59' || stLabelBg === '' || stLabelBg === '#000000') && // #000000も念のため追加
+        (stLabelRadius === '5px' || stLabelRadius === '5' || stLabelRadius === '') &&
+        (stIconBorder === '#000000' || stIconBorder === '') &&
         stIconChoice === 'black' &&
         wmShape === 'landscape'
     );
 
-    // 3. 全て初期値のままなら何も出力しない
     if (isDefault) return "";
 
     // 4. 一つでも変更がある場合はCSSを組み立てる
@@ -2213,18 +2260,12 @@ function getTicketPageCSS(isExport = false) {
     // 2. デフォルト状態（初期値）の判定
     // ユーザーが一つも設定を変更していない状態を定義
     const isDefault = (
-        cardBg === '#FFFFFF' &&
-        cardRadius === '15px' &&
-        cardBorderOn === false && // デフォルトは枠線なし
-        lineColor === '#717171' &&
-        titleSize === '16px' &&
-        titleWeight === '700' &&
-        titleColor === '#252525' &&
-        (dueSize === '' || dueSize === '13px') && // 空欄または初期値
-        dueColor === '#000000' &&
-        dueBg === '#DADADA' &&
-        dueRadius === '5px' &&
-        dueBorderOn === false
+        (cardBg === '#FFFFFF' || cardBg === '') &&  // 空文字を許容
+        (cardRadius === '15px' || cardRadius === '15' || cardRadius === '') &&
+        cardBorderOn === false &&
+        (lineColor === '#717171' || lineColor === '') &&
+        (titleColor === '#252525' || titleColor === '') &&
+        (dueBg === '#DADADA' || dueBg === '')
     );
 
     // 3. 全て初期値のままなら何も出力しない
@@ -2289,20 +2330,13 @@ function getTicketDetailPageCSS(isExport = false) {
     // 2. デフォルト状態（初期値）の判定
     // ユーザーが一つも設定を変更していない状態を定義
     const isDefault = (
-        cardBg === '#FFFFFF' &&
-        cardRadius === '15px' &&
-        borderOn === false && // 枠線なしがデフォルト
-        noticeSize === '16px' &&
-        noticeColor === '#252525' &&
-        titleSize === '18px' &&
-        titleWeight === '700' &&
-        titleColor === '#252525' &&
-        dueSize === '10px' &&
-        dueColor === '#000000' &&
-        dueBg === '#EB843A59' && // 初期値のアルファ値付きカラー
-        dueRadius === '5px' &&
-        noteSize === '15px' &&
-        noteColor === '#000000'
+        (cardBg === '#FFFFFF' || cardBg === '') &&
+        (cardRadius === '15px' || cardRadius === '15' || cardRadius === '') &&
+        borderOn === false &&
+        (noticeColor === '#252525' || noticeColor === '') &&
+        (titleColor === '#252525' || titleColor === '') &&
+        // 透明度付きの色は誤差が出やすいため、前方一致などで判定
+        (dueBg === '' || dueBg.toUpperCase().startsWith('#EB843A'))
     );
 
     // 3. 全て初期値のままなら何も出力しない
@@ -2421,30 +2455,29 @@ document.getElementById('generate-btn').onclick = () => {
     // --- フォント指定の判定ロジック ---
     const selectedFont = getV('cfg-font-family-select');
     const customFont = getV('cfg-font-family-custom');
-    const finalFont = customFont ? customFont : selectedFont;
+    const finalFont = (customFont ? customFont : selectedFont).trim(); // 空白除去
 
     let fontCSS = "";
-    // 初期値（sans-serif）以外、かつ空でない場合のみCSSを作成
-    if (finalFont !== 'sans-serif' && finalFont !== '') {
+    // ⭐ 判定を強化：空文字、"sans-serif"（小文字）、"SANS-SERIF"（大文字）のどれでもなければ出力
+    if (finalFont && finalFont.toLowerCase() !== 'sans-serif') {
         fontCSS = `font-family: ${finalFont}, sans-serif !important;`;
     }
 
-    // --- 全体背景 (html, body) の判定ロジック（iOSバグ回避・リピート対応） ---
+    // --- 全体背景 (html, body) の判定ロジック ---
     const bodyBgColorRaw = getV('cfg-body-bg-val').toUpperCase();
     const isBodyBgNone = getC('cfg-body-bg-none');
-    const bodyBgImg = getV('cfg-body-bg-img'); // 画像があるか判定用
-    const bodyBgCSS = getBodyBgCSS();        // 画像用のプロパティ群
+    const bodyBgImg = getV('cfg-body-bg-img');
+    const bodyBgCSS = getBodyBgCSS();
 
     let htmlBodyOutput = "";
 
-    // 背景色、透明、画像、または「フォント」に変更がある場合のみCSSを生成
-    if (bodyBgColorRaw !== "#FFFFFF" || isBodyBgNone || bodyBgImg !== "" || fontCSS !== "") {
-        const finalBodyBg = isBodyBgNone ? 'transparent' : bodyBgColorRaw;
-        
-        // 1. html, body に背景色とフォント、基本余白を適用
+    // ⭐ 背景色が「白」か「空」で、かつ「透明設定なし」「画像なし」「フォント変更なし」なら出力しない
+    const isBodyBgDefault = (bodyBgColorRaw === "#FFFFFF" || bodyBgColorRaw === "");
+
+    if (!isBodyBgDefault || isBodyBgNone || bodyBgImg !== "" || fontCSS !== "") {
+        const finalBodyBg = isBodyBgNone ? 'transparent' : (bodyBgColorRaw || '#FFFFFF');
         htmlBodyOutput = `html, body { background-color: ${finalBodyBg} !important; ${fontCSS} margin: 0; padding: 0; min-height: 100vh; }\n`;
 
-        // 2. もし画像があるなら、固定レイヤー body::before を生成
         if (bodyBgImg !== "") {
             htmlBodyOutput += `body::before { content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; ${bodyBgCSS} }`;
         }
@@ -2469,11 +2502,11 @@ document.getElementById('generate-btn').onclick = () => {
     const isBtnAreaNone = getC('cfg-btn-area-bg-none');
     const btnAreaColor = getV('cfg-btn-area-bg-val').toUpperCase();
     
-    // 【修正】ボタンエリアも変更がある場合のみ変数に格納
+    // ボタンエリアも変更がある場合のみ変数に格納
     let btnAreaOutput = "";
     if (btnAreaColor !== "#FFFFFF" || isBtnAreaNone) {
         const finalBtnAreaColor = isBtnAreaNone ? 'transparent' : btnAreaColor;
-        btnAreaOutput = `.top_button { background-color: ${finalBtnAreaColor} !important; }`;
+        btnAreaOutput = `.top_button { background-color: ${finalBtnAreaColor} !important; padding: 20px 0; margin: -20px 0 0;}`;
     }
 
     const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
@@ -2562,19 +2595,343 @@ document.getElementById('generate-btn').onclick = () => {
 let jsOutput = "";
 let footerJS = "";
 
-// フッターメニューがある場合のみ、挿入用のJSを作成
+// フッターメニューがある場合のみ作成
 if (menuItemsData.length > 0) {
     footerJS = `
-const menuItems = ${JSON.stringify(menuItemsData.map(item => ({ class: item.class, href: item.href, aclass: item.aclass, icon: "<span class='icon'></span>", label: item.label, external: item.external })), null, 8)};
-const listItems = menuItems.map(item => { const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : ""; return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`; }).join('');
-const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
-document.body.insertAdjacentHTML('beforeend', footerHTML);`;
+    const menuItems = ${JSON.stringify(menuItemsData.map(item => ({ class: item.class, href: item.href, aclass: item.aclass, icon: "<span class='icon'></span>", label: item.label, external: item.external })), null, 8)};
+    const listItems = menuItems.map(item => { const target = item.external ? ' target="_blank" rel="noopener noreferrer"' : ""; return \`<li class="\${item.class}"><a href="\${item.href}"\${target} class="\${item.aclass}">\${item.icon}<span>\${item.label}</span></a></li>\`; }).join('');
+    const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
+    document.body.insertAdjacentHTML('beforeend', footerHTML);`;
 }
 
-// 「フッターJS」または「SNS」または「ハンバーガー」のいずれかがあれば <script> を出す
-if (footerJS || snsInsertJS || hamburgerScript) {
-    jsOutput = `<script>\nwindow.onload = () => {\n${footerJS}\n    ${snsInsertJS}\n};\n${hamburgerScript}\n<\/script>`;
+const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
+
+// ヘッダーパターンB専用ロジック
+let headerBSliderLogic = "";
+if (headerPattern === 'B') {
+headerBSliderLogic = `
+/* お知らせ・スライダー機能 (Header Pattern B) */
+$(window).on('load', function () {
+setTimeout(function () {
+/* ======================================================
+    ★ スライダー処理
+====================================================== */
+function buildSlider() {
+$('.header-slider-wrap, .header-dots-wrap, .header-slider, .header-slide').remove();
+if ($('.header-slider-wrap').length === 0) {
+    $('header.top').after(\`
+    <div class="header-slider-wrap">
+        <div class="header-slider"></div>
+    </div>
+    <div class="header-dots-wrap">
+        <div class="header-dots"></div>
+    </div>
+    \`);
 }
+let carouselImages = [];
+let carouselLinks = [];
+$('.notice_list dt').each(function () {
+const text = $(this).text().trim();
+if (text.includes('↔️')) {
+    const cleaned = text.replace('↔️', '').trim();
+    const $notice = $(this).closest('.notice_list');
+    const imgSrc = $notice.find('p img').attr('src');
+    if (imgSrc) carouselImages.push(imgSrc);
+    let link = null;
+    const href = $notice.find('a').attr('href') || null;
+    if (/^https?:\\/\\/[^\\s]+$/i.test(cleaned)) {
+        link = cleaned;
+    }
+    else if (cleaned === "リンクあり") {
+        link = href;
+    }
+    else {
+        link = null;
+    }
+    carouselLinks.push(link);
+    $notice.hide();
+}
+});
+if (carouselImages.length === 1) {
+    $('.header-dots-wrap').hide();
+}
+if (carouselImages.length === 0) return;
+const $wrap = $('.header-slider-wrap');
+const $slider = $('.header-slider');
+$wrap.css('height', '380px');
+$slider.html("");
+let index = 1;
+if (carouselImages.length === 1) {
+    const bg = carouselImages[0];
+    const link = carouselLinks[0];
+    if (link) {
+    $slider.html(\`<a href="\${link}" class="header-slide" style="background-image:url('\${bg}')"></a>\`);
+    } else {
+    $slider.html(\`<div class="header-slide" style="background-image:url('\${bg}')"></div>\`);
+    }
+    return;
+}
+const loopImages = [
+    carouselImages[carouselImages.length - 1],
+    ...carouselImages,
+    carouselImages[0]
+];
+const loopLinks = [
+    carouselLinks[carouselLinks.length - 1],
+    ...carouselLinks,
+    carouselLinks[0]
+];
+loopImages.forEach((src, i) => {
+    const link = loopLinks[i];
+    if (link) {
+    $slider.append(\`<a href="\${link}" class="header-slide" style="background-image:url('\${src}')"></a>\`);
+    } else {
+    $slider.append(\`<div class="header-slide" style="background-image:url('\${src}')"></div>\`);
+    }
+});
+const total = loopImages.length;
+function clampIndex() {
+    if (index < 0) index = 1;
+    if (index > total - 1) index = total - 2;
+}
+function applyTransform() {
+    clampIndex();
+    $slider.css('transform', \`translateX(-\${index * 100}%)\`);
+}
+$slider.css({ transition: 'none', transform: \`translateX(-\${index * 100}%)\` });
+requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+    applyTransform();
+    });
+});
+setTimeout(() => {
+    $slider.css('transition', 'transform 0.8s ease-in-out');
+}, 30);
+let dotsHtml = '';
+carouselImages.forEach((_, i) => {
+    dotsHtml += \`<span class="dot" data-index="\${i}"></span>\`;
+});
+$('.header-dots').html(dotsHtml);
+function updateDots() {
+    const realIndex = (index - 1 + carouselImages.length) % carouselImages.length;
+    $('.header-dots .dot').removeClass('active');
+    $(\`.header-dots .dot[data-index="\${realIndex}"]\`).addClass('active');
+}
+updateDots();
+if (window.__sliderTimer) clearInterval(window.__sliderTimer);
+window.__sliderTimer = setInterval(() => {
+    index++;
+    clampIndex();
+    applyTransform();
+    updateDots();
+}, 3500);
+$slider.on('transitionend', function () {
+    if (index === total - 1) {
+    $slider.css('transition', 'none');
+    index = 1;
+    applyTransform();
+    setTimeout(() => {
+        $slider.css('transition', 'transform 0.8s ease-in-out');
+    }, 30);
+    }
+    clampIndex();
+});
+if (carouselImages.length >= 2) {
+    let startX = 0, currentX = 0, isDragging = false;
+    $wrap.on('touchstart', function (e) {
+    startX = e.touches[0].clientX;
+    isDragging = true;
+    $slider.css('transition', 'none');
+    });
+    $wrap.on('touchmove', function (e) {
+    if (!isDragging) return;
+    currentX = e.touches[0].clientX;
+    let diff = currentX - startX;
+    $slider.css('transform', \`translateX(calc(-\${index * 100}% + \${diff}px))\`);
+    });
+    $wrap.on('touchend', function () {
+    if (!isDragging) return;
+    isDragging = false;
+    let diff = currentX - startX;
+    if (diff > 50) index--;
+    else if (diff < -50) index++;
+    $slider.css('transition', 'transform 0.3s ease');
+    clampIndex();
+    applyTransform();
+    updateDots();
+    });
+}
+}
+buildSlider();
+$('.notice_list dt').each(function () {
+    const text = $(this).text().trim();
+    const $dl = $(this).closest('dl');
+    const $a = $(this).closest('a');
+    const isNoTitle = (text === 'タイトル無し' || text === '');
+    const isURL = /^https?:\\/\\/[^\\s]+$/i.test(text);
+    if (isNoTitle) {
+    $dl.hide().addClass('hidden-dl-force');
+    } else if (isURL) {
+    let url = text;
+    if (!url.includes('?') && !url.includes('#') && !url.endsWith('/')) {
+        url += '/';
+    }
+    $a.attr({
+        href: url,
+        target: '_blank',
+        rel: 'noopener noreferrer'
+    });
+    $(this).text('');
+    $dl.hide().addClass('hidden-dl-force');
+    }
+});
+$('.landing_title').each(function () {
+    const text = $(this).text().trim();
+    const $landingSet = $(this).closest('.landing_set');
+    const isNoTitle = (text === 'タイトル無し' || text === '');
+    const isURL = /^https?:\\/\\/[^\\s]+$/i.test(text);
+    if (isNoTitle || isURL) {
+    $(this).hide().addClass('hidden-title-force');
+    $landingSet.css({
+        padding: '20px 0 10px 0'
+    }).addClass('adjusted-padding');
+    }
+});
+$('.notice_list dt').each(function () {
+    const text = $(this).text().trim();
+    if (text.includes('ℹ️')) {
+    const $notice = $(this).closest('.notice_list');
+    const $a = $notice.find('a');
+    const url = $a.attr('href');
+    const cleanText = text.replace('ℹ️', '').trim();
+    $('.top_button').before(\`
+        <div class="info-banner">
+        <a href="\${url}" rel="noopener noreferrer">
+            <p><span class="info-icon">i</span> \${cleanText}</p>
+        </a>
+        </div>
+    \`);
+    $notice.hide().addClass('hidden-info-notice');
+    }
+});
+$('.landing_title').each(function () {
+    const text = $(this).text().trim();
+    if (text.includes('ℹ️')) {
+    $(this).text(text.replace('ℹ️', '').trim());
+    }
+});
+$('.landing_title').each(function () {
+    const text = $(this).text().trim();
+    if (text.includes('↔️')) {
+    $(this).hide().addClass('hidden-slider-title');
+    $(this).closest('.landing_set')
+        .css({ padding: '20px 0 10px 0' })
+        .addClass('adjusted-padding');
+    }
+});
+$('.landing_title').each(function () {
+    if (!$(this).hasClass('hidden-title-force') &&
+        !$(this).hasClass('hidden-slider-title')) {
+    $(this).css('visibility', 'visible');
+    }
+});
+(function () {
+    $('.notice_list dt').each(function () {
+    const text = $(this).text().trim();
+    if (text.includes('↔️')) {
+        $(this).closest('.notice_list')
+        .hide()
+        .addClass('hidden-slider-notice');
+    }
+    });
+    let hasNormalNotice = false;
+    $('.notice_list dt').each(function () {
+    const text = $(this).text().trim();
+    if (!text.includes('↔️') && !text.includes('ℹ️') && text !== '' && text !== 'タイトル無し' && !/^https?:\\/\\/[^\\s]+$/i.test(text)) {
+        hasNormalNotice = true;
+    }
+    });
+    if (!hasNormalNotice) {
+    $('h3.titleh3:contains("お知らせ")').hide();
+    }
+})();
+(function () {
+    const currentTitle = document.title.trim();
+    const shouldReplace = currentTitle === "" || currentTitle === "タイトル無し" || currentTitle.includes("↔️") || currentTitle.includes("ℹ️");
+    if (shouldReplace) {
+        document.title = "お知らせ";
+    }
+})();
+$('.notice_list').each(function (i) {
+    const $el = $(this);
+    setTimeout(function () {
+    $el.addClass('show');
+    }, i * 100);
+});
+$('.landing_set').css('opacity', 0);
+$('.landing_note').css('opacity', 0);
+setTimeout(function () {
+    $('.landing_set').each(function (i) {
+    const $set = $(this);
+    const $note = $set.find('.landing_note');
+    setTimeout(function () {
+        $set.css('opacity', 1);
+        $note.css('opacity', 1);
+    }, i * 120);
+    });
+}, 30);
+window.addEventListener("pageshow", function(event) {
+    if (event.persisted) {
+    console.log("🔥 BFCache 復元 → スライダー再構築発動");
+    $('.header-slider-wrap').remove();
+    $('.header-dots-wrap').remove();
+    $('.header-slider').remove();
+    $('.header-slide').remove();
+    setTimeout(() => {
+        buildSlider();
+    }, 100);
+    }
+});
+}, 300);
+});`;
+}
+
+// --- 合成の判定 ---
+let scriptInnerContent = "";
+
+// 1. スライダーロジックがあれば追加
+if (headerBSliderLogic) {
+    scriptInnerContent += headerBSliderLogic + "\n";
+}
+
+// 2. フッター または SNS があれば window.onload を追加
+if (footerJS || snsInsertJS) {
+    scriptInnerContent += `
+window.onload = () => {
+    ${footerJS}
+    ${snsInsertJS}
+};`;
+}
+
+// 3. ハンバーガースクリプトがあれば追加
+if (hamburgerScript) {
+    scriptInnerContent += "\n" + hamburgerScript;
+}
+
+// 最終的に、中身が何か一つでもあれば <script> タグで囲う
+if (scriptInnerContent.trim() !== "") {
+    jsOutput = `<script>\n${scriptInnerContent.trim()}\n<\/script>`;
+}
+
+// 画面へ反映
+document.getElementById('out-js').value = jsOutput;
+
+
+
+
+
+
+
 
 // --- 【2】CSSの組み立て ---
 // A. 常に生成する共通UIデザイン
@@ -2967,30 +3324,82 @@ function switchListPattern() {
 // ★お知らせ用CSSを生成する関数
 function getNoticeCSS(isExport = false) {
     const patternEl = document.querySelector('input[name="notice-pattern"]:checked');
-    const pattern = patternEl ? patternEl.value : 'A';
+    // 小文字で取得されても大丈夫なように toUpperCase() をかける
+    const pattern = patternEl ? patternEl.value.toUpperCase() : 'A';
+
     const size = document.getElementById('cfg-notice-size').value;
     const color = document.getElementById('cfg-notice-color-val').value.toUpperCase();
     const prefix = isExport ? 'body.top' : '.mock-screen';
 
-    // デフォルト判定（パターンA かつ サイズ15 かつ 色#222222 なら出力しない）
-    const isDefault = (pattern === 'A' && size === '15' && color === '#222222');
-    if (isDefault) return "";
+    if (isExport && pattern === 'A' && size === '15' && color === '#222222') {
+        return "";
+    }
 
     let css = `
-/* タイトル部分の文字サイズ・色変更 */
-${prefix} .notice_list > a > dl > dt { font-size: ${size}px !important; color: ${color} !important; }
+/* お知らせ表示設定：パターン${pattern} */
+${prefix} .notice_list > a > dl > dt {
+    font-size: ${size}px !important;
+    color: ${color} !important;
+}
 @media (max-width: 480px) {
     ${prefix} .notice_list > a > dl > dt { font-size: ${Math.max(10, size - 0.5)}px !important; }
 }
 `;
 
-    // パターンB, C の追加CSSはここから（以前のロジックと同じ）
     if (pattern === 'B') {
-        css += `/* パターンBのCSS（中略） */`;
-    } else if (pattern === 'c') {
-        css += `/* パターンCのCSS（中略） */`;
+        css += `
+/* パターンB：カード風 */
+${prefix} .notice_set { margin: 10px 20px 20px !important; box-shadow: none !important; background: transparent !important; }
+${prefix} .notice_list { border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important; margin-bottom: 20px !important; background: #fff !important; transition: transform 0.2s ease, box-shadow 0.2s ease !important; border: none !important; opacity: 1 !important; visibility: visible !important; }
+${prefix} .notice_list:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 14px rgba(0,0,0,0.15) !important; }
+${prefix} .notice_list > a { display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important; text-decoration: none !important; color: inherit !important; padding: 0 !important; }
+${prefix} .notice_list p { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 170px !important; overflow: hidden !important; display: block !important; position: relative !important; background: #f2f2f2 !important; }
+${prefix} .notice_list p img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+${prefix} .notice_list > a > dl { width: 100% !important; background: #fff !important; margin: 0 !important; padding: 15px 20px 15px !important; box-sizing: border-box !important; }
+${prefix} .notice_list > a > dl > dt { line-height: 1.7 !important; margin: 0 !important; text-align: left !important; font-weight: 700 !important; }
+@media (max-width: 480px) { ${prefix} .notice_list p { height: 130px !important; } }
+${prefix} .notice_list.show { opacity: 1 !important; visibility: visible !important; }
+`;
+    } 
+    else if (pattern === 'C') {
+        css += `
+/* パターンC：シンプルライン */
+${prefix} .notice_set { box-shadow: none !important; background: transparent !important; }
+${prefix} .notice_list { 
+    background: transparent !important; 
+    border: none !important; 
+    margin-bottom: 10px !important; 
+    padding: 0 !important;
+    opacity: 1 !important;        /* ★確実に表示させる */
+    visibility: visible !important; /* ★確実に表示させる */
+}
+${prefix} .notice_list > a { 
+    display: flex !important; 
+    align-items: center !important; 
+    padding: 5px 0 5px 12px !important; 
+    text-decoration: none !important;
+}
+${prefix} .notice_list p { 
+    width: 60px !important; 
+    height: 60px !important; 
+    min-width: 60px !important; 
+    border-radius: 8px !important; 
+    overflow: hidden !important; 
+    margin: 0 15px 0 0 !important; 
+}
+${prefix} .notice_list p img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+${prefix} .notice_list > a > dl { padding: 0 !important; margin: 0 !important; background: transparent !important; }
+${prefix} .notice_list > a > dl > dt { border: none !important; font-weight: bold !important; padding: 0 !important; }
+`;
     }
-    
+
+    css += `
+.info-banner { background: #f8f9fa; border-bottom: 1px solid #ddd; text-align: center; padding: 10px 15px; margin: 0; }
+.info-banner a { color: #000; text-decoration: none; font-weight: 500; font-size: 12px; }
+.info-banner p { text-align: left; margin: 0; }
+.info-icon { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; font-weight: bold; border-radius: 50%; background: #000; color: #fff; margin-right: 6px; font-size: 13px; vertical-align: middle; }
+`;
+
     return css;
 }
 
