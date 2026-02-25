@@ -587,6 +587,8 @@ function relabelItems() {
         textVal.value = picker.value.toUpperCase();
     }
 
+    
+
     // CSS一括適用
     applyCurrentDesignToMock();
 
@@ -1357,6 +1359,7 @@ function applyCurrentDesignToMock() {
         listArea.style.setProperty('background-color', listBg, 'important');
         listArea.style.setProperty('opacity', '1', 'important');
 
+        // updatePreview関数内のリストメニュー反映箇所
         const listLinks = listArea.querySelectorAll('ul li a');
         listLinks.forEach((a, index) => {
             a.style.setProperty('color', listTxt, 'important');
@@ -1708,15 +1711,30 @@ function handleClassChange(select) {
     const href = item.querySelector('.field-href');
     const aclass = item.querySelector('.field-aclass');
     const label = item.querySelector('.field-label');
-    if(select.value === 'map') {
+    
+    // 一旦リセット
+    href.disabled = false;
+    href.style.background = '';
+    aclass.disabled = false;
+    aclass.style.background = '';
+
+    if (select.value === 'map') {
         href.value = '#'; href.disabled = true;
         aclass.value = 'open-reserve'; aclass.disabled = true;
         label.value = '近くの店舗';
         href.style.background = '#f0f0f0'; aclass.style.background = '#f0f0f0';
-    } else {
-        if(href.value === '#') href.value = '';
-        href.disabled = false; aclass.value = '';
-        href.style.background = ''; aclass.style.background = '#f0f0f0';
+    } 
+    // ⭐ オフィシャル選択時の自動処理を追加
+    else if (select.value === 'official') {
+        aclass.value = 'open-iframe-modal'; 
+        aclass.disabled = true; // クラスを固定
+        aclass.style.background = '#f0f0f0';
+        if (label.value === '') label.value = '公式サイト';
+    }
+    else {
+        // それ以外の場合は以前の値をクリア、または自由入力を許可
+        if (href.value === '#') href.value = '';
+        aclass.value = '';
     }
     updatePreview();
 }
@@ -2033,7 +2051,6 @@ header.top {
 header.top h1 span { color: ${tColor} !important; font-size: ${tSize} !important; }`;
     }
 }
-
 
 // 4. スタンプ一覧ページのCSSを生成する関数
 function getStampPageCSS() {
@@ -2450,30 +2467,37 @@ document.getElementById('generate-btn').onclick = () => {
     // 1. 各種設定値の取得用のヘルパー
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
     const getC = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
-    
 
-    // --- フォント指定の判定ロジック ---
+    // --- JSの組み立て ---
+    const menuItemsData = Array.from(document.querySelectorAll('.menu-item:not(.sns-item)')).map(el => ({
+        class: el.querySelector('.field-class').value,
+        label: el.querySelector('.field-label').value,
+        href: el.querySelector('.field-href').value,
+        external: el.querySelector('.field-ext').checked,
+        aclass: el.querySelector('.field-aclass').value
+    }));
+
+    const hasOfficial = menuItemsData.some(item => item.class === 'official');
+    const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
+    const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
+    const btnPattern = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
+    const snsPos = document.querySelector('input[name="sns-position"]:checked')?.value || 'header';
+
+    // --- 【CSSパーツ作成】 ---
+    // 背景・フォント
     const selectedFont = getV('cfg-font-family-select');
     const customFont = getV('cfg-font-family-custom');
-    const finalFont = (customFont ? customFont : selectedFont).trim(); // 空白除去
-
+    const finalFont = (customFont ? customFont : selectedFont).trim();
     let fontCSS = "";
-    // ⭐ 判定を強化：空文字、"sans-serif"（小文字）、"SANS-SERIF"（大文字）のどれでもなければ出力
     if (finalFont && finalFont.toLowerCase() !== 'sans-serif') {
         fontCSS = `font-family: ${finalFont}, sans-serif !important;`;
     }
-
-    // --- 全体背景 (html, body) の判定ロジック ---
     const bodyBgColorRaw = getV('cfg-body-bg-val').toUpperCase();
     const isBodyBgNone = getC('cfg-body-bg-none');
     const bodyBgImg = getV('cfg-body-bg-img');
     const bodyBgCSS = getBodyBgCSS();
-
     let htmlBodyOutput = "";
-
-    // ⭐ 背景色が「白」か「空」で、かつ「透明設定なし」「画像なし」「フォント変更なし」なら出力しない
     const isBodyBgDefault = (bodyBgColorRaw === "#FFFFFF" || bodyBgColorRaw === "");
-
     if (!isBodyBgDefault || isBodyBgNone || bodyBgImg !== "" || fontCSS !== "") {
         const finalBodyBg = isBodyBgNone ? 'transparent' : (bodyBgColorRaw || '#FFFFFF');
         htmlBodyOutput = `html, body { background-color: ${finalBodyBg} !important; ${fontCSS} margin: 0; padding: 0; min-height: 100vh; }\n`;
@@ -2482,40 +2506,28 @@ document.getElementById('generate-btn').onclick = () => {
             htmlBodyOutput += `body::before { content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; pointer-events: none; ${bodyBgCSS} }`;
         }
     }
-    
+
     // --- 共通見出し (.titleh3) の判定ロジック ---
     const h3Size = getV('cfg-h3-size');
     const h3Weight = getV('cfg-h3-weight');
     const h3Color = getV('cfg-h3-color-val').toUpperCase();
     const h3Lh = getV('cfg-h3-lh');
-
     let h3Output = "";
-    // 初期値と異なる場合のみCSSを生成
     if (h3Size !== '16px' || h3Weight !== '600' || h3Color !== '#333333' || h3Lh !== '1.5') {
         h3Output = `.titleh3 { font-size: ${h3Size} !important; font-weight: ${h3Weight} !important; color: ${h3Color} !important; line-height: ${h3Lh} !important; }\n`;
     }
-
-    // --- 2. 各パーツの配布用CSS生成（getHeaderCSSなども同様に内部で判定させる） ---
     const headerCSS = getHeaderCSS(); 
-
-    // ボタンエリア背景色の判定
     const isBtnAreaNone = getC('cfg-btn-area-bg-none');
     const btnAreaColor = getV('cfg-btn-area-bg-val').toUpperCase();
-    
-    // ボタンエリアも変更がある場合のみ変数に格納
     let btnAreaOutput = "";
     if (btnAreaColor !== "#FFFFFF" || isBtnAreaNone) {
         const finalBtnAreaColor = isBtnAreaNone ? 'transparent' : btnAreaColor;
         btnAreaOutput = `.top_button { background-color: ${finalBtnAreaColor} !important; padding: 20px 0; margin: -20px 0 0;}`;
     }
 
-    const listPattern = document.querySelector('input[name="list-pattern"]:checked')?.value || 'A';
-        
     // --- SNSアイコンの生成 ---
-    const snsPos = document.querySelector('input[name="sns-position"]:checked')?.value || 'header';
     const snsIconColorVal = getV('cfg-sns-c-val');
     const snsFilter = (snsIconColorVal === '#FFFFFF') ? 'brightness(0) invert(1)' : 'brightness(0)';
-
     const snsDataArray = [];
     document.querySelectorAll('.sns-item').forEach(el => {
         const type = el.querySelector('.field-sns-type').value;
@@ -2527,7 +2539,6 @@ document.getElementById('generate-btn').onclick = () => {
     });
     const snsItemsHtml = snsDataArray.map(item => `<li><a href="${item.href}"${item.target}><img src="${item.iconUrl}"></a></li>`).join('');
     const snsFinalHtml = snsDataArray.length > 0 ? `<div class="sns_btn"><ul>${snsItemsHtml}</ul></div>` : "";
-
     let snsCSS = "";
     let snsInsertJS = "";
     if (snsFinalHtml !== "") { // SNSデータがある時だけ生成
@@ -2541,8 +2552,21 @@ document.getElementById('generate-btn').onclick = () => {
         }
     }
 
+
+let officialModalCSS = "";
+if (hasOfficial) {
+    officialModalCSS = `
+/* オフィシャル用モーダル基本スタイル */
+.brand-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10001; display: none; }
+.brand-modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
+.modal-close { position: absolute; top: 10px; right: 10px; z-index: 10003; background: #fff; border: none; padding: 5px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; }
+.brand-modal-window { position: absolute; bottom: 0; left: 0; width: 100%; height: 90vh; background: #fff; border-radius: 15px 15px 0 0; overflow: hidden; z-index: 10002; }
+.slide-in { animation: modalSlideUp 0.3s ease-out; }
+@keyframes modalSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+`;
+}
+
     // 3. その他のパーツ
-    const btnPattern = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
     const patternCSS = getButtonPatternCSS(btnPattern);
     const stampPageCSS = getStampPageCSS();
     const pageBtnCSS = getPageBtnCSS(true); 
@@ -2554,23 +2578,110 @@ document.getElementById('generate-btn').onclick = () => {
     const mockLogoAlign = document.querySelector('input[name="cfg-mock-logo-align"]:checked')?.value || 'center';
 
     // サブページヘッダーの判定（中央配置・白背景なら出さない）
+    const fFilter = getV('cfg-icon-choice') === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
+
+
     let subPageHeaderCSS = "";
     const mockHeaderBg = getV('cfg-mock-header-bg-val').toUpperCase();
     if (mockHeaderBg !== "#FFFFFF" || mockLogoAlign !== "center") {
         subPageHeaderCSS = `header { background-color: ${mockHeaderBg} !important; display: flex !important; justify-content: ${mockLogoAlign} !important; ${mockLogoAlign === 'flex-start' ? 'padding-left: 15px !important;' : ''} ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''} }`;
     }
 
-    const fFilter = getV('cfg-icon-choice') === 'white' ? 'brightness(0) invert(1)' : 'brightness(0)';
-    const listBorderOn = getC('cfg-list-border-on');
+    // --- フッターリストメニュー（.menu-sublist）の判定と生成 ---
+    const listBg = (getV('cfg-list-bg-val') || "").trim().toUpperCase();
+    const listTxt = (getV('cfg-list-txt-val') || "").trim().toUpperCase();
+    const listSize = (getV('cfg-list-size') || "").trim();
+    const listBorderOn = getC('cfg-list-border-on'); // HTMLで初期値 checked
+    const listBorderW = (getV('cfg-list-border-w') || "").trim();
+    const listBorderC = (getV('cfg-list-border-c-val') || "").trim().toUpperCase();
+
+    // ⭐ HTMLの初期値（デフォルト状態）を定義
+    // この条件にすべて一致する場合は、配布コードに出力しません
+    const isListDefault = (
+        (listBg === "#FFFFFF" || listBg === "") && 
+        (listTxt === "#333333" || listTxt === "") && 
+        (listSize === "13px" || listSize === "") && 
+        (listBorderOn === true) &&  // 初期値が有効なので true
+        (listBorderW === "2px") &&  // 初期値が 2px
+        (listBorderC === "#A9A9A92B") // 初期値が #A9A9A92B
+    );
+
+    let listMenuOutput = "";
+
+    // 初期状態から何かが変更された場合のみ生成
+    if (!isListDefault) {
+        // 境界線がONの時だけスタイルを作り、OFFの時は none にする
+        const borderStyle = listBorderOn ? `${listBorderW} solid ${listBorderC}` : "none";
+
+        listMenuOutput = `
+/* フッターリストメニュー設定 */
+.menu-sublist { background-color: ${listBg || '#FFFFFF'} !important; padding-bottom: 80px !important; }
+.menu-sublist > ul > li > a { 
+color: ${listTxt || '#333333'} !important; 
+font-size: ${listSize || '13px'} !important; 
+border-top: ${borderStyle} !important; 
+display: block; text-decoration: none; padding: 15px; 
+}
+.menu-sublist > ul > li:first-child > a { border-top: none !important; }
+`;
+    }
+
+
     const hamLineColor = getV('cfg-ham-line-val');
     const hamActiveColor = getV('cfg-ham-line-active-val');
 
     let hamburgerCSS = "";
-    if (listPattern === 'B') {
-        const listBgColor = getV('cfg-list-bg-val');
-        const listTxtColor = getV('cfg-list-txt-val');
-        hamburgerCSS = `/* ハンバーガーメニュー */\n.hamburger-btn { position: fixed; top: 18px; right: 20px; width: 28px; height: 20px; cursor: pointer; z-index: 1001; display: flex; flex-direction: column; justify-content: space-between; }\n.hamburger-btn span { display: block; height: 3px; border-radius: 2px; transition: all 0.3s ease; transform-origin: center center; background-color: ${hamLineColor} !important; }\n.hamburger-btn.active span { background-color: ${hamActiveColor} !important; }\n.menu-sublist { position: fixed; top: 0; right: -100%; width: 100%; height: 100vh; box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2); z-index: 1000; transition: right 0.35s ease; padding: 60px 20px 40px; box-sizing: border-box; overflow-y: auto; background-color: ${listBgColor} !important; }\n.menu-sublist.open { right: 0; }\n.menu-sublist a { text-decoration: none; color: ${listTxtColor} !important; }\n.menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0,0,0,0.4); z-index: 999; opacity: 0; visibility: hidden; transition: all 0.3s ease; }\n.menu-overlay.show { opacity: 1; visibility: visible; }`;
-    }
+if (listPattern === 'B') {
+    const hamLineColor = getV('cfg-ham-line-val') || '#333';
+    const hamActiveColor = getV('cfg-ham-line-active-val') || '#333';
+    const listBgColor = getV('cfg-list-bg-val') || '#fff';
+
+    hamburgerCSS = `
+/* ====== ハンバーガーボタン ====== */
+.hamburger-btn {
+    position: fixed; top: 18px; right: 20px; width: 28px; height: 20px;
+    cursor: pointer; z-index: 1001; display: flex; flex-direction: column; justify-content: space-between;
+}
+.hamburger-btn span {
+    display: block; height: 3px; background-color: ${hamLineColor} !important;
+    border-radius: 2px; transition: all 0.3s ease; transform-origin: center center;
+}
+.hamburger-btn.active span { background-color: ${hamActiveColor} !important; }
+
+/* ✕アニメーション */
+.hamburger-btn.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.hamburger-btn.active span:nth-child(2) { opacity: 0; }
+.hamburger-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+
+/* ====== メニュー全体（右スライド＋スクロール可） ====== */
+.menu-sublist {
+    position: fixed; top: 0; right: -100%; width: 100%; height: 100vh;
+    background-color: ${listBgColor} !important;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000; transition: right 0.35s ease;
+    padding: 60px 20px 40px; box-sizing: border-box;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    margin-top: 0 !important;
+}
+.menu-sublist.open { right: 0; }
+
+/* ====== 背景の半透明オーバーレイ ====== */
+.menu-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+    background: rgba(0,0,0,0.4); z-index: 999;
+    opacity: 0; visibility: hidden; transition: all 0.3s ease;
+}
+.menu-overlay.show { opacity: 1; visibility: visible; }
+
+/* コンテンツ余白調整 */
+section.content { padding-bottom: 120px !important; }
+`;
+}
+
+
+
+
+
 
     // フッターアイコン
     let footerIconCSS = "";
@@ -2579,17 +2690,25 @@ document.getElementById('generate-btn').onclick = () => {
         footerIconCSS += `#sp-fixed-menu li.${key} .icon { background-image: url('${url}'); }\n`;
     });
 
-    // --- JSの組み立て ---
-    const menuItemsData = Array.from(document.querySelectorAll('.menu-item:not(.sns-item)')).map(el => ({
-        class: el.querySelector('.field-class').value,
-        label: el.querySelector('.field-label').value,
-        href: el.querySelector('.field-href').value,
-        external: el.querySelector('.field-ext').checked,
-        aclass: el.querySelector('.field-aclass').value
-    }));
+    let hamburgerScript = (listPattern === 'B') ? `
+$(function() {
+    // body に追加
+    $('body').append('<div class="hamburger-btn"><span></span><span></span><span></span></div><div class="menu-overlay"></div>');
 
-    let hamburgerScript = (listPattern === 'B') ? `$(function() { $('body').append('<div class="hamburger-btn"><span></span><span></span><span></span></div><div class="menu-overlay"></div>'); $('.hamburger-btn').on('click', function() { $(this).toggleClass('active'); $('.menu-sublist').toggleClass('open'); $('.menu-overlay').toggleClass('show'); }); $('.menu-overlay').on('click', function() { $('.hamburger-btn').removeClass('active'); $('.menu-sublist').removeClass('open'); $(this).removeClass('show'); }); });` : "";
+    // 開閉制御
+    $('.hamburger-btn').on('click', function() {
+        $(this).toggleClass('active');
+        $('.menu-sublist').toggleClass('open');
+        $('.menu-overlay').toggleClass('show');
+    });
 
+    // 背景クリックで閉じる
+    $('.menu-overlay').on('click', function() {
+        $('.hamburger-btn').removeClass('active');
+        $('.menu-sublist').removeClass('open');
+        $(this).removeClass('show');
+    });
+});` : "";
 
 // --- 【1】JavaScriptの組み立て ---
 let jsOutput = "";
@@ -2603,8 +2722,6 @@ if (menuItemsData.length > 0) {
     const footerHTML = \`<footer><div id="sp-fixed-menu" class="for-sp"><ul>\${listItems}</ul></div></footer>\`;
     document.body.insertAdjacentHTML('beforeend', footerHTML);`;
 }
-
-const headerPattern = document.querySelector('input[name="header-pattern"]:checked')?.value || 'A';
 
 // ヘッダーパターンB専用ロジック
 let headerBSliderLogic = "";
@@ -2896,14 +3013,39 @@ window.addEventListener("pageshow", function(event) {
 });`;
 }
 
+// 3. JavaScriptパーツの作成
+let officialModalScript = "";
+if (hasOfficial) {
+    officialModalScript = `
+/* フッターメニューのクリックイベントを制御（オフィシャル用） */
+$(document).on('click', '.open-iframe-modal', function(e) {
+e.preventDefault();
+const targetUrl = $(this).attr('href');
+$('.shop-modal').remove();
+const iframeModalHtml = \`
+    <div id="shopModal" class="shop-modal brand-modal" style="display:none;">
+        <div class="brand-modal-overlay"></div>
+        <button class="modal-close">閉じる</button>
+        <div class="brand-modal-window slide-in">
+            <div class="brand-modal-content" style="height: 100%; padding: 0;">
+                <iframe src="\${targetUrl}" style="width:100%; height:calc(100vh - 50px); border:none; border-radius:15px 15px 0 0;" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>\`;
+$('body').append(iframeModalHtml);
+$('#shopModal').fadeIn(200);
+});
+$(document).on('click', '.modal-close, .brand-modal-overlay', function() {
+$('#shopModal').fadeOut(200, function() { $(this).remove(); });
+});`;
+}
+
 // --- 合成の判定 ---
 let scriptInnerContent = "";
-
 // 1. スライダーロジックがあれば追加
 if (headerBSliderLogic) {
     scriptInnerContent += headerBSliderLogic + "\n";
 }
-
 // 2. フッター または SNS があれば window.onload を追加
 if (footerJS || snsInsertJS) {
     scriptInnerContent += `
@@ -2912,12 +3054,11 @@ window.onload = () => {
     ${snsInsertJS}
 };`;
 }
-
 // 3. ハンバーガースクリプトがあれば追加
 if (hamburgerScript) {
     scriptInnerContent += "\n" + hamburgerScript;
 }
-
+if (officialModalScript) scriptInnerContent += "\n" + officialModalScript;
 // 最終的に、中身が何か一つでもあれば <script> タグで囲う
 if (scriptInnerContent.trim() !== "") {
     jsOutput = `<script>\n${scriptInnerContent.trim()}\n<\/script>`;
@@ -2925,13 +3066,6 @@ if (scriptInnerContent.trim() !== "") {
 
 // 画面へ反映
 document.getElementById('out-js').value = jsOutput;
-
-
-
-
-
-
-
 
 // --- 【2】CSSの組み立て ---
 // A. 常に生成する共通UIデザイン
@@ -2949,22 +3083,97 @@ ${pageBtnCSS}
 ${noticeCSS}
 ${ticketPageCSS}
 ${ticketDetailCSS}
+${officialModalCSS}
+${listMenuOutput}
+${hamburgerCSS}
 ${userPageCSS}`.trim();
 
 // B. フッターメニューがある時だけ追加する専用CSS
 let footerSpecificStyles = "";
 if (menuItemsData.length > 0) {
+    const fBg = getV('cfg-bg-val') || '#FFFFFF';
+    const fTxt = getV('cfg-txt-val') || '#a9a9a9';
+    const userBg = getV('cfg-user-bg-val') || '#3F5C53';
+    const listBorderOn = getC('cfg-list-border-on');
+    const listBorderW = getV('cfg-list-border-w') || '1px';
+    const listBorderC = getV('cfg-list-border-c-val') || '#A9A9A92B';
+
     footerSpecificStyles = `
+/* =========================================
+   フッター固定メニュー（ベース設定）
+========================================= */
 ${hamburgerCSS}
-#sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${getV('cfg-bg-val')}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
+#sp-fixed-menu.for-sp { position: fixed; bottom: 0; left: 0; width: 100%; background: ${fBg}; z-index: 999; box-shadow: 0px -5px 10px 0 #0000000f; }
 #sp-fixed-menu ul { display: flex; justify-content: space-around; margin: 0; padding: 7px 0 5px; list-style: none; height: 65px; }
-#sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${getV('cfg-txt-val')}; }
+#sp-fixed-menu ul li { flex: 1; text-align: center; }
+#sp-fixed-menu li a { display: flex; flex-direction: column; align-items: center; text-decoration: none; font-size: 9px; color: ${fTxt}; }
 #sp-fixed-menu .icon { display: block; width: 28px; height: 28px; background-repeat: no-repeat; background-position: center; background-size: contain; margin-bottom: 3px; filter: ${fFilter}; }
-${footerIconCSS}
-#sp-fixed-menu .user a { position: relative; top: -21px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 73px; height: 73px; border-radius: 50%; background: ${getV('cfg-user-bg-val')} !important; z-index: 10; border: 3px solid #FFF; padding-bottom: 5px; }
-#sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 -10px 0; }
-#sp-fixed-menu .user a .icon { filter: brightness(0) invert(1); }
-.menu-sublist > ul > li > a { color: ${getV('cfg-list-txt-val')} !important; border-top: ${listBorderOn ? getV('cfg-list-border-w') + ' solid ' + getV('cfg-list-border-c-val') : 'none'} !important; font-size: ${getV('cfg-list-size')} !important; display: block; text-decoration: none; padding: 15px; }`;
+
+/* --- アイコン画像指定 --- */
+li.home .icon   { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/G7NN1cykJDexyrf7W3sY.png"); }
+li.stamp .icon  { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/11vmbKPoZKbaDsS6AnC8.png"); }
+li.ticket .icon { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/qwb7BN3RXESAD0krnj5v.png"); }
+li.user .icon   { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/E3WFqdsnqvH99pgwlK5L.png"); }
+li.history .icon { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/s1WjgAYhCT5YkwteDBW1.png"); }
+li.reservation .icon { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/fAZsRqTheewTc01HDN4c.png"); }
+li.map .icon { background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/l8lm4e55dWmksNmI67cP.png"); }
+li.official .icon { background-image: url("${getV('cfg-official-url') || 'https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/OQuGHUMzZZ3yGuhaAFVm.png'}"); }
+
+/* --- ON/OFF カラーロジック --- */
+body.top #sp-fixed-menu .home a,
+body.stamp #sp-fixed-menu .stamp a,
+body.stamp_card #sp-fixed-menu .stamp a,
+body.coupon #sp-fixed-menu .ticket a,
+body.change #sp-fixed-menu .user a,
+body.stamp_history #sp-fixed-menu .history a {
+    color: #626262 !important; 
+    font-weight: 600;
+}
+#sp-fixed-menu .icon {width: 29px; height: 29px;}
+body.top      .home .icon {
+background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/Rhn5Vvjh2SP38NF1xIwr.png");
+}
+body.stamp       .stamp .icon,
+body.stamp_card  .stamp .icon {
+background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/JHgPi2AKawTsS4JmquNG.png");
+}
+body.coupon      .ticket .icon {
+background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/HW3t7RIX70B8ZS3NCBSy.png");
+}
+body.change      .user .icon {
+background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/dfXYpacHjwLUuVQ7Eg8k.png");
+}
+body.stamp_history .history .icon {
+background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/VZ0tdfcpyCzlV8HRACZJ.png");
+}
+/* --- MY PAGE（常時丸ボタン）--- */
+#sp-fixed-menu .user a {
+    position: relative;
+    top: -21px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 73px;
+    height: 73px;
+    border-radius: 50%;
+    background: ${userBg} !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+    z-index: 10;
+    border: 3px solid #FFF;
+    padding-bottom: 5px;
+}
+#sp-fixed-menu .user a span { color: #fff !important; font-size: 9px; font-weight: bold; margin: 0 0 0px 0; }
+#sp-fixed-menu .user a .icon { width: 32px; height: 32px; margin-bottom: 0px; filter: brightness(0) invert(1) !important; }
+
+/* リストメニュー用余白調整 */
+.menu-sublist { padding-bottom: 80px !important; }
+.menu-sublist > ul > li > a { 
+    color: ${getV('cfg-list-txt-val') || '#333333'} !important; 
+    border-top: ${listBorderOn ? `${listBorderW} solid ${listBorderC}` : 'none'} !important; 
+    font-size: ${getV('cfg-list-size') || '13px'} !important; 
+    display: block; text-decoration: none; padding: 15px; 
+}`;
 }
 
 // 最終的なCSS出力を合成
