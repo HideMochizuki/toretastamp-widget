@@ -516,8 +516,8 @@
                             <div class="form-label-side" style="width: 140px;">文字色</div>
                             <div class="form-input-side">
                                 <div class="color-picker-group">
-                                    <input type="color" id="cfg-list-txt" value="#333333">
-                                    <input type="text" id="cfg-list-txt-val" value="#333333">
+                                    <input type="color" id="cfg-list-txt" value="#252525">
+                                    <input type="text" id="cfg-list-txt-val" value="#252525">
                                 </div>
                             </div>
                         </div>
@@ -525,7 +525,7 @@
                         <div class="form-row">
                             <div class="form-label-side" style="width: 140px;">フォントサイズ</div>
                             <div class="form-input-side">
-                                <input type="text" id="cfg-list-size" value="13px" style="width: 80px;" oninput="updatePreview()" placeholder="13px">
+                                <input type="text" id="cfg-list-size" value="14px" style="width: 80px;" oninput="updatePreview()" placeholder="14px">
                             </div>
                         </div>
             
@@ -584,9 +584,14 @@
                     <div class="sub-config-box">
                         <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">カード透かしロゴ (右下)</p>
                         <div class="form-row">
-                            <div class="form-label-side" style="width: 120px;">画像URL</div>
+                            <div class="form-label-side" style="width: 140px;">カード透かしロゴ</div>
                             <div class="form-input-side">
-                                <input type="text" id="cfg-st-watermark-url" value="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" oninput="updatePreview()" style="width: 100%;">
+                                <label class="check-label">
+                                    <input type="checkbox" id="cfg-card-watermark-on" onchange="updatePreview()"> 有効にする
+                                </label>
+                                <input type="text" id="cfg-card-watermark-url" 
+                                       value="https://toretastamp-stg.s3.amazonaws.com/media/upload/brand/TCNteaCYUPectHdLS0JD.png" 
+                                       placeholder="https://..." oninput="updatePreview()" style="width: 200px;">
                             </div>
                         </div>
                         <div class="form-row" style="margin-bottom: 0;">
@@ -627,8 +632,8 @@
                             <div class="form-label-side" style="width: 180px;">有効期限ラベル背景 / 角丸</div>
                             <div class="form-input-side">
                                 <div class="color-picker-group">
-                                    <input type="color" id="cfg-st-label-bg" value="#eb843a59">
-                                    <input type="text" id="cfg-st-label-bg-val" value="#eb843a59">
+                                    <input type="color" id="cfg-st-label-bg" value="#F9D5BD">
+                                    <input type="text" id="cfg-st-label-bg-val" value="#F9D5BD">
                                 </div>
                                 <input type="text" id="cfg-st-label-radius" value="5px" style="width: 80px;" oninput="updatePreview()">
                             </div>

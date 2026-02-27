@@ -1030,6 +1030,37 @@ function relabelItems() {
         el.style.setProperty('line-height', getV('cfg-h3-lh'), 'important');
     });
 
+    // --- 【updatePreview内に追記】カード透かしロゴのプレビュー反映 ---
+    const watermarkOn = document.getElementById('cfg-card-watermark-on')?.checked;
+    const watermarkUrl = document.getElementById('cfg-card-watermark-url')?.value;
+    
+    // ⭐ 形状の設定値を取得
+    const wmShape = document.getElementById('cfg-st-watermark-shape')?.value || 'landscape';
+    const wmWidth = (wmShape === 'square') ? '75px' : '100px';
+    const wmHeight = (wmShape === 'square') ? '75px' : '40px';
+    
+    // 現在の画面がスタンプ一覧のときだけ反映
+    if (mock.dataset.currentScreen === 'stamp' && watermarkOn && watermarkUrl !== "") {
+        updateDynamicStyle(`
+            .mock-screen .stamp_card { position: relative; }
+            .mock-screen .stamp_card::after {
+                content: "";
+                position: absolute;
+                bottom: 10px;
+                right: 10px;
+                width: ${wmWidth} !important;
+                height: ${wmHeight} !important;
+                background-image: url('${watermarkUrl}');
+                background-size: contain;
+                background-repeat: no-repeat;
+                pointer-events: none;
+            }
+        `, 'dyn-style-watermark');
+    } else {
+        const styleEl = document.getElementById('dyn-style-watermark');
+        if (styleEl) styleEl.remove();
+    }
+
     attachPreviewEvents();
 }
 
@@ -2085,7 +2116,7 @@ function getStampPageCSS() {
         (stWatermarkUrl === '' || stWatermarkUrl.includes('TCNteaCYUPectHdLS0JD.png')) && 
         (stTxtColor === '#000000' || stTxtColor === '') &&
         (stDueTxtColor === '#000000' || stDueTxtColor === '') &&
-        (stLabelBg === '#EB843A59' || stLabelBg === '' || stLabelBg === '#000000') && // #000000も念のため追加
+        (stLabelBg === '#F9D5BD' || stLabelBg === '' || stLabelBg === '#000000') && // #000000も念のため追加
         (stLabelRadius === '5px' || stLabelRadius === '5' || stLabelRadius === '') &&
         (stIconBorder === '#000000' || stIconBorder === '') &&
         stIconChoice === 'black' &&
@@ -2566,6 +2597,35 @@ if (hasOfficial) {
 `;
 }
 
+    // --- 【カード透かしロゴの判定と生成】 ---
+    const watermarkOn = getC('cfg-card-watermark-on');
+    const watermarkUrl = getV('cfg-card-watermark-url').trim();
+
+    // ⭐ 形状の設定を取得（プレビューと同じロジックにする）
+    const wmShape = getV('cfg-st-watermark-shape') || 'landscape';
+    const wmWidth = (wmShape === 'square') ? '75px' : '100px';
+    const wmHeight = (wmShape === 'square') ? '75px' : '40px';
+
+    let cardWatermarkCSS = "";
+
+    // チェックが入っており、かつURLが入っている時だけCSSを生成
+    if (watermarkOn && watermarkUrl !== "") {
+        cardWatermarkCSS = `
+#stamp-list > .stamp_set > .stamp_card::after {
+content: "";
+position: absolute;
+bottom: 10px;
+right: 10px;
+width: ${wmWidth} !important;
+height: ${wmHeight} !important;
+background-image: url('${watermarkUrl}');
+background-size: contain;
+background-repeat: no-repeat;
+pointer-events: none;
+}
+`;
+    }
+
     // 3. その他のパーツ
     const patternCSS = getButtonPatternCSS(btnPattern);
     const stampPageCSS = getStampPageCSS();
@@ -2599,8 +2659,8 @@ if (hasOfficial) {
     // この条件にすべて一致する場合は、配布コードに出力しません
     const isListDefault = (
         (listBg === "#FFFFFF" || listBg === "") && 
-        (listTxt === "#333333" || listTxt === "") && 
-        (listSize === "13px" || listSize === "") && 
+        (listTxt === "#252525" || listTxt === "") && 
+        (listSize === "14px" || listSize === "") && 
         (listBorderOn === true) &&  // 初期値が有効なので true
         (listBorderW === "2px") &&  // 初期値が 2px
         (listBorderC === "#A9A9A92B") // 初期値が #A9A9A92B
@@ -2617,10 +2677,10 @@ if (hasOfficial) {
 /* フッターリストメニュー設定 */
 .menu-sublist { background-color: ${listBg || '#FFFFFF'} !important; padding-bottom: 80px !important; }
 .menu-sublist > ul > li > a { 
-color: ${listTxt || '#333333'} !important; 
-font-size: ${listSize || '13px'} !important; 
+color: ${listTxt || '#252525'} !important; 
+font-size: ${listSize || '14px'} !important; 
 border-top: ${borderStyle} !important; 
-display: block; text-decoration: none; padding: 15px; 
+display: block; text-decoration: none; 
 }
 .menu-sublist > ul > li:first-child > a { border-top: none !important; }
 `;
@@ -3085,6 +3145,7 @@ ${ticketPageCSS}
 ${ticketDetailCSS}
 ${officialModalCSS}
 ${listMenuOutput}
+${cardWatermarkCSS}
 ${hamburgerCSS}
 ${userPageCSS}`.trim();
 
