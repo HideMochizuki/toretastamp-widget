@@ -1061,6 +1061,8 @@ function relabelItems() {
         if (styleEl) styleEl.remove();
     }
 
+    const listAlign = getV('cfg-list-align');
+
     attachPreviewEvents();
 }
 
@@ -1379,6 +1381,8 @@ function applyCurrentDesignToMock() {
 
     // --- 3. リストメニューのデザイン ---
     const listArea = mock.querySelector('.menu-sublist');
+    
+    // 【重要】ここの { から下の } までの間に、すべての処理を入れる必要があります
     if (listArea) {
         const listBg = getV('cfg-list-bg-val');
         const listTxt = getV('cfg-list-txt-val');
@@ -1390,7 +1394,7 @@ function applyCurrentDesignToMock() {
         listArea.style.setProperty('background-color', listBg, 'important');
         listArea.style.setProperty('opacity', '1', 'important');
 
-        // updatePreview関数内のリストメニュー反映箇所
+        // リストリンクのデザイン適用
         const listLinks = listArea.querySelectorAll('ul li a');
         listLinks.forEach((a, index) => {
             a.style.setProperty('color', listTxt, 'important');
@@ -1403,9 +1407,21 @@ function applyCurrentDesignToMock() {
                 a.style.setProperty('border-top', borderVal, 'important');
             }
         });
-    }
 
-    // ★プレビュー専用CSSをまとめて管理する変数
+        // 配置（アラインメント）の反映
+        const listAlign = getV('cfg-list-align');
+        const listUl = listArea.querySelector('ul');
+        if (listUl) {
+            listUl.style.setProperty('text-align', listAlign, 'important');
+        }
+        
+        const listItems = listArea.querySelectorAll('ul li');
+        listItems.forEach(li => {
+            li.style.setProperty('text-align', listAlign, 'important');
+            li.style.setProperty('display', 'block', 'important'); 
+        });
+    } 
+
     let finalCSS = "";
 
     finalCSS += `
@@ -2654,16 +2670,16 @@ pointer-events: none;
     const listBorderOn = getC('cfg-list-border-on'); // HTMLで初期値 checked
     const listBorderW = (getV('cfg-list-border-w') || "").trim();
     const listBorderC = (getV('cfg-list-border-c-val') || "").trim().toUpperCase();
+    const listAlign = getV('cfg-list-align');
 
-    // ⭐ HTMLの初期値（デフォルト状態）を定義
-    // この条件にすべて一致する場合は、配布コードに出力しません
     const isListDefault = (
         (listBg === "#FFFFFF" || listBg === "") && 
         (listTxt === "#252525" || listTxt === "") && 
         (listSize === "14px" || listSize === "") && 
         (listBorderOn === true) &&  // 初期値が有効なので true
         (listBorderW === "2px") &&  // 初期値が 2px
-        (listBorderC === "#A9A9A92B") // 初期値が #A9A9A92B
+        (listBorderC === "#A9A9A92B") &&  // 初期値が #A9A9A92B
+        (listAlign === "left")
     );
 
     let listMenuOutput = "";
@@ -2676,6 +2692,7 @@ pointer-events: none;
         listMenuOutput = `
 /* フッターリストメニュー設定 */
 .menu-sublist { background-color: ${listBg || '#FFFFFF'} !important; padding-bottom: 80px !important; }
+.menu-sublist > ul > li { text-align: ${listAlign} !important; }
 .menu-sublist > ul > li > a { 
 color: ${listTxt || '#252525'} !important; 
 font-size: ${listSize || '14px'} !important; 
