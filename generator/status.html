@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ステータス設定 | オプション機能ジェネレーター</title>
+    <link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="preview-footer.css">
+</head>
+<body>
+
+<header class="generator">
+    <button id="sidebar-toggle" class="sidebar-toggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div style="font-weight: bold;">会員ステータス設定ジェネレーター</div>
+</header>
+
+
+<div class="app-container">
+    <div class="sidebar" style="width: 200px; background-color: #1e293b; color: #fff; height: 100vh; padding: 20px 0; box-shadow: 4px 0 10px rgba(0,0,0,0.1);">
+        <div style="padding: 0 20px 30px; border-bottom: 1px solid #334155; margin-bottom: 20px;">
+            <p style="font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Widget Generator</p>
+        </div>
+
+        <nav>
+            <a href="index.html" class="nav-item">
+                <i class="fa fa-home" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ホーム
+            </a>
+            
+            <a href="index.html" class="nav-item">
+                <i class="fa fa-paint-brush" style="width: 20px; margin-right: 10px;"></i> UIデザイン設定
+            </a>
+            
+            <a href="shop.html" class="nav-item">
+                <i class="fa fa-store" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> 店舗情報設定
+            </a>
+
+            <a href="status.html" class="nav-item active">
+                <i class="fa fa-medal" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ステータス設定
+            </a>
+        </nav>
+
+        <div style="position: absolute; bottom: 20px; left: 20px; color: #475569; font-size: 10px;">
+            ver 2.0.0
+        </div>
+    </div>
+
+    <main class="main-wrapper">
+        <div class="config-side">
+
+            <div class="card-wrapper">
+                <h2 class="card-title">1. 基本設定</h2>
+                <div class="card">
+                    <div class="card-sub-title">スタンプ帳IDと上限設定</div>
+            
+                    <div class="form-row">
+                        <div class="form-label-side">ノーマル帳 (A帳) ID</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="normal-id" placeholder="T5HEgNVpjE5QCCCj3kusYv" oninput="saveData()">
+                        </div>
+                    </div>
+            
+                    <div class="form-row">
+                        <div class="form-label-side">プラチナ帳 (B帳) ID</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="platinum-id" placeholder="任意" oninput="saveData()">
+                        </div>
+                    </div>
+            
+                    <div class="form-row">
+                        <div class="form-label-side">1枚あたりの最大スタンプ数</div>
+                        <div class="form-input-side">
+                            <input type="number" class="data-input" id="total-num" placeholder="例: 100" oninput="calculateRanks(); saveData()">
+                            <div id="total-num-warning" style="color: #ef4444; font-size: 12px; margin-top: 5px; display: none;">
+                                ※ステータス設定を行うために、最大スタンプ数を入力してください。
+                            </div>
+                        </div>
+                    </div>
+            
+                </div>
+            </div>
+    
+            <div class="card-wrapper">
+                <h2 class="card-title">2. ランク設定</h2>
+                <div class="card">
+                    <div class="card-sub-title">ステータス条件定義</div>
+                      <div class="status-panel">
+                        合計スタンプ数: <span id="total-num-display">100</span> | 
+                        <strong>残り設定可能数: <span id="remaining-limit">100</span></strong>
+                    </div>
+                      <table id="rank-table">
+                        <thead>
+                          <tr>
+                            <th>ランク名称</th>
+                            <th>Class名</th>
+                            <th>下限（自動）</th>
+                            <th>上限（設定）</th>
+                            <th>デザイン</th>
+                            <th>操作</th>
+                          </tr>
+                        </thead>
+                        <tbody id="rank-tbody">
+                          </tbody>
+                      </table>
+                      
+                      <button id="add-row-btn" class="btn-add" onclick="addRankRow()">
+                        <i class="fa fa-plus"></i> 行を追加
+                    </button>
+                    
+                </div>
+            </div>
+
+            <div class="button-group" style="display: flex; gap: 10px; margin-top: 40px; margin-bottom: 20px;">
+                <button class="btn btn-generate" id="generate-btn" 
+                        style="flex: 1; padding: 18px; font-size: 16px; font-weight: bold; background: #1e293b; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                    <i class="fa fa-magic" style="margin-right: 8px;"></i> 配布用コードを生成する
+                </button>
+            </div>
+            
+            <div style="margin-top: 50px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
+                
+                <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0; margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                            <i class="fab fa-js-square" style="color: #f7df1e; margin-right: 5px;"></i> 【1】JavaScriptコード
+                        </label>
+                        <button class="btn" onclick="copyText('out-js')" style="background: #475569; color: #fff; padding: 6px 16px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fa fa-copy"></i> コピー
+                        </button>
+                    </div>
+                    <textarea id="out-js" class="output-area data-input-area" readonly 
+                            style="height: 250px; background-color: #0f172a; color: #cbd5e1; border: none;" 
+                            placeholder="生成ボタンを押してください"></textarea>
+                </div>
+            
+                <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                            <i class="fa fa-css3-alt" style="color: #264de4; margin-right: 5px;"></i> 【2】CSSコード (styleタグ付)
+                        </label>
+                        <button class="btn" onclick="copyText('out-css')" style="background: #475569; color: #fff; padding: 6px 16px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fa fa-copy"></i> コピー
+                        </button>
+                    </div>
+                    <textarea id="out-css" class="output-area data-input-area" readonly 
+                            style="height: 250px; background-color: #0f172a; color: #cbd5e1; border: none;" 
+                            placeholder="生成ボタンを押してください"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <link rel="stylesheet" href="style.css">
+        <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/style_default.css" rel="stylesheet" />
+        <link href="https://toretastamp-stg.s3.amazonaws.com/static/front/css/common.css" rel="stylesheet" />
+        <link rel="stylesheet" href="preview-footer.css">
+
+        <div class="preview-side">
+            <p style="font-weight: bold; margin-bottom: 20px; text-align: center; color: #1e293b; font-size: 16px;">
+                <i class="fa fa-mobile-alt"></i> UIプレビュー
+            </p>
+        
+            <div class="phone-mock" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid #1e293b; border-radius: 36px; overflow: hidden; background: #fff;">
+                <div class="mock-screen" style="height: 600px; overflow-y: auto; background-color: #f8fafc;">
+                </div>
+            </div>
+        
+            <div style="margin: 10px auto; display: flex; justify-content: center; gap: 10px; padding: 15px; border-radius: 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">
+                <button class="btn" id="reset-btn" style="background-color: #94a3b8; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-undo"></i> リセット
+                </button>
+                <button class="btn" id="export-btn" style="background-color: #334155; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-download"></i> 書き出し
+                </button>
+                <button class="btn" id="import-btn" style="background-color: #8ace36; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-upload"></i> 読み込み
+                </button>
+                <input type="file" id="import-file" style="display: none;" accept=".json">
+            </div>
+        </div>
+
+
+    </main>
+</div>
+
+
+
+<div id="custom-toast" class="toast-hidden">
+    <div class="toast-content"><span id="toast-message"></span></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script src="common-ui.js"></script>
+<script>
+// --- 0. 変数定義（一番上に書くこと！） ---
+let rankDesignSettings = {}; 
+let currentEditingRowId = null;
+const RANK_CLASSES = ['normal', 'bronze', 'silver', 'gold', 'platinum', 'sapphire', 'emerald', 'ruby', 'diamond'];
+
+// --- 1. 初期化 ---
+window.addEventListener('DOMContentLoaded', () => {
+    // 既存のイベントリスナーをセット
+    document.getElementById('total-num').addEventListener('input', calculateRanks);
+    loadData();
+});
+
+// --- 2. データの保存 ---
+function saveData() {
+    const rows = [];
+    document.querySelectorAll('#rank-tbody tr').forEach(row => {
+        rows.push({
+            id: row.id,
+            name: row.querySelector('.rank-name').value,
+            max: row.querySelector('.rank-max').value,
+            className: row.dataset.className
+        });
+    });
+
+    // ★ここでIDの入力値も一緒に保存するように修正
+    localStorage.setItem('rankSettingsData', JSON.stringify({
+        basic: { 
+            normalId: document.getElementById('normal-id').value,
+            platinumId: document.getElementById('platinum-id').value,
+            totalNum: document.getElementById('total-num').value 
+        },
+        ranks: rows,
+        designs: rankDesignSettings // デザイン設定も保存しておく
+    }));
+}
+
+// --- 3. データの読み込み ---
+function loadData() {
+    const savedData = localStorage.getItem('rankSettingsData');
+    if (!savedData) return;
+
+    const data = JSON.parse(savedData);
+    
+    // 基本設定を復元
+    if (data.basic) {
+        document.getElementById('normal-id').value = data.basic.normalId || '';
+        document.getElementById('platinum-id').value = data.basic.platinumId || '';
+        document.getElementById('total-num').value = data.basic.totalNum || '';
+    }
+
+    rankDesignSettings = data.designs || {};
+    
+    // ...以降のランクテーブル生成処理はそのまま...
+    const tbody = document.getElementById('rank-tbody');
+    tbody.innerHTML = ''; 
+
+    data.ranks.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.id = r.id;
+        tr.dataset.className = r.className;
+        tr.innerHTML = `
+            <td><input type="text" class="data-input rank-name" placeholder="名称" value="${r.name}" oninput="saveData()"></td>
+            <td class="rank-class-cell">${r.className}</td> <td><input type="number" class="data-input rank-min" readonly style="width:60px; background:#f1f5f9;"></td>
+            <td>
+                <input type="number" class="data-input rank-max" placeholder="上限" style="width:60px" value="${r.max}" oninput="calculateRanks()">
+                <span class="rank-max-display">〜</span>
+            </td>
+            <td><button class="btn btn-sm btn-palette" onclick="openDesignModal('${r.id}')"><i class="fa fa-palette"></i> 設定</button></td>
+            <td><button class="btn btn-sm btn-trash" onclick="removeRow('${r.id}')"><i class="fa fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    calculateRanks();
+}
+
+// --- 4. 計算ロジック ---
+function calculateRanks() {
+    const totalNum = parseInt(document.getElementById('total-num').value) || 0;
+    const rows = document.querySelectorAll('#rank-tbody tr');
+    const addBtn = document.getElementById('add-row-btn');
+    
+    let nextMin = 0;
+    let lastMax = 0;
+    let hasTopRank = false;
+    let hasError = false;
+
+    rows.forEach((row, index) => {
+        const minInput = row.querySelector('.rank-min');
+        const maxInput = row.querySelector('.rank-max');
+        const classCell = row.querySelector('.rank-class-cell');
+
+        // クラス自動割り当て
+        let className = (index === 0) ? 'normal' : (RANK_CLASSES[index] || 'custom');
+        
+        // ★ポイント: 前の行で満了しているなら、この行は最上位（diamond）
+        if (index > 0 && lastMax >= totalNum) {
+            className = 'diamond';
+            hasTopRank = true;
+        }
+        
+        row.dataset.className = className;
+        if(classCell) classCell.textContent = className;
+
+        // 下限設定
+        minInput.value = nextMin;
+
+        // 判定処理
+        if (hasTopRank && index > 0) {
+            row.classList.add('is-top-rank');
+        } else {
+            row.classList.remove('is-top-rank');
+            const currentMax = parseInt(maxInput.value);
+            if (!isNaN(currentMax)) {
+                // 赤枠判定
+                if (totalNum > 0 && currentMax > totalNum) {
+                    maxInput.classList.add('input-error');
+                    hasError = true;
+                } else {
+                    maxInput.classList.remove('input-error');
+                    nextMin = currentMax + 1;
+                    lastMax = currentMax;
+                }
+            }
+        }
+    });
+
+    // ボタンの制御
+    addBtn.style.display = (hasTopRank || hasError) ? 'none' : 'inline-block';
+    
+    // 残り数更新
+    const remaining = totalNum - lastMax;
+    const remainingEl = document.getElementById('remaining-limit');
+    if (remainingEl) {
+        remainingEl.textContent = Math.max(0, remaining);
+        remainingEl.style.color = (remaining < 0) ? 'red' : '#1e293b';
+    }
+    
+    if(document.getElementById('total-num-display')) document.getElementById('total-num-display').textContent = totalNum;
+    saveData();
+}
+
+// --- 5. 行操作 ---
+function addRankRow() {
+    const tbody = document.getElementById('rank-tbody');
+    const rowId = 'row-' + Date.now();
+    const tr = document.createElement('tr');
+    tr.id = rowId;
+    tr.innerHTML = `
+        <td><input type="text" class="data-input rank-name" placeholder="名称" oninput="saveData()"></td>
+        <td class="rank-class-cell"></td>
+        <td><input type="number" class="data-input rank-min" readonly style="width:60px; background:#f1f5f9;"></td>
+        <td>
+            <input type="number" class="data-input rank-max" placeholder="上限" style="width:60px" oninput="calculateRanks()">
+            <span class="rank-max-display">〜</span>
+        </td>
+        <td><button class="btn btn-sm" onclick="openDesignModal('${rowId}')" style="background:#64748b; color:white;"><i class="fa fa-palette"></i> 設定</button></td>
+        <td><button class="btn btn-sm" onclick="removeRow('${rowId}')" style="background:#ef4444; color:white;"><i class="fa fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculateRanks(); // 追加したら即再計算
+}
+
+function removeRow(rowId) {
+    if(confirm('削除しますか？')) {
+        document.getElementById(rowId).remove();
+        calculateRanks();
+    }
+}
+
+// --- 6. デザイン設定モーダル ---
+function openDesignModal(rowId) {
+    currentEditingRowId = rowId;
+    const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '' };
+    document.getElementById('modal-bg').value = data.bg;
+    document.getElementById('modal-color').value = data.color;
+    document.getElementById('modal-bg-img').value = data.bgImg;
+    document.getElementById('modal-filter').value = data.filter;
+    document.getElementById('design-modal').style.display = 'flex';
+}
+
+function closeDesignModal() {
+    document.getElementById('design-modal').style.display = 'none';
+    currentEditingRowId = null;
+}
+
+function saveDesignModal() {
+    if (!currentEditingRowId) return;
+    rankDesignSettings[currentEditingRowId] = {
+        bg: document.getElementById('modal-bg').value,
+        color: document.getElementById('modal-color').value,
+        bgImg: document.getElementById('modal-bg-img').value,
+        filter: document.getElementById('modal-filter').value
+    };
+    saveData();
+    alert('デザイン設定を保存しました');
+    closeDesignModal();
+}
+
+
+// --- コード生成機能 ---
+document.getElementById('generate-btn').addEventListener('click', generateCode);
+
+function generateCode() {
+    const totalNum = document.getElementById('total-num').value;
+    const normalId = document.getElementById('normal-id').value;
+    const platinumId = document.getElementById('platinum-id').value;
+    const platinumVal = platinumId ? `'${platinumId}'` : 'null';
+    
+    const config = {
+        ids: { normal: normalId, platinum: platinumId },
+        maxStamps: parseInt(totalNum),
+        ranks: []
+    };
+
+    let cssOutput = "/* ステータス設定用CSS */\n";
+
+    // ★ループを1つにまとめました！これで重複しません
+    document.querySelectorAll('#rank-tbody tr').forEach(row => {
+        const name = row.querySelector('.rank-name').value;
+        const className = row.dataset.className; 
+        const max = row.querySelector('.rank-max').value ? parseInt(row.querySelector('.rank-max').value) : null;
+        const design = rankDesignSettings[row.id] || {};
+
+        // 設定データに追加
+        config.ranks.push({ name, className, max, design });
+
+        // CSS生成もこの中で行います
+        if (className) {
+            cssOutput += `.${className} { background-color: ${design.bg}; color: ${design.color}; background-image: url('${design.bgImg}'); filter: ${design.filter}; }\n`;
+        }
+    });
+
+    const jsTemplate = `<script>
+const STATUS_CONFIG = ${JSON.stringify(config, null, 2)};
+
+$(document).ready(function () {
+    const stampCardIds = STATUS_CONFIG.ids;
+    const $normalSet = $('.stamp_set.' + stampCardIds.normal);
+    const $platinumSet = stampCardIds.platinum ? $('.stamp_set.' + stampCardIds.platinum) : $();
+
+    // ① hrefからstamp_card IDを抽出
+    $('.stamp_card a').each(function () {
+        const href = $(this).attr('href');
+        const match = href.match(/stamp_card\\/([a-zA-Z0-9]+)/);
+        if (match && match[1]) { $(this).closest('.stamp_set').addClass(match[1]); }
+    });
+
+    // ② プラチナ帳にクラス付与
+    $platinumSet.find('.stamp_card').each(function () {
+        if ($(this).find('.stamp_card_delete_btn').length === 0) { $(this).addClass('d-normal'); }
+    });
+
+    // ③ スタンプ数判定
+    $('.stamp_set .stamp_num').each(function () {
+        const text = $(this).text().trim();
+        let match = text.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+        let firstNum = match ? parseInt(match[1], 10) : parseInt(text.match(/(\\d+)/)?.[1], 10);
+        let secondNum = match ? parseInt(match[2], 10) : STATUS_CONFIG.maxStamps;
+        if (firstNum != null && secondNum != null && firstNum >= secondNum) {
+            $(this).addClass('acquisition').closest('.stamp_card').addClass('acquisition');
+        }
+    }); 
+
+    handleAandB();
+
+    function handleAandB() {
+        const $cards = $normalSet.find('.stamp_card');
+        let isFullExists = false;
+        $cards.each(function () {
+            const text = $(this).find('.stamp_num').text().replace(/[^\\d\\/]/g, '').trim();
+            const match = text.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+            if (match && parseInt(match[1], 10) >= parseInt(match[2], 10)) { isFullExists = true; return false; }
+        });
+
+        if (isFullExists && $platinumSet.length) {
+            $platinumSet.closest('.stamp_set').show();
+            $normalSet.closest('.stamp_set').hide();
+        } else {
+            $normalSet.closest('.stamp_set').show();
+            handleAOnly();
+        }
+    }
+
+    function handleAOnly() {
+        const $cards = $normalSet.find('.stamp_card');
+        let showCard = null, fallbackCard = null;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+
+        $cards.each(function () {
+            const $card = $(this);
+            const text = $card.find('.ticket_list_due').text();
+            if (text.includes('なし')) { showCard = $card; return false; }
+            const dateMatch = text.match(/(\\d{4})年(\\d{2})月(\\d{2})日/);
+            if (dateMatch) {
+                const date = new Date(dateMatch[0].replace(/[年月]/g, '/').replace('日', ''));
+                if (date >= today) { showCard = $card; return false; }
+            }
+            if (!fallbackCard && $card.find('.stamp_card_delete_btn').length === 0) fallbackCard = $card;
+        });
+        assignRankAndMessage(showCard || fallbackCard);
+    }
+
+    function assignRankAndMessage($card) {
+        if (!$card || $card.length === 0) return;
+        
+        const text = $card.find('.stamp_num').text().trim();
+        let match = text.match(/(\\d+)/);
+        let obtained = match ? parseInt(match[1], 10) : 0;
+        
+        let matchedClass = 'normal';
+        let lower = 0;
+        
+        STATUS_CONFIG.ranks.forEach(rank => {
+            let upper = rank.max !== null ? parseInt(rank.max) : Infinity;
+            if (obtained >= lower && obtained <= upper) {
+                matchedClass = rank.className;
+            }
+            lower = upper + 1;
+        });
+
+        const allClasses = STATUS_CONFIG.ranks.map(r => r.className).join(' ');
+        $card.removeClass('normal ' + allClasses).addClass(matchedClass);
+        
+        if ($platinumSet.length && obtained >= STATUS_CONFIG.maxStamps) {
+            $card.removeClass('normal ' + allClasses).addClass('diamond');
+        }
+    }
+});
+<\/script>`;
+
+    document.getElementById('out-js').value = jsTemplate;
+    document.getElementById('out-css').value = cssOutput;
+    if(typeof showToast === 'function') showToast('配布コードを生成しました！');
+}
+
+</script>
+
+<div id="design-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div class="card" style="width: 400px; max-width: 90%; background:#fff; padding:20px; border-radius:8px;">
+        <div class="card-sub-title" style="margin-bottom:15px;">詳細デザイン設定</div>
+        <div class="form-row"><label>背景色</label><input type="text" id="modal-bg" class="data-input" placeholder="#ffffff"></div>
+        <div class="form-row"><label>文字色</label><input type="text" id="modal-color" class="data-input" placeholder="#000000"></div>
+        <div class="form-row"><label>背景画像URL</label><input type="text" id="modal-bg-img" class="data-input" placeholder="https://..."></div>
+        <div class="form-row"><label>アイコンフィルター値</label><input type="text" id="modal-filter" class="data-input" placeholder="invert(100%)"></div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn" style="background:#64748b; flex:1;" onclick="closeDesignModal()">キャンセル</button>
+            <button class="btn" style="flex:1;" onclick="saveDesignModal()">保存</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
