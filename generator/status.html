@@ -164,22 +164,20 @@
             </p>
         
             <div class="phone-mock" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid #1e293b; border-radius: 36px; overflow: hidden; background: #fff;">
-                <div class="mock-screen" style="height: 600px; overflow-y: auto; background-color: #f8fafc;">
+            
+                <div class="mock-screen" style="height: 500px; overflow-y: auto; background-color: #f8fafc; padding: 70px 20px 20px;">
+                    <style id="preview-style"></style>
+                    
+                    <header class="mock-header-v2" style="background:#fff; padding:10px; text-align:center; margin-bottom:10px;">
+                        <h1><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/RhRKQ7hBSEEB9ad8Wa79.png" alt="ロゴ" style="height:40px;"></h1>
+                    </header>
+                
+                    <div id="preview-content"></div>
                 </div>
+            
             </div>
         
-            <div style="margin: 10px auto; display: flex; justify-content: center; gap: 10px; padding: 15px; border-radius: 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">
-                <button class="btn" id="reset-btn" style="background-color: #94a3b8; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
-                    <i class="fa fa-undo"></i> リセット
-                </button>
-                <button class="btn" id="export-btn" style="background-color: #334155; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
-                    <i class="fa fa-download"></i> 書き出し
-                </button>
-                <button class="btn" id="import-btn" style="background-color: #8ace36; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
-                    <i class="fa fa-upload"></i> 読み込み
-                </button>
-                <input type="file" id="import-file" style="display: none;" accept=".json">
-            </div>
+            
         </div>
 
 
@@ -197,20 +195,22 @@
 
 <script src="common-ui.js"></script>
 <script>
-// --- 0. 変数定義（一番上に書くこと！） ---
+// --- 0. 変数定義 ---
+let isInitializing = true;
 let rankDesignSettings = {}; 
-let currentEditingRowId = null;
 const RANK_CLASSES = ['normal', 'bronze', 'silver', 'gold', 'platinum', 'sapphire', 'emerald', 'ruby', 'diamond'];
 
 // --- 1. 初期化 ---
 window.addEventListener('DOMContentLoaded', () => {
-    // 既存のイベントリスナーをセット
-    document.getElementById('total-num').addEventListener('input', calculateRanks);
     loadData();
+    isInitializing = false; 
+    calculateRanks();       
 });
 
 // --- 2. データの保存 ---
 function saveData() {
+    if (isInitializing) return;
+    
     const rows = [];
     document.querySelectorAll('#rank-tbody tr').forEach(row => {
         rows.push({
@@ -221,7 +221,6 @@ function saveData() {
         });
     });
 
-    // ★ここでIDの入力値も一緒に保存するように修正
     localStorage.setItem('rankSettingsData', JSON.stringify({
         basic: { 
             normalId: document.getElementById('normal-id').value,
@@ -229,51 +228,62 @@ function saveData() {
             totalNum: document.getElementById('total-num').value 
         },
         ranks: rows,
-        designs: rankDesignSettings // デザイン設定も保存しておく
+        designs: rankDesignSettings
     }));
+    console.log("保存しました");
 }
 
 // --- 3. データの読み込み ---
 function loadData() {
+    isInitializing = true;
     const savedData = localStorage.getItem('rankSettingsData');
-    if (!savedData) return;
-
-    const data = JSON.parse(savedData);
-    
-    // 基本設定を復元
-    if (data.basic) {
-        document.getElementById('normal-id').value = data.basic.normalId || '';
-        document.getElementById('platinum-id').value = data.basic.platinumId || '';
-        document.getElementById('total-num').value = data.basic.totalNum || '';
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            if (data.basic) {
+                document.getElementById('normal-id').value = data.basic.normalId || '';
+                document.getElementById('platinum-id').value = data.basic.platinumId || '';
+                document.getElementById('total-num').value = data.basic.totalNum || '';
+            }
+            rankDesignSettings = data.designs || {};
+            const tbody = document.getElementById('rank-tbody');
+            tbody.innerHTML = ''; 
+            data.ranks.forEach(r => {
+                tbody.appendChild(createRowElement(r.id, r.name, r.max, r.className));
+            });
+        } catch (e) {
+            console.error("データ読み込みエラー:", e);
+        }
     }
-
-    rankDesignSettings = data.designs || {};
-    
-    // ...以降のランクテーブル生成処理はそのまま...
-    const tbody = document.getElementById('rank-tbody');
-    tbody.innerHTML = ''; 
-
-    data.ranks.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.id = r.id;
-        tr.dataset.className = r.className;
-        tr.innerHTML = `
-            <td><input type="text" class="data-input rank-name" placeholder="名称" value="${r.name}" oninput="saveData()"></td>
-            <td class="rank-class-cell">${r.className}</td> <td><input type="number" class="data-input rank-min" readonly style="width:60px; background:#f1f5f9;"></td>
-            <td>
-                <input type="number" class="data-input rank-max" placeholder="上限" style="width:60px" value="${r.max}" oninput="calculateRanks()">
-                <span class="rank-max-display">〜</span>
-            </td>
-            <td><button class="btn btn-sm btn-palette" onclick="openDesignModal('${r.id}')"><i class="fa fa-palette"></i> 設定</button></td>
-            <td><button class="btn btn-sm btn-trash" onclick="removeRow('${r.id}')"><i class="fa fa-trash"></i></button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-    
+    isInitializing = false;
     calculateRanks();
 }
 
-// --- 4. 計算ロジック ---
+// --- 4. 行生成 ---
+function createRowElement(id, name = '', max = '', className = '') {
+    const tr = document.createElement('tr');
+    tr.id = id;
+    tr.dataset.className = className;
+    
+    // ③ .is-top-rank クラスの付与 (作成時にも適用)
+    if (className === 'diamond') tr.classList.add('is-top-rank');
+
+    tr.innerHTML = `
+        <td><input type="text" class="data-input rank-name" placeholder="名称" value="${name}" oninput="saveData()"></td>
+        <td class="rank-class-cell">${className}</td> 
+        <td><input type="number" class="data-input rank-min" readonly style="width:60px; background:#f1f5f9;"></td>
+        <td>
+            <input type="number" class="data-input rank-max" placeholder="上限" style="width:60px" value="${max}" oninput="calculateRanks(); saveData();">
+            <div class="error-msg" style="color:#ef4444; font-size:10px; margin-top:4px;"></div>
+            <span class="rank-max-display">〜</span>
+        </td>
+        <td><button class="btn btn-sm" onclick="openDesignModal('${id}')" style="background:#64748b; color:white;"><i class="fa fa-palette"></i> 設定</button></td>
+        <td><button class="btn btn-sm" onclick="removeRow('${id}')" style="background:#ef4444; color:white;"><i class="fa fa-trash"></i></button></td>
+    `;
+    return tr;
+}
+
+// --- 5. 計算ロジック ---
 function calculateRanks() {
     const totalNum = parseInt(document.getElementById('total-num').value) || 0;
     const rows = document.querySelectorAll('#rank-tbody tr');
@@ -285,96 +295,85 @@ function calculateRanks() {
     let hasError = false;
 
     rows.forEach((row, index) => {
-        const minInput = row.querySelector('.rank-min');
         const maxInput = row.querySelector('.rank-max');
+        const errorMsg = row.querySelector('.error-msg');
+        const minInput = row.querySelector('.rank-min');
         const classCell = row.querySelector('.rank-class-cell');
-
-        // クラス自動割り当て
+        
         let className = (index === 0) ? 'normal' : (RANK_CLASSES[index] || 'custom');
         
-        // ★ポイント: 前の行で満了しているなら、この行は最上位（diamond）
-        if (index > 0 && lastMax >= totalNum) {
+        // ダイアモンド判定
+        if (index > 0 && lastMax >= totalNum && totalNum > 0) {
             className = 'diamond';
             hasTopRank = true;
         }
         
         row.dataset.className = className;
         if(classCell) classCell.textContent = className;
+        
+        // ③ .is-top-rank 切り替え
+        if (className === 'diamond') row.classList.add('is-top-rank');
+        else row.classList.remove('is-top-rank');
 
-        // 下限設定
         minInput.value = nextMin;
 
-        // 判定処理
-        if (hasTopRank && index > 0) {
-            row.classList.add('is-top-rank');
-        } else {
-            row.classList.remove('is-top-rank');
-            const currentMax = parseInt(maxInput.value);
-            if (!isNaN(currentMax)) {
-                // 赤枠判定
-                if (totalNum > 0 && currentMax > totalNum) {
-                    maxInput.classList.add('input-error');
-                    hasError = true;
-                } else {
-                    maxInput.classList.remove('input-error');
-                    nextMin = currentMax + 1;
-                    lastMax = currentMax;
-                }
+        const currentMax = parseInt(maxInput.value);
+        if (!isNaN(currentMax)) {
+            lastMax = currentMax;
+            // ① エラー表示
+            if (totalNum > 0 && currentMax > totalNum) {
+                maxInput.classList.add('input-error');
+                if(errorMsg) errorMsg.textContent = `※${totalNum}以下にしてください`;
+                hasError = true;
+            } else {
+                maxInput.classList.remove('input-error');
+                if(errorMsg) errorMsg.textContent = '';
+                nextMin = currentMax + 1;
             }
         }
     });
 
-    // ボタンの制御
-    addBtn.style.display = (hasTopRank || hasError) ? 'none' : 'inline-block';
+    if(addBtn) addBtn.style.display = (hasTopRank || hasError) ? 'none' : 'inline-block';
     
-    // 残り数更新
-    const remaining = totalNum - lastMax;
+    // 残り数計算
     const remainingEl = document.getElementById('remaining-limit');
     if (remainingEl) {
-        remainingEl.textContent = Math.max(0, remaining);
-        remainingEl.style.color = (remaining < 0) ? 'red' : '#1e293b';
+        remainingEl.textContent = totalNum - lastMax;
     }
     
     if(document.getElementById('total-num-display')) document.getElementById('total-num-display').textContent = totalNum;
-    saveData();
+    updatePreview();
 }
 
-// --- 5. 行操作 ---
+// --- 6. 行操作（ここを追加しました） ---
 function addRankRow() {
     const tbody = document.getElementById('rank-tbody');
     const rowId = 'row-' + Date.now();
-    const tr = document.createElement('tr');
-    tr.id = rowId;
-    tr.innerHTML = `
-        <td><input type="text" class="data-input rank-name" placeholder="名称" oninput="saveData()"></td>
-        <td class="rank-class-cell"></td>
-        <td><input type="number" class="data-input rank-min" readonly style="width:60px; background:#f1f5f9;"></td>
-        <td>
-            <input type="number" class="data-input rank-max" placeholder="上限" style="width:60px" oninput="calculateRanks()">
-            <span class="rank-max-display">〜</span>
-        </td>
-        <td><button class="btn btn-sm" onclick="openDesignModal('${rowId}')" style="background:#64748b; color:white;"><i class="fa fa-palette"></i> 設定</button></td>
-        <td><button class="btn btn-sm" onclick="removeRow('${rowId}')" style="background:#ef4444; color:white;"><i class="fa fa-trash"></i></button></td>
-    `;
-    tbody.appendChild(tr);
-    calculateRanks(); // 追加したら即再計算
+    tbody.appendChild(createRowElement(rowId, '', '', ''));
+    calculateRanks();
+    saveData();
 }
 
 function removeRow(rowId) {
     if(confirm('削除しますか？')) {
-        document.getElementById(rowId).remove();
-        calculateRanks();
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            calculateRanks();
+            saveData();
+        }
     }
 }
 
-// --- 6. デザイン設定モーダル ---
+// --- 7. デザイン設定モーダル ---
 function openDesignModal(rowId) {
     currentEditingRowId = rowId;
-    const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '' };
+    const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '', border: '' };
     document.getElementById('modal-bg').value = data.bg;
     document.getElementById('modal-color').value = data.color;
     document.getElementById('modal-bg-img').value = data.bgImg;
-    document.getElementById('modal-filter').value = data.filter;
+    document.getElementById('modal-filter').value = data.filter || 'none';
+    document.getElementById('modal-border').value = data.border || '#FFFFFF'; // デフォルト値
     document.getElementById('design-modal').style.display = 'flex';
 }
 
@@ -389,22 +388,22 @@ function saveDesignModal() {
         bg: document.getElementById('modal-bg').value,
         color: document.getElementById('modal-color').value,
         bgImg: document.getElementById('modal-bg-img').value,
-        filter: document.getElementById('modal-filter').value
+        filter: document.getElementById('modal-filter').value,
+        border: document.getElementById('modal-border').value 
     };
     saveData();
+    calculateRanks(); // 保存したら即プレビュー更新
     alert('デザイン設定を保存しました');
     closeDesignModal();
 }
 
-
-// --- コード生成機能 ---
+// --- 8. コード生成 ---
 document.getElementById('generate-btn').addEventListener('click', generateCode);
 
 function generateCode() {
     const totalNum = document.getElementById('total-num').value;
     const normalId = document.getElementById('normal-id').value;
     const platinumId = document.getElementById('platinum-id').value;
-    const platinumVal = platinumId ? `'${platinumId}'` : 'null';
     
     const config = {
         ids: { normal: normalId, platinum: platinumId },
@@ -412,24 +411,53 @@ function generateCode() {
         ranks: []
     };
 
-    let cssOutput = "/* ステータス設定用CSS */\n";
+    // CSSの組み立て
+    let cssOutput = `<style type="text/css">
+#stamp-list > .stamp_set { overflow: hidden; }
 
-    // ★ループを1つにまとめました！これで重複しません
+/* =========================================
+    スタンプカード (ヘッダーラベル)
+========================================= */\n
+`;
+
+    // ランクごとの設定ループ
     document.querySelectorAll('#rank-tbody tr').forEach(row => {
         const name = row.querySelector('.rank-name').value;
-        const className = row.dataset.className; 
+        const className = row.dataset.className;
         const max = row.querySelector('.rank-max').value ? parseInt(row.querySelector('.rank-max').value) : null;
         const design = rankDesignSettings[row.id] || {};
-
-        // 設定データに追加
+        
         config.ranks.push({ name, className, max, design });
 
-        // CSS生成もこの中で行います
-        if (className) {
-            cssOutput += `.${className} { background-color: ${design.bg}; color: ${design.color}; background-image: url('${design.bgImg}'); filter: ${design.filter}; }\n`;
-        }
+        cssOutput += `body.stamp_card .stamp_set.${className} .stamp_title::before { content: "【${name}】"; margin-right: 5px; }\n`;
     });
 
+    cssOutput += `\n/* =========================================
+    スタンプ一覧 (カード本体)
+========================================= */\n`;
+
+    document.querySelectorAll('#rank-tbody tr').forEach(row => {
+        const name = row.querySelector('.rank-name').value;
+        const className = row.dataset.className;
+        const design = rankDesignSettings[row.id] || {};
+        
+        let bgStyle = design.bgImg ? `background-image: url('${design.bgImg}'); background-size: cover;` : `background: ${design.bg};`;
+
+        cssOutput += `
+/* ${name} */
+#stamp-list > .stamp_set > .stamp_card.${className} { ${bgStyle} }
+#stamp-list > .stamp_set > .stamp_card.${className} .stamp_list_title { color: ${design.color || '#333333'} !important; border-bottom: 1px dashed ${design.color || '#333333'}; }
+#stamp-list > .stamp_set > .stamp_card.${className} .stamp_list_title:before { content: "【${name}】"; }
+#stamp-list > .stamp_set > .stamp_card.${className} .ticket_list_due { background: rgb(255 255 255 / 35%); border: none; color: #FFFFFF; }
+#stamp-list > .stamp_set > .stamp_card.${className} .stampicon { color: #FFFFFF; }
+#stamp-list > .stamp_set > .stamp_card.${className} .stampicon > b { border: 2px solid ${design.border || '#FFFFFF'}; }
+#stamp-list > .stamp_set > .stamp_card.${className} .stampicon > b > span { filter: ${design.filter || 'none'}; }
+`;
+    });
+
+    cssOutput += `<\/style>`;
+
+    // JSテンプレート（前回と同じ内容です）
     const jsTemplate = `<script>
 const STATUS_CONFIG = ${JSON.stringify(config, null, 2)};
 
@@ -438,19 +466,16 @@ $(document).ready(function () {
     const $normalSet = $('.stamp_set.' + stampCardIds.normal);
     const $platinumSet = stampCardIds.platinum ? $('.stamp_set.' + stampCardIds.platinum) : $();
 
-    // ① hrefからstamp_card IDを抽出
     $('.stamp_card a').each(function () {
         const href = $(this).attr('href');
         const match = href.match(/stamp_card\\/([a-zA-Z0-9]+)/);
         if (match && match[1]) { $(this).closest('.stamp_set').addClass(match[1]); }
     });
 
-    // ② プラチナ帳にクラス付与
     $platinumSet.find('.stamp_card').each(function () {
         if ($(this).find('.stamp_card_delete_btn').length === 0) { $(this).addClass('d-normal'); }
     });
 
-    // ③ スタンプ数判定
     $('.stamp_set .stamp_num').each(function () {
         const text = $(this).text().trim();
         let match = text.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
@@ -530,23 +555,92 @@ $(document).ready(function () {
 
     document.getElementById('out-js').value = jsTemplate;
     document.getElementById('out-css').value = cssOutput;
-    if(typeof showToast === 'function') showToast('配布コードを生成しました！');
+    showToast("配布用コードを生成しました！");
 }
+
+// --- 9. プレビュー ---
+function updatePreview() {
+    const container = document.getElementById('preview-content');
+    const styleTag = document.getElementById('preview-style');
+    
+    container.innerHTML = '';
+    let cssText = "";
+
+    document.querySelectorAll('#rank-tbody tr').forEach(row => {
+        const name = row.querySelector('.rank-name').value;
+        const className = row.dataset.className;
+        const maxVal = row.querySelector('.rank-max').value;
+        const design = rankDesignSettings[row.id] || { bg: '#ffffff', color: '#000000', filter: 'none', border: '#FFFFFF' };
+        
+        let cleanBg = design.bg;
+        if (cleanBg && cleanBg.endsWith(';')) cleanBg = cleanBg.slice(0, -1);
+        
+        const bgStyle = design.bgImg ? 
+            `background-image: url('${design.bgImg}'); background-size: cover;` : 
+            `background: ${cleanBg};`;
+        
+        const maxDisplay = maxVal ? ` / ${maxVal}` : "";
+
+        const cardHtml = `
+            <div class="stamp_set" style="margin: 0 0 20px 0; padding:0;">
+                <div class="stamp_card ${className}" id="preview-${row.id}">
+                    <a href="#" class="clearfix" style="text-decoration:none; display:block; padding:10px;">
+                        <h3 class="stamp_list_title" style="margin:0;">【${name}】スタンプカード</h3>
+                        <dl class="ticket_list_bottom">
+                            <dt><span class="ticket_list_due" style="font-size:10px;">有効期限：2026年02月01日</span></dt>
+                        </dl>
+                        <dl class="ticket_list_bottom stamp">
+                            <dt class="stampicon"><b><span></span></b> 0${maxDisplay} 獲得</dt>
+                        </dl>
+                    </a>
+                </div>
+            </div>
+        `;
+        container.innerHTML += cardHtml;
+
+        // ★ここでCSSを反映
+        cssText += `
+            #preview-${row.id} { ${bgStyle} color: ${design.color || '#333'}; border-radius: 8px; }
+            #preview-${row.id} .stamp_list_title { color: ${design.color || '#333'} !important; }
+            #preview-${row.id} .stampicon { color: ${design.color || '#333'} !important; }
+            #preview-${row.id} .stampicon > b { border: 2px solid ${design.border || '#FFFFFF'} !important; }
+            /* ★ filter: を1回だけ記述し、最後に !important を追加 */
+            #preview-${row.id} .stampicon > b > span { filter: ${design.filter || 'none'} !important; }
+        `;
+    });
+
+    styleTag.textContent = cssText;
+}
+
 
 </script>
 
 <div id="design-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-    <div class="card" style="width: 400px; max-width: 90%; background:#fff; padding:20px; border-radius:8px;">
-        <div class="card-sub-title" style="margin-bottom:15px;">詳細デザイン設定</div>
-        <div class="form-row"><label>背景色</label><input type="text" id="modal-bg" class="data-input" placeholder="#ffffff"></div>
+    <div class="card" style="width: 400px; max-width: 90%; background:#fff; padding:20px; border-radius:12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <div class="card-sub-title" style="margin-bottom:20px; font-weight:bold; color:#1e293b;">詳細デザイン設定</div>
+        <div class="form-row"><label>背景設定</label><input type="text" id="modal-bg" class="data-input" placeholder="#ffffff または linear-gradient(...)" ></div>
         <div class="form-row"><label>文字色</label><input type="text" id="modal-color" class="data-input" placeholder="#000000"></div>
         <div class="form-row"><label>背景画像URL</label><input type="text" id="modal-bg-img" class="data-input" placeholder="https://..."></div>
-        <div class="form-row"><label>アイコンフィルター値</label><input type="text" id="modal-filter" class="data-input" placeholder="invert(100%)"></div>
-        <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <button class="btn" style="background:#64748b; flex:1;" onclick="closeDesignModal()">キャンセル</button>
-            <button class="btn" style="flex:1;" onclick="saveDesignModal()">保存</button>
+        <div class="form-row"><label>ボーダー色</label><input type="text" id="modal-border" class="data-input" placeholder="#ffffff"></div>
+        <div class="form-row">
+            <label>アイコン色</label>
+            <select id="modal-filter" class="data-input">
+                <option value="none">そのまま（デフォルト）</option>
+                <option value="invert(100%)">白</option>
+                <option value="invert(0%)">黒</option>
+            </select>
+        </div>
+
+        <div style="margin-top: 25px; display: flex; gap: 10px;">
+            <button class="btn" style="background:#94a3b8; color:#fff; flex:1; padding:12px; border-radius:6px; border:none; cursor:pointer; font-weight:bold;" onclick="closeDesignModal()">
+                キャンセル
+            </button>
+            <button class="btn" style="background:#1e293b; color:#fff; flex:1; padding:12px; border-radius:6px; border:none; cursor:pointer; font-weight:bold;" onclick="saveDesignModal()">
+                保存
+            </button>
         </div>
     </div>
 </div>
+
 </body>
 </html>

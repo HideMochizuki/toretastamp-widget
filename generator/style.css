@@ -844,3 +844,38 @@ input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 .input-error { border: 2px solid #ef4444 !important; }
 .btn-palette { background-color: #64748b !important; color: white !important; }
 .btn-trash { background-color: #ef4444 !important; color: white !important; }
+
+/* モーダル内のフォーム要素のスタイル調整 */
+#design-modal .form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px; /* 行間の余白 */
+}
+
+#design-modal label {
+    flex: 0 0 160px; /* ラベルの幅を固定（必要に応じて調整してください） */
+    font-size: 14px;
+    color: #475569; /* ラベルの色 */
+    font-weight: bold; /* ラベルを太字に */
+    margin-right: 15px; /* ラベルとフィールドの間の余白 */
+}
+
+#design-modal .data-input {
+    flex: 1; /* 残りの幅をフィールドが占める */
+    padding: 10px; /* 内側の余白 */
+    border: 1px solid #e2e8f0; /* 枠線の色 */
+    border-radius: 8px; /* 角丸 */
+    font-size: 14px;
+    color: #1e293b; /* 入力文字の色 */
+}
+
+#design-modal .data-input::placeholder {
+    color: #cbd5e1; /* プレースホルダーの色 */
+}
+
+/* フィールドにフォーカスが当たった時のスタイル */
+#design-modal .data-input:focus {
+    outline: none;
+    border-color: #94a3b8; /* フォーカス時の枠線の色（少し濃くする） */
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2); /* ほんのり影をつける */
+}
