@@ -620,30 +620,55 @@ function relabelItems() {
             // --- パターンB (スライダーあり) ---
             if(bSettings) bSettings.style.display = 'block';
             if(headerSpan) headerSpan.style.display = 'none';
-
+        
             if(headerTop) {
                 headerTop.style.setProperty('display', 'flex', 'important');
                 headerTop.style.setProperty('justify-content', 'flex-start', 'important');
                 headerTop.style.setProperty('padding-left', '0px', 'important');
-                headerTop.style.setProperty('background-color', 'transparent', 'important');
+                
+                const headerBg = getV('cfg-header-bg-top') || getV('cfg-header-bg') || '#ffffff';
+                headerTop.style.setProperty('background-color', headerBg, 'important');
+                headerTop.style.setProperty('box-shadow', '1px 5px 5px 0 rgba(0, 0, 0, 0.1)', 'important');
                 headerTop.style.setProperty('background-image', 'none', 'important');
                 headerTop.style.height = '50px';
+
+                const headerImg = headerTop.querySelector('img');
+                if (headerImg) {
+                    headerImg.style.setProperty('max-width', '35%', 'important');
+                }
             }
             if(headerH1) {
-                headerH1.style.setProperty('margin', '0px 0 0 0', 'important');
+                headerH1.style.setProperty('margin', '0 auto', 'important');
                 headerH1.style.setProperty('width', '100px', 'important');
             }
             
+            // スライダー枠の生成
             if (!sliderWrap && headerTop) {
                 const wrap = document.createElement('div');
                 wrap.className = 'header-slider-wrap';
-                wrap.style.height = '250px'; // スライダーの高さ
-                wrap.innerHTML = `<div class="header-slider"><div class="header-slide"></div></div>`;
+                wrap.innerHTML = `<div class="header-slider"><div class="header-slide" style="height: 100%;"></div></div>`;
                 headerTop.after(wrap);
                 sliderWrap = wrap;
             }
+            
+            // スライダー枠へのスタイル適用
+            if (sliderWrap) {
+                const sWidth = document.getElementById('cfg-header-slider-width')?.value || '500';
+                const sHeight = document.getElementById('cfg-header-slider-height')?.value || '500';
+                sliderWrap.style.width = '100%';
+                sliderWrap.style.height = 'auto';
+                sliderWrap.style.aspectRatio = `${sWidth} / ${sHeight}`;
+        
+                sliderWrap.style.marginTop = '0px'; 
+                sliderWrap.style.top = '0px';
+                sliderWrap.style.marginBottom = '0px';
+            }
+        
+            
             const slide = sliderWrap?.querySelector('.header-slide');
-            if(slide) slide.style.backgroundImage = `url('${getV('cfg-header-main-img')}')`;
+            if (slide) {
+                slide.style.backgroundImage = `url('${getV('cfg-header-main-img')}')`;
+            }
 
         } else {
             // --- パターンA (標準) ---
@@ -676,6 +701,12 @@ function relabelItems() {
                 
                 headerTop.style.setProperty('position', 'relative', 'important');
                 headerTop.style.setProperty('z-index', '99', 'important');
+
+                const headerImg = headerTop.querySelector('img');
+                if (headerImg) {
+                    headerImg.style.removeProperty('max-width');
+                }
+                headerTop.style.removeProperty('box-shadow');
             }
             if(headerH1) {
                 headerH1.style.margin = '';
@@ -708,76 +739,7 @@ function relabelItems() {
         const selected = document.querySelector('input[name="btn-pattern"]:checked')?.value || 'A';
         const btn1 = area.querySelector('ul li:nth-child(1)');
         const btn2 = area.querySelector('ul li:nth-child(2)');
-        /*
-        if (selected === 'A') {
-            apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'), 60);
-            apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-icon-c-val'), 60);
-        } else if (selected === 'B') {
-            const d1 = getBData(0); const d2 = getBData(1);
-            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-b-btn1-icon-c-val'), 50);
-            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-b-btn2-icon-c-val'), 50);
-
-            const bArea = document.getElementById('pattern-settings-B');
-            const cols = bArea.querySelectorAll('.setting-column');
-            if (cols.length >= 2) {
-                const getBData = (idx) => {
-                    const c = cols[idx];
-                    const allTxt = c.querySelectorAll('input[type="text"]');
-                    return {
-                        bg: allTxt[0].value, on: c.querySelector('input[type="checkbox"]').checked,
-                        bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value,
-                        befW: allTxt[4].value, befC: allTxt[5].value, tx: allTxt[6].value
-                    };
-                };
-                const d1 = getBData(0); const d2 = getBData(1);
-                
-                apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-b-btn1-icon-c-val'));
-                if(btn1) btn1.style.borderRadius = d1.radius;
-                
-                apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-b-btn2-icon-c-val'));
-                if(btn2) btn2.style.borderRadius = d2.radius;
-                
-                updateDynamicStyle(`
-                    .mock-screen.pattern-B .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
-                    .mock-screen.pattern-B .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
-                `, 'dyn-style-pattern');
-            }
-        } else if (selected === 'C') {
-            // パターンC：装飾があるので、少し大きく見せたい場合 (例: 65)
-            const d1 = getCData(0); const d2 = getCData(1);
-            apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-c-btn1-icon-c-val'), 65);
-            apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-c-btn2-icon-c-val'), 65);
-
-            const cArea = document.getElementById('pattern-settings-C');
-            const cols = cArea.querySelectorAll('.setting-column');
-            if (cols.length >= 2) {
-                const getCData = (idx) => {
-                    const c = cols[idx]; const allTxt = c.querySelectorAll('input[type="text"]');
-                    const chk = c.querySelector('input[type="checkbox"]');
-                    return {
-                        bg: allTxt[0].value, on: chk.checked, bw: allTxt[1].value, bc: allTxt[2].value, radius: allTxt[3].value,
-                        befW: allTxt[4].value, befC: allTxt[5].value, afterC: allTxt[6].value, tx: allTxt[7].value
-                    };
-                };
-                const d1 = getCData(0); const d2 = getCData(1);
-                
-                apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-c-btn1-icon-c-val'));
-                if(btn1) btn1.style.borderRadius = d1.radius;
-                
-                apply(btn2, d2.bg, d2.on, d2.bw, d2.bc, d2.tx, getV('cfg-c-btn2-icon-c-val'));
-                if(btn2) btn2.style.borderRadius = d2.radius;
-                
-                updateDynamicStyle(`
-                    .mock-screen.pattern-C .top_button ul li:before { content: ""; position: absolute; top: 0; left: 0; width: 15px; height: 15px; z-index: 1; }
-                    .mock-screen.pattern-C .top_button ul li:after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; clip-path: ellipse(70% 90% at 50% 100%); z-index: 0; }
-                    .mock-screen.pattern-C .top_button ul li:nth-child(1):before { border-bottom: ${d1.befW} solid ${d1.befC} !important; border-right: ${d1.befW} solid ${d1.befC} !important; }
-                    .mock-screen.pattern-C .top_button ul li:nth-child(2):before { border-bottom: ${d2.befW} solid ${d2.befC} !important; border-right: ${d2.befW} solid ${d2.befC} !important; }
-                    .mock-screen.pattern-C .top_button ul li:nth-child(1):after { background: ${d1.afterC} !important; }
-                    .mock-screen.pattern-C .top_button ul li:nth-child(2):after { background: ${d2.afterC} !important; }
-                `, 'dyn-style-pattern');
-            }
-        }
-        */
+        
         if (selected === 'A') {
             apply(btn1, getV('cfg-btn1-bg-val'), getC('cfg-btn1-border-on'), getV('cfg-btn1-border-w'), getV('cfg-btn1-border-c-val'), getV('cfg-btn1-txt-val'), getV('cfg-btn1-icon-c-val'), 55);
             apply(btn2, getV('cfg-btn2-bg-val'), getC('cfg-btn2-border-on'), getV('cfg-btn2-border-w'), getV('cfg-btn2-border-c-val'), getV('cfg-btn2-txt-val'), getV('cfg-btn2-icon-c-val'), 55);
@@ -797,7 +759,6 @@ function relabelItems() {
                 };
                 const d1 = getBData(0); const d2 = getBData(1);
                 
-                // ★ここでサイズ「50」を指定して適用（1回にまとめます）
                 apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-b-btn1-icon-c-val'), 27);
                 if(btn1) btn1.style.borderRadius = d1.radius;
                 
@@ -824,7 +785,6 @@ function relabelItems() {
                 };
                 const d1 = getCData(0); const d2 = getCData(1);
                 
-                // ★ここでサイズ「65」を指定して適用
                 apply(btn1, d1.bg, d1.on, d1.bw, d1.bc, d1.tx, getV('cfg-c-btn1-icon-c-val'), 45);
                 if(btn1) btn1.style.borderRadius = d1.radius;
                 
@@ -1517,8 +1477,7 @@ function applyCurrentDesignToMock() {
     
 
     // ==========================================
-    // ★復活：共通ボタン・オレンジボタンの直塗り処理
-    // （CSSの詳細度で負けないように、JSで直接色を塗ります）
+    // 共通ボタン・オレンジボタンの直塗り処理
     // ==========================================
     
     // ① 通常ボタン (.page_button だが .orange は除く)
@@ -1849,38 +1808,38 @@ function getButtonPatternCSS(selectedPattern) {
 
         // 5. 最後に共通スタイルと個別スタイルを合体させて返す
         return `\n${commonUlStyle}\n` + `
-    /* --- Aパターン専用 --- */
-    .top_button > ul > li { width: calc(48% - 5px); border-radius: 15px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); margin-bottom: 10px; list-style: none; transform: translateZ(0); }
-    .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 20px; text-decoration: none; }
-    .button_info { width: 100%; font-size: 14px; font-weight: 700; padding: 10px 0 0; text-align: center; }
+/* --- Aパターン専用 --- */
+.top_button > ul > li { width: calc(48% - 5px); border-radius: 15px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); margin-bottom: 10px; list-style: none; transform: translateZ(0); }
+.top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 20px; text-decoration: none; }
+.button_info { width: 100%; font-size: 14px; font-weight: 700; padding: 10px 0 0; text-align: center; }
 
-    /* 左ボタン */
-    .top_button > ul > li:nth-child(1) { background-color: ${bg1} !important; border: ${b1Border} !important; }
-    .top_button > ul > li:nth-child(1) .button_info { color: ${txt1} !important; }
-    .top_button > ul > li:nth-child(1) .button_img { 
-        width: 55px !important; height: 55px !important; min-width: 60px; flex: 0 0 60px;
-        position: relative; margin: 0 auto; transform: translateZ(0);
-        overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
-    }
-    .top_button > ul > li:nth-child(1) .button_img img {
-        width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
-        transform: translateX(-100%); -webkit-transform: translateX(-100%);
-        filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
-    }
+/* 左ボタン */
+.top_button > ul > li:nth-child(1) { background-color: ${bg1} !important; border: ${b1Border} !important; }
+.top_button > ul > li:nth-child(1) .button_info { color: ${txt1} !important; }
+.top_button > ul > li:nth-child(1) .button_img { 
+    width: 55px !important; height: 55px !important; min-width: 60px; flex: 0 0 60px;
+    position: relative; margin: 0 auto; transform: translateZ(0);
+    overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
+}
+.top_button > ul > li:nth-child(1) .button_img img {
+    width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
+    transform: translateX(-100%); -webkit-transform: translateX(-100%);
+    filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
+}
 
-    /* 右ボタン */
-    .top_button > ul > li:nth-child(2) { background-color: ${bg2} !important; border: ${b2Border} !important; }
-    .top_button > ul > li:nth-child(2) .button_info { color: ${txt2} !important; }
-    .top_button > ul > li:nth-child(2) .button_img { 
-        width: 55px !important; height: 55px !important; min-width: 60px; flex: 0 0 60px;
-        position: relative; margin: 0 auto; transform: translateZ(0);
-        overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
-    }
-    .top_button > ul > li:nth-child(2) .button_img img {
-        width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
-        transform: translateX(-100%); -webkit-transform: translateX(-100%);
-        filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
-    }`;
+/* 右ボタン */
+.top_button > ul > li:nth-child(2) { background-color: ${bg2} !important; border: ${b2Border} !important; }
+.top_button > ul > li:nth-child(2) .button_info { color: ${txt2} !important; }
+.top_button > ul > li:nth-child(2) .button_img { 
+    width: 55px !important; height: 55px !important; min-width: 60px; flex: 0 0 60px;
+    position: relative; margin: 0 auto; transform: translateZ(0);
+    overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
+}
+.top_button > ul > li:nth-child(2) .button_img img {
+    width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
+    transform: translateX(-100%); -webkit-transform: translateX(-100%);
+    filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
+}`;
     }
     
     // --- Bパターン ---
@@ -1983,47 +1942,47 @@ function getButtonPatternCSS(selectedPattern) {
 
         // ★共通レイアウト(commonUlStyle)と個別デザインを合体させて返す
         return `\n${commonUlStyle}\n` + `
-    /* --- Cパターン専用 --- */
-    .top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; transform: translateZ(0); }
-    .top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 15px 20px 0px; text-decoration: none; font-weight: bold; position: relative; z-index: 2; }
-    .button_info { width: 100%; text-align: center; padding: 25px 0 5px; font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
-    .top_button > ul > li:before { content: ""; content: ""; position: absolute; width: 7px; height: 7px; right: 12px; top: 50%; margin-top: -4px; z-index: 3;left: auto; transform: rotateZ(-45deg);}
+/* --- Cパターン専用 --- */
+.top_button > ul > li { position: relative; width: calc(48% - 5px); margin-bottom: 10px; overflow: hidden; list-style: none; transform: translateZ(0); }
+.top_button > ul > li > a { display: flex; flex-direction: column; align-items: center; padding: 15px 20px 0px; text-decoration: none; font-weight: bold; position: relative; z-index: 2; }
+.button_info { width: 100%; text-align: center; padding: 25px 0 5px; font-weight: 600; font-size: 14px; position: relative; z-index: 1; }
+.top_button > ul > li:before { content: ""; content: ""; position: absolute; width: 7px; height: 7px; right: 12px; top: 50%; margin-top: -4px; z-index: 3;left: auto; transform: rotateZ(-45deg);}
 
-    .top_button > ul > li::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; z-index: 0; clip-path: ellipse(70% 90% at 50% 100%); }
+.top_button > ul > li::after { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; z-index: 0; clip-path: ellipse(70% 90% at 50% 100%); }
 
-    /* 左ボタン */
-    .top_button > ul > li:nth-child(1) { background-color: ${c1.bg} !important; border: ${c1.on ? c1.bw+' solid '+c1.bc : 'none'} !important; border-radius: ${c1.radius} !important; }
-    .top_button > ul > li:nth-child(1):before { border-bottom: ${c1.befW} solid ${c1.befC}; border-right: ${c1.befW} solid ${c1.befC}; }
-    .top_button > ul > li:nth-child(1)::after { background: ${c1.afterC} !important; }
-    .top_button > ul > li:nth-child(1) .button_info { color: ${c1.tx} !important; }
-    /* 左アイコン (Clip-Path) */
-    .top_button > ul > li:nth-child(1) .button_img { 
-        width: 45px !important; height: 45px !important; min-width: 60px; flex: 0 0 60px;
-        position: relative; margin: 0 auto; transform: translateZ(0);
-        overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
-    }
-    .top_button > ul > li:nth-child(1) .button_img img {
-        width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
-        transform: translateX(-100%); -webkit-transform: translateX(-100%);
-        filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
-    }
+/* 左ボタン */
+.top_button > ul > li:nth-child(1) { background-color: ${c1.bg} !important; border: ${c1.on ? c1.bw+' solid '+c1.bc : 'none'} !important; border-radius: ${c1.radius} !important; }
+.top_button > ul > li:nth-child(1):before { border-bottom: ${c1.befW} solid ${c1.befC}; border-right: ${c1.befW} solid ${c1.befC}; }
+.top_button > ul > li:nth-child(1)::after { background: ${c1.afterC} !important; }
+.top_button > ul > li:nth-child(1) .button_info { color: ${c1.tx} !important; }
+/* 左アイコン (Clip-Path) */
+.top_button > ul > li:nth-child(1) .button_img { 
+    width: 45px !important; height: 45px !important; min-width: 60px; flex: 0 0 60px;
+    position: relative; margin: 0 auto; transform: translateZ(0);
+    overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
+}
+.top_button > ul > li:nth-child(1) .button_img img {
+    width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
+    transform: translateX(-100%); -webkit-transform: translateX(-100%);
+    filter: drop-shadow(60px 0 0 ${icon1}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon1}) !important;
+}
 
-    /* 右ボタン */
-    .top_button > ul > li:nth-child(2) { background-color: ${c2.bg} !important; border: ${c2.on ? c2.bw+' solid '+c2.bc : 'none'} !important; border-radius: ${c2.radius} !important; }
-    .top_button > ul > li:nth-child(2):before { border-bottom: ${c2.befW} solid ${c2.befC}; border-right: ${c2.befW} solid ${c2.befC}; }
-    .top_button > ul > li:nth-child(2)::after { background: ${c2.afterC} !important; }
-    .top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }
-    /* 右アイコン (Clip-Path) */
-    .top_button > ul > li:nth-child(2) .button_img { 
-        width: 46px !important; height: 45px !important; min-width: 60px; flex: 0 0 60px;
-        position: relative; margin: 0 auto; transform: translateZ(0);
-        overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
-    }
-    .top_button > ul > li:nth-child(2) .button_img img {
-        width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
-        transform: translateX(-100%); -webkit-transform: translateX(-100%);
-        filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
-    }`;
+/* 右ボタン */
+.top_button > ul > li:nth-child(2) { background-color: ${c2.bg} !important; border: ${c2.on ? c2.bw+' solid '+c2.bc : 'none'} !important; border-radius: ${c2.radius} !important; }
+.top_button > ul > li:nth-child(2):before { border-bottom: ${c2.befW} solid ${c2.befC}; border-right: ${c2.befW} solid ${c2.befC}; }
+.top_button > ul > li:nth-child(2)::after { background: ${c2.afterC} !important; }
+.top_button > ul > li:nth-child(2) .button_info { color: ${c2.tx} !important; }
+/* 右アイコン (Clip-Path) */
+.top_button > ul > li:nth-child(2) .button_img { 
+    width: 46px !important; height: 45px !important; min-width: 60px; flex: 0 0 60px;
+    position: relative; margin: 0 auto; transform: translateZ(0);
+    overflow: visible; clip-path: inset(0px); -webkit-clip-path: inset(0px);
+}
+.top_button > ul > li:nth-child(2) .button_img img {
+    width: 100%; height: 100%; object-fit: contain; position: absolute; left: 0; top: 0;
+    transform: translateX(-100%); -webkit-transform: translateX(-100%);
+    filter: drop-shadow(60px 0 0 ${icon2}) !important; -webkit-filter: drop-shadow(60px 0 0 ${icon2}) !important;
+}`;
     }
 
     return "";
@@ -2042,27 +2001,36 @@ function getHeaderCSS() {
     // 2. パターンB（スライダー）
     if (pattern === 'B') {
         if (!mainImgUrl) return "";
-        // パターンBのロジック（省略）
-        return `/* パターンBのCSS */
-header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: transparent !important; position: relative; z-index: 20; padding-left: 15px !important; }
-header.top h1.top { margin: 0 !important; }
-header.top h1.top span { display: none !important; }
-header.top h1.top img {width: 110px; border-radius: unset; height: auto;}
 
-/* ==================== スライダー外枠 ====================== */
-.header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: -50px; margin-bottom: -50px; height: 380px; }
+        // 設定画面から幅と高さを取得（プレビューとデフォルト値を合わせています）
+        const sWidth = getV('cfg-header-slider-width') || '500';
+        const sHeight = getV('cfg-header-slider-height') || '500';
+        
+        // ヘッダー背景色 (TOP) の設定値を動的に取得
+        const headerBg = getV('cfg-header-bg-top') || getV('cfg-header-bg') || '#ffffff';
+
+        return `/* パターンB専用：ヘッダー＆スライダーCSS */
+body.top header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: ${headerBg} !important; z-index: 20; padding-left: 15px !important; box-shadow: 1px 5px 5px 0 #0000001a; }
+header.top h1.top { margin: 0 auto !important; width: 100px !important; }
+header.top h1.top span { display: none !important; }
+header.top h1.top img { border-radius: unset; height: auto; }
+
+/* ==================== スライダー外枠（食い込み重なり無し仕様） ====================== */
+.header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: 0px; width: 100%; height: auto; aspect-ratio: ${sWidth} / ${sHeight}; }
+
 /* ==================== スライダー本体 ====================== */
 .header-slider { width: 100%; height: 100%; display: flex; transition: transform 0.8s ease-in-out; touch-action: pan-y; will-change: transform; }
+
 /* ==================== 各スライド ====================== */
 .header-slide { width: 100%; height: 100%; flex-shrink: 0; background-size: cover; background-position: center; background-repeat: no-repeat; pointer-events: auto; }
-.header-slider-wrap.swiping .header-slide { pointer-events: none; }
+
 /* ==================== ドット ====================== */
 .header-dots-wrap { text-align: center; margin-top: 15px; margin-bottom: 0px; }
 .header-dots { display: flex; justify-content: center; gap: 8px; }
 .header-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(117,117,117,0.5); cursor: pointer; }
 .header-dots .dot.active { background: #333; transform: scale(1.2); }
-`; 
-    } 
+`;
+    }
 
     // 3. パターンAの「初期値チェック」
     // ★ここを修正：hColor の比較対象を実際の初期値 #F5F5F5 に合わせます
@@ -2755,11 +2723,6 @@ section.content { padding-bottom: 120px !important; }
 `;
 }
 
-
-
-
-
-
     // フッターアイコン
     let footerIconCSS = "";
     Object.keys(iconImages).forEach(key => {
@@ -2852,7 +2815,7 @@ if (carouselImages.length === 1) {
 if (carouselImages.length === 0) return;
 const $wrap = $('.header-slider-wrap');
 const $slider = $('.header-slider');
-$wrap.css('height', '380px');
+$wrap.css('height', 'auto');
 $slider.html("");
 let index = 1;
 if (carouselImages.length === 1) {
@@ -3250,7 +3213,7 @@ background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp
     color: ${getV('cfg-list-txt-val') || '#333333'} !important; 
     border-top: ${listBorderOn ? `${listBorderW} solid ${listBorderC}` : 'none'} !important; 
     font-size: ${getV('cfg-list-size') || '13px'} !important; 
-    display: block; text-decoration: none; padding: 15px; 
+    display: block; text-decoration: none; 
 }`;
 }
 
@@ -3611,7 +3574,6 @@ function switchListPattern() {
 // ★お知らせ用CSSを生成する関数
 function getNoticeCSS(isExport = false) {
     const patternEl = document.querySelector('input[name="notice-pattern"]:checked');
-    // 小文字で取得されても大丈夫なように toUpperCase() をかける
     const pattern = patternEl ? patternEl.value.toUpperCase() : 'A';
 
     const size = document.getElementById('cfg-notice-size').value;
