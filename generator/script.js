@@ -137,7 +137,7 @@ const screens = {
                     </a>
                     <dl class="ticket_list_bottom">
                         <dt><span class="ticket_list_due">利用日時：2026/02/17 18:48:21</span></dt>
-                        <dd><a href="#" class="stamp_card_delete_btn">削除</a></dd>
+                        <dd><a href="#" class="stamp_card_delete_btn" style="color:red; font-size:10px; margin-left:10px;">削除</a></dd>
                     </dl>
                 </div>
             </div>
