@@ -881,6 +881,38 @@
                 <h2 class="card-title">チケット一覧デザイン</h2>
                 <span class="badge ticket">チケット</span>
                 <div class="card full-width">
+
+                    <div class="card-sub-title">表示パターン選択</div>
+                    <div class="form-row">
+                        <div class="form-label-side">表示形式</div>
+                        <div class="form-input-side">
+                            <div class="radio-group" style="display: flex; gap: 20px;">
+                                
+                                <label class="check-label"><input type="radio" name="ticket-pattern" value="A" checked onchange="switchTicketPattern(); updatePreview()"> パターンA (標準)</label>
+                                <label class="check-label"><input type="radio" name="ticket-pattern" value="B" onchange="switchTicketPattern(); updatePreview()"> パターンB (タブ形式)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                    <div id="ticket-pattern-b-settings" class="sub-config-box" style="display: none; margin-bottom: 20px;">
+                        <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">タブ形式設定 (パターンB専用)</p>
+                        <div class="form-row" style="margin-bottom: 10px;">
+                            <div class="form-label-side">タブ下線色 (アクティブ時)</div>
+                            <div class="form-input-side">
+                                <div class="color-picker-group">
+                                    <input type="color" id="cfg-ticket-tab-active-c" value="#333333">
+                                    <input type="text" id="cfg-ticket-tab-active-val" value="#333333">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row" style="margin-bottom: 0;">
+                            <div class="form-label-side">文字サイズ</div>
+                            <div class="form-input-side">
+                                <input type="text" id="cfg-ticket-tab-size" value="12px" style="width: 80px;" oninput="updatePreview()" placeholder="12px">
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="card-sub-title">カード全体設定 (.ticket_list_set)</div>
                     <div class="sub-config-box" style="margin-top: 0; margin-bottom: 30px;">
