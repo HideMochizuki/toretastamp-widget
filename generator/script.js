@@ -2163,10 +2163,10 @@ function getHeaderCSS() {
         const headerBg = getV('cfg-header-bg-top') || getV('cfg-header-bg') || '#ffffff';
 
         return `/* パターンB専用：ヘッダー＆スライダーCSS */
-body.top header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: ${headerBg} !important; z-index: 20; padding-left: 15px !important; box-shadow: 1px 5px 5px 0 #0000001a; }
+body.top header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: ${headerBg} !important; z-index: 20; box-shadow: 1px 5px 5px 0 #0000001a; }
 header.top h1.top { margin: 0 auto !important; width: 100px !important; }
 header.top h1.top span { display: none !important; }
-header.top h1.top img { border-radius: unset; height: auto; }
+header.top h1.top img { border-radius: unset; height: 50px; width: auto; }
 
 /* ==================== スライダー外枠（食い込み重なり無し仕様） ====================== */
 .header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: 0px; width: 100%; height: auto; aspect-ratio: ${sWidth} / ${sHeight}; }
