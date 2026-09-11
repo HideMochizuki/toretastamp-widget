@@ -38,14 +38,30 @@
             flex: 1 !important; border-radius: 8px !important; font-size: 8px !important; font-weight: bold !important; padding: 6px 0 !important; cursor: pointer;
         }
         #store-preview-screen .shop-btn { background: #fff !important; color: #444 !important; border: 1px solid #444 !important; }
-        #store-preview-screen .reserve-btn { font-size: 7px; background: #f08519 !important; color: #fff !important; border: none;}
+        #store-preview-screen .reserve-btn { font-size: 7px; background: var(--reserve-btn-bg, #0E3461) !important; color: #fff !important; border: none;}
         .mock-screen a span { font-size: 8px; color: #000; text-align: center;}
         #store-preview-screen .menu_banners.scrollable, 
         #store-preview-screen .area-scroll {
             display: flex !important; overflow-x: auto !important; gap: 12px !important; padding: 10px 15px !important; -webkit-overflow-scrolling: touch;
         }
         #store-preview-screen .area-banner {
-            flex: 0 0 auto !important; background: #fff !important; border: 1px solid #cacaca !important; border-radius: 20px !important; padding: 5px 15px !important; font-size: 13px !important;
+            flex: 0 0 auto !important; background: var(--area-banner-bg, #567190) !important; color: #ffffff !important; border: 1px solid #ffffff !important; border-radius: 20px !important; padding: 5px 15px !important; font-size: 13px !important;
+        }
+        #store-preview-screen .modal-header-link a {
+            font-size: 12px !important; color: #fff !important; border: 1px solid var(--modal-link-border, #043161) !important; padding: 6px 15px !important; border-radius: 30px !important; font-weight: 100 !important; margin-right: 10px !important; background-color: var(--modal-link-bg, #043161) !important; text-decoration: none;
+        }
+        /* ブランド／エリアモーダルのプレビューを、実機と同じ「画面全体」ではなく
+           スマホ枠（.phone-mock）の中に収める。配布用CSSは position:fixed のままでよい
+           （実際のスマホでは画面全体＝正しい）。ここはプレビュー専用の見た目調整。 */
+        #preview-modal-root .brand-modal {
+            position: absolute !important; inset: 0 !important;
+        }
+        #preview-modal-root .brand-modal-window {
+            position: absolute !important; top: 0 !important; right: 0 !important; height: 100% !important; width: 100% !important; max-width: none !important;
+        }
+        #preview-modal-root .brand-modal .modal-close,
+        #preview-modal-root .shop-modal .modal-close {
+            position: absolute !important; bottom: 15px !important; left: 50% !important; transform: translateX(-50%) !important;
         }
     </style>
 </head>
@@ -223,6 +239,96 @@
                     </div>
                 </div>
 
+                <div class="card-wrapper">
+                    <h2 class="card-title">ボタンの色</h2>
+                    <span class="badge all" style="background-color: #f1f5f9; color: #475569;">デザイン設定</span>
+
+                    <div class="card full-width">
+                        <div class="sub-config-box" style="margin-top: 0;">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">エリアボタン</p>
+                            <div class="form-row">
+                                <div class="form-label-side">背景色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-area-banner-bg" value="#567190">
+                                        <input type="text" id="cfg-area-banner-bg-val" value="#567190">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-config-box">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">ブランド紹介リンクボタン</p>
+                            <div class="form-row">
+                                <div class="form-label-side">背景色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-modal-link-bg" value="#043161">
+                                        <input type="text" id="cfg-modal-link-bg-val" value="#043161">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">枠線色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-modal-link-border" value="#043161">
+                                        <input type="text" id="cfg-modal-link-border-val" value="#043161">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-config-box">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">エリア一覧ボタン（ブランドモーダル内）</p>
+                            <div class="form-row">
+                                <div class="form-label-side">背景色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-area-btn-bg" value="#567190">
+                                        <input type="text" id="cfg-area-btn-bg-val" value="#567190">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">枠線色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-area-btn-border" value="#567190">
+                                        <input type="text" id="cfg-area-btn-border-val" value="#567190">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-config-box">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">予約ボタン（店舗一覧）</p>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">背景色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-reserve-btn-bg" value="#0E3461">
+                                        <input type="text" id="cfg-reserve-btn-bg-val" value="#0E3461">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-config-box" style="margin-bottom: 0;">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">閉じるボタン（モーダル）</p>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">背景色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-modal-close-bg" value="#043161">
+                                        <input type="text" id="cfg-modal-close-bg-val" value="#043161">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="data-edit-section" style="display: none; margin-top: 30px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
                     <div class="card-sub-title">読み込みデータの並び替え編集</div>
                     <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 15px;">
@@ -305,7 +411,7 @@
                     <i class="fa fa-store"></i> 店舗一覧プレビュー
                 </p>
             
-                <div class="phone-mock" style="box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid #1e293b; border-radius: 36px; overflow: hidden; background: #fff;">
+                <div class="phone-mock" style="position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid #1e293b; border-radius: 36px; overflow: hidden; background: #fff;">
                     <div class="mock-screen" id="store-preview-screen" style="height: 600px; overflow-y: auto; background-color: #f8fafc;">
                         <div style="display:flex; flex-direction: column; align-items:center; justify-content:center; height:100%; color:#94a3b8; font-size:13px; text-align:center; padding:30px; line-height: 1.6;">
                             <i class="fa fa-table" style="font-size: 30px; margin-bottom: 15px; color: #e2e8f0;"></i>
@@ -331,7 +437,188 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="common-ui.js"></script>
-<script>    
+<script>
+/**
+ * 0. ボタンの色設定（エリアボタン／ブランド紹介リンクボタン／予約ボタン／閉じるボタン）
+ *    カラーピッカーと配布用CSS・プレビューを連動させる
+ */
+function applyButtonColorSettings() {
+    const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    document.documentElement.style.setProperty('--area-banner-bg', getV('cfg-area-banner-bg-val') || '#567190');
+    document.documentElement.style.setProperty('--modal-link-bg', getV('cfg-modal-link-bg-val') || '#043161');
+    document.documentElement.style.setProperty('--modal-link-border', getV('cfg-modal-link-border-val') || '#043161');
+    document.documentElement.style.setProperty('--reserve-btn-bg', getV('cfg-reserve-btn-bg-val') || '#0E3461');
+    document.documentElement.style.setProperty('--modal-close-bg', getV('cfg-modal-close-bg-val') || '#043161');
+}
+
+const setupButtonColorSync = (p, t) => {
+    const elP = document.getElementById(p);
+    const elT = document.getElementById(t);
+    if (!elP || !elT) return;
+    const onChange = () => {
+        if (window.brandData) generateOutputCode();
+        applyButtonColorSettings();
+    };
+    elP.addEventListener('input', () => { elT.value = elP.value.toUpperCase(); onChange(); });
+    elT.addEventListener('input', () => {
+        if (/^#[0-9A-F]{6}$/i.test(elT.value)) { elP.value = elT.value; onChange(); }
+    });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    [
+        ['cfg-area-banner-bg', 'cfg-area-banner-bg-val'],
+        ['cfg-modal-link-bg', 'cfg-modal-link-bg-val'],
+        ['cfg-modal-link-border', 'cfg-modal-link-border-val'],
+        ['cfg-reserve-btn-bg', 'cfg-reserve-btn-bg-val'],
+        ['cfg-modal-close-bg', 'cfg-modal-close-bg-val'],
+        ['cfg-area-btn-bg', 'cfg-area-btn-bg-val'],
+        ['cfg-area-btn-border', 'cfg-area-btn-border-val']
+    ].forEach(pair => setupButtonColorSync(pair[0], pair[1]));
+    applyButtonColorSettings();
+
+    // BRANDバナー／エリアボタンのクリックでモーダルプレビューを開く
+    document.getElementById('store-preview-screen').addEventListener('click', (e) => {
+        const brandEl = e.target.closest('.menu_banner');
+        if (brandEl) {
+            e.preventDefault();
+            openBrandModal(brandEl.dataset.brand);
+            return;
+        }
+        const areaEl = e.target.closest('.area-banner');
+        if (areaEl) {
+            openAreaModal(areaEl.dataset.area);
+        }
+    });
+});
+
+/**
+ * ブランドモーダル／エリアモーダルのライブプレビュー
+ * 実際の配布コードと同じクラス名でDOMを組み立てるため、injectLiveCSSで注入したCSS（=配布コードと同じ色設定）がそのまま使われる
+ */
+function ensurePreviewModalRoot() {
+    let root = document.getElementById('preview-modal-root');
+    if (root) return root;
+    root = document.createElement('div');
+    root.id = 'preview-modal-root';
+    root.innerHTML = `
+        <div class="brand-modal" id="previewBrandModal">
+            <div class="brand-modal-overlay"></div>
+            <button class="modal-close">閉じる</button>
+            <div class="brand-modal-window">
+                <div class="brand-modal-content">
+                    <div class="modal-body"></div>
+                </div>
+            </div>
+        </div>`;
+    document.querySelector('.phone-mock').appendChild(root);
+    root.querySelector('.brand-modal-overlay').addEventListener('click', closePreviewModal);
+    root.querySelector('.modal-close').addEventListener('click', closePreviewModal);
+    return root;
+}
+
+function openPreviewModal(bodyHTML) {
+    const root = ensurePreviewModalRoot();
+    root.querySelector('.brand-modal').style.display = 'block';
+    root.querySelector('.modal-body').innerHTML = bodyHTML;
+    requestAnimationFrame(() => {
+        root.querySelector('.brand-modal-window').classList.add('slide-in');
+    });
+}
+
+function closePreviewModal() {
+    const root = document.getElementById('preview-modal-root');
+    if (!root) return;
+    root.querySelector('.brand-modal-window').classList.remove('slide-in');
+    setTimeout(() => { root.querySelector('.brand-modal').style.display = 'none'; }, 250);
+}
+
+const PREVIEW_AREA_ORDER = ['北海道','福島','茨城','埼玉','千葉','東京','神奈川','富山','石川','静岡','愛知','滋賀','京都','大阪','兵庫','鳥取','岡山','広島','山口','香川','福岡','長崎','熊本','沖縄'];
+
+function extractPreviewArea(address) {
+    return PREVIEW_AREA_ORDER.find(a => address && address.indexOf(a) !== -1) || 'その他';
+}
+
+function extractPreviewCity(address) {
+    if (!address) return '';
+    let rest = address;
+    const areaMatch = address.match(/^(北海道|.{2,3}?[都道府県])/);
+    if (areaMatch) rest = address.slice(areaMatch[1].length);
+    const cityMatch = rest.match(/^.{1,6}?[市区町村]/);
+    return cityMatch ? cityMatch[0] : rest.slice(0, 6);
+}
+
+function previewShopCardHTML(s) {
+    const btns = [];
+    if (s.menu) btns.push('<button class="shop-btn">menu</button>');
+    if (s.reserve) btns.push('<button class="reserve-btn">RESERVATION</button>');
+    return `
+        <div class="shop">
+            <p class="shop-name"><strong>${s.name}</strong></p>
+            <p>${s.address || ''}</p>
+            ${s.tel ? `<p>${s.tel}</p>` : ''}
+            ${s.hours ? `<p>${s.hours}</p>` : ''}
+            ${btns.length ? `<div class="shop-btns">${btns.join('')}</div>` : ''}
+        </div>`;
+}
+
+/* BRANDバナークリック → ブランド詳細モーダル（エリア別アコーディオン） */
+function openBrandModal(brandKey) {
+    const b = window.brandData[brandKey];
+    if (!b) return;
+    const shops = window.shopData.filter(s => s.brand === brandKey);
+    const areas = [...new Set(shops.map(s => extractPreviewArea(s.address)))];
+
+    const areaHTML = areas.map((area, i) => {
+        const areaShops = shops.filter(s => extractPreviewArea(s.address) === area);
+        return `
+            <button class="area-btn" data-area-idx="${i}"><span class="arrow">▶</span>${area}</button>
+            <div class="shop-list" data-area-list="${i}">${areaShops.map(previewShopCardHTML).join('')}</div>`;
+    }).join('');
+
+    const bodyHTML = `
+        <div class="modal-header-vertical">
+            ${b.bg ? `<div class="brand-logo-area" style="background-image:url('${b.bg}')"><div class="brand-logo-circle"><img class="brand-logo-title" src="${b.logo || ''}" alt="${b.name || ''}"></div></div>` : ''}
+            <span class="modal-header-title">${b.name || ''}</span>
+            ${b.description ? `<p class="modal-header-description">${b.description}</p>` : ''}
+            ${b.url ? `<p class="modal-header-link"><a href="${b.url}" target="_blank" rel="noopener noreferrer">ブランド紹介サイト</a></p>` : ''}
+        </div>
+        <div class="area-section">
+            <h4>エリア</h4>
+            ${areaHTML}
+        </div>`;
+
+    openPreviewModal(bodyHTML);
+    const root = document.getElementById('preview-modal-root');
+    root.querySelectorAll('.area-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = btn.dataset.areaIdx;
+            const list = root.querySelector(`.shop-list[data-area-list="${idx}"]`);
+            const isOpen = list.style.display === 'block';
+            root.querySelectorAll('.shop-list').forEach(l => l.style.display = 'none');
+            root.querySelectorAll('.area-btn').forEach(b2 => b2.classList.remove('open'));
+            if (!isOpen) { list.style.display = 'block'; btn.classList.add('open'); }
+        });
+    });
+}
+
+/* エリアボタンクリック → エリア別店舗一覧モーダル（市区町村ごとにグルーピング） */
+function openAreaModal(area) {
+    const shops = window.shopData.filter(s => extractPreviewArea(s.address) === area);
+    const cities = [...new Set(shops.map(s => extractPreviewCity(s.address)))];
+    const bodyHTML = `
+        <div class="modal-header-vertical">
+            <span class="modal-header-title">${area}エリアの店舗</span>
+        </div>
+        <div class="area-shop-list">
+            ${cities.map(city => `
+                <p class="city-title">${city}</p>
+                ${shops.filter(s => extractPreviewCity(s.address) === city).map(previewShopCardHTML).join('')}
+            `).join('')}
+        </div>`;
+    openPreviewModal(bodyHTML);
+}
+
 /**
  * 1. 強化版データ解析ロジック（CSV/Numbers自動判別・省略なし）
  * カンマ区切り、またはNumbersのコピー（タブ区切り）を自動判別し、1列もズラさずに解析
@@ -472,14 +759,40 @@ function renderPreviewUI() {
         html += `<h3 class="titleh3 brand-box">BRAND</h3><div class="menu_banners scrollable">`;
         Object.keys(window.brandData).forEach(key => {
             const b = window.brandData[key];
-            html += `<a href="#" class="menu_banner" data-brand="${key}"><div class="logo-box"><img src="${b.logo}" alt="${b.name}"></div><span>${b.name}</span></a>`;
+            html += `<a href="#" class="menu_banner clickable" data-brand="${key}"><div class="logo-box"><img src="${b.logo}" alt="${b.name}"></div><span>${b.name}</span></a>`;
         });
         html += `</div>`;
     }
 
     // C. エリア抽出（沖縄を確実に含む全網羅）
     if (config.areaBoxSwitch == 1) {
-        const areaOrder = ['神奈川', '東京', '千葉', '埼玉', '静岡', '沖縄', '大阪'];
+        const areaOrder = [
+            '北海道', 
+            '福島', 
+            '茨城', 
+            '埼玉', 
+            '千葉', 
+            '東京', 
+            '神奈川', 
+            '富山', 
+            '石川', 
+            '静岡', 
+            '愛知', 
+            '滋賀', 
+            '京都', 
+            '大阪', 
+            '兵庫', 
+            '鳥取', 
+            '岡山', 
+            '広島', 
+            '山口', 
+            '香川', 
+            '福岡', 
+            '長崎', 
+            '熊本', 
+            '沖縄', 
+            'その他'
+        ];
         const extractedAreas = areaOrder.filter(a => 
             window.shopData.some(s => s.address && s.address.indexOf(a) !== -1)
         );
@@ -487,7 +800,7 @@ function renderPreviewUI() {
         if (extractedAreas.length >= config.areaBoxThreshold) {
             html += `<h3 class="titleh3 area-box">エリアから探す</h3><div class="area-scroll">`;
             extractedAreas.forEach(a => {
-                html += `<button class="area-banner">${a}</button>`;
+                html += `<button class="area-banner" data-area="${a}">${a}</button>`;
             });
             html += `</div>`;
         }
@@ -2202,14 +2515,14 @@ $(document).on('click', '.clear-icon', function () {
 .brand-modal-window.slide-in { transform: translateX(0);}
 .brand-modal-content { position: relative; padding: 10px 0 60px;}
 .brand-modal-content .modal-body { padding: 0; margin: 0px 0 0;}
-.brand-modal .modal-close,.shop-modal .modal-close { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 90%; background: #043161; color: #fff; border: none; border-radius: 100px; padding: 11px 0; font-size: 18px; font-weight: bold; z-index: 9000; pointer-events: auto;}
+.brand-modal .modal-close,.shop-modal .modal-close { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 90%; background: ${document.getElementById('cfg-modal-close-bg-val')?.value || '#043161'}; color: #fff; border: none; border-radius: 100px; padding: 11px 0; font-size: 18px; font-weight: bold; z-index: 9000; pointer-events: auto;}
 .modal-title { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 18px; font-weight: bold; color: #444; margin: 10px 0 0; padding: 0 20px; font-family: "Helvetica";}
 .modal-header-vertical { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin: 10px 0 0; width: 100%;}
 .modal-header-vertical .back-btn { background: none; border: none; color: #333; font-size: 28px; line-height: 1; cursor: pointer; padding: 0;}
 .modal-header-vertical .modal-header-title { font-size: 20px; font-weight: 700; color: #333; margin-top: 0; }
 .modal-header-description { font-size: 12px; color: #444; line-height: 2em; margin: 8px 0 0; text-align: left; font-weight: 100;}
 .modal-header-link { text-align: right; margin: 0 0 20px; width: 100%;}
-.modal-header-link a { font-size: 12px; color: #fff; transition: opacity 0.2s; border: 1px solid #043161; padding: 6px 15px; border-radius: 30px; font-weight: 100; margin-right: 10px; background-color: #043161;}
+.modal-header-link a { font-size: 12px; color: #fff; transition: opacity 0.2s; border: 1px solid ${document.getElementById('cfg-modal-link-border-val')?.value || '#043161'}; padding: 6px 15px; border-radius: 30px; font-weight: 100; margin-right: 10px; background-color: ${document.getElementById('cfg-modal-link-bg-val')?.value || '#043161'};}
 .modal-header-link a:hover { opacity: 0.7;}
 h3.titleh3.brand-box { display: block;}
 .brand-logo-area { position: relative; width: 100%; height: 180px; background-size: cover; background-position: center bottom; border-radius: 0; overflow: visible; margin: 10px 0 50px; box-shadow: 0 3px 10px rgba(0,0,0,0.15) ; border-radius: 15px 15px 0 0;}
@@ -2218,9 +2531,9 @@ h3.titleh3.brand-box { display: block;}
 h3.titleh3.area-box { display: block;}
 .area-section h4 { font-size: 18px; font-weight: 700; color: #333; margin: 10px 0 8px 5px;}
 .area-section { padding: 0 30px;}
-.area-btn { width: 100%; color: #ffffff; border: none; border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 15px; font-weight: 300; display: flex; align-items: center; justify-content: center; position: relative; transition: all .2s ease; border: 1px solid #567190; background: #567190;}
+.area-btn { width: 100%; color: #ffffff; border: none; border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 15px; font-weight: 300; display: flex; align-items: center; justify-content: center; position: relative; transition: all .2s ease; border: 1px solid ${document.getElementById('cfg-area-btn-border-val')?.value || '#567190'}; background: ${document.getElementById('cfg-area-btn-bg-val')?.value || '#567190'};}
 .area-btn .arrow { position: absolute; left: 16px; font-size: 11px;}
-.area-btn.open { background: #567190; box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);}
+.area-btn.open { background: ${document.getElementById('cfg-area-btn-bg-val')?.value || '#567190'}; box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);}
 .shop-list { display: none; background: #fff; border-radius: 10px; padding: 10px 12px 5px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);}
 .shop { margin-bottom: 12px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;}
 .shop:last-child { border-bottom: none;}
@@ -2236,7 +2549,7 @@ h3.titleh3.area-box { display: block;}
 .shop-btns { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 10px;}
 .shop-btns button, .shop-btn { flex: 1; height: 33px; line-height: 1.5; border-radius: 8px; font-size: 13px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s ease; font-weight: 100;}
 .shop-btns .shop-btn { background: #fff; color: #000; border: 1.5px solid #444;}
-.shop-btns button:not(.shop-btn) { background: #0E3461; color: #fff; border: none; margin-bottom: 10px;}
+.shop-btns button:not(.shop-btn) { background: ${document.getElementById('cfg-reserve-btn-bg-val')?.value || '#0E3461'}; color: #fff; border: none; margin-bottom: 10px;}
 .shop-btns button:hover { opacity: 0.85;}
 .menu_banners.scrollable { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; margin: 0 0 30px 0; padding: 12px 10px; -webkit-overflow-scrolling: touch; justify-content: flex-start; align-items: flex-start;}
 .menu_banners::-webkit-scrollbar { display: none;}
@@ -2284,7 +2597,7 @@ h3.titleh3.area-box { display: block;}
 .btn-wrap button { flex: 1; margin: 0 4px; border: none; border-radius: 6px; padding: 8px 0; background: #000000; color: #fff; font-weight: bold; font-size: 10px;}
 .area-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 30px 30px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;}
 .area-scroll::-webkit-scrollbar { display: none;}
-.area-banner { flex: 0 0 auto; background: #567190; color: #ffffff; border: none; border-radius: 20px; padding: 7px 20px; font-size: 15px; font-weight: 600; scroll-snap-align: center; transition: all .2s ease; border: 1px solid #ffffff; font-weight: 100;}
+.area-banner { flex: 0 0 auto; background: ${document.getElementById('cfg-area-banner-bg-val')?.value || '#567190'}; color: #ffffff; border: none; border-radius: 20px; padding: 7px 20px; font-size: 15px; font-weight: 600; scroll-snap-align: center; transition: all .2s ease; border: 1px solid #ffffff; font-weight: 100;}
 .area-banner:active { transform: scale(.95); opacity: .85;}
 .city-title { font-size: 16px; font-weight: 700; color: #333; margin: 65px 0 -10px; padding-left: 0; position: relative;}
 .city-title.with-border { margin-top: 50px; padding-top: 20px; border-top: 1px solid #e0e0e0;}
@@ -2412,8 +2725,25 @@ input[type="text"]::-webkit-search-results-decoration {
 
     document.getElementById('out-js').value = jsCode;
     document.getElementById('out-css').value = cssCode;
+    injectLiveCSS(cssCode);
     showToast("配布用コードを正常に生成しました！");
-    
+
+}
+
+/**
+ * 配布用CSSコードの中身（<style>〜</style>）を、このページ自体にもライブ適用する。
+ * ブランドモーダル／エリアモーダルのプレビューが、実際の配布コードと同じ色・見た目になる。
+ */
+function injectLiveCSS(cssCode) {
+    const match = cssCode.match(/<style>([\s\S]*?)<\/style>/);
+    if (!match) return;
+    let style = document.getElementById('injected-live-css');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'injected-live-css';
+        document.head.appendChild(style);
+    }
+    style.textContent = '@scope (#preview-modal-root) {\n' + match[1] + '\n}';
 }
 
 /**
