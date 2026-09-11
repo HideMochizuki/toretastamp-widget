@@ -3488,7 +3488,7 @@ body.stamp_card #sp-fixed-menu .stamp a,
 body.coupon #sp-fixed-menu .ticket a,
 body.change #sp-fixed-menu .user a,
 body.stamp_history #sp-fixed-menu .history a {
-    color: #626262 !important; 
+    color: ${fTxt} !important;
     font-weight: 600;
 }
 #sp-fixed-menu .icon {width: 29px; height: 29px;}
