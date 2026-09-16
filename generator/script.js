@@ -450,6 +450,695 @@ const screens = {
     `,
 };
 
+/* ==========================================================
+   スタンプ詳細ページ パターンB（チケット獲得表示）
+   配布用コードにそのまま出力する固定のスクリプト・CSS
+   ========================================================== */
+const TICKET_FROM_STAMP_SCRIPT = `$(document).ready(function(){
+
+if($('.stamp_image-list2').length === 0) return;
+
+/* ============================================================
+    STEP 1: 「器」だけをページ読み込み直後に【最速】で生成する
+============================================================ */
+const skeletonHtml = \`
+<div class="ticket_list_from_stamp">
+    <h3 class="ticket_list_title">獲得可能チケット</h3>
+    <div id="ticket_dynamic_area">
+        <p class="ticket_none" style="opacity: 0.6; padding: 20px 0;">情報を確認中...</p>
+    </div>
+</div>\`;
+
+// ページ表示直後にタイトル枠だけ出す
+$('.stamp_set').last().after(skeletonHtml);
+
+
+/* ============================================================
+    STEP 2: モーダルHTML（1回だけ追加）
+============================================================ */
+let executed = false;
+const modalHtml = \`
+<div class="ticket_modal_overlay">
+    <div class="ticket_modal">
+    <button class="ticket_modal_close">×</button>
+    <div class="ticket_modal_inner">
+        <div class="ticket_modal_slider"></div>
+        <div class="ticket_modal_dots"></div>
+        <div class="ticket_modal_caption"></div>
+    </div>
+    </div>
+</div>\`;
+$('body').append(modalHtml);
+
+// ▼ クーポンが揃ったか判定する関数
+function couponReady(){
+    return $('.stamp_image-wrapper2[data-coupon]:visible').length > 0;
+}
+
+/* ============================================================
+    STEP 3: 変化を監視して実行（分割処理対応）
+============================================================ */
+const observer = new MutationObserver(()=>{
+    if(!executed && couponReady()){
+        executed = true;
+        observer.disconnect();
+        buildTicketList();
+    }
+});
+
+observer.observe(document.body,{ childList:true, subtree:true });
+
+// ▼ 最悪 DOMが来なかった場合でも3秒後には強制実行
+setTimeout(()=>{
+    if(!executed){
+        executed = true;
+        observer.disconnect();
+        buildTicketList();
+    }
+},3000);
+
+
+/* ============================================================
+    STEP 4: チケットの中身を生成して流し込む処理
+============================================================ */
+function buildTicketList(){
+    // 実際のデータ抽出と計算
+    const $coupons = $('.stamp_image-wrapper2').filter(function(){
+        const coupon = $(this).data('coupon') ?? "";
+        return coupon !== "" && $(this).is(':visible');
+    });
+
+    const currentStamps = $('.stamp_image-wrapper2').filter(function () {
+        const isStampOn = $(this).hasClass('stamp_on_img');
+        const isCouponGet = $(this).data('coupon-status') === 'get';
+        return isStampOn || isCouponGet;
+    }).length;
+
+    const $dynamicArea = $('#ticket_dynamic_area');
+
+    // チケットがない場合の処理
+    if($coupons.length === 0){
+        $dynamicArea.html(\`<p class="ticket_none">このスタンプ帳は獲得できるチケットがありません。</p>\`);
+        return;
+    }
+
+    // リストの中身を構築
+    let listHtml = \`<ul class="ticket_list_ul">\`;
+
+    $coupons.each(function(){
+        const $c = $(this);
+        const couponName = $c.data('coupon');
+        const status     = $c.data('coupon-status');
+        const imgFiles   = ($c.data('img') || "").split(',').map(v=>v.trim()).filter(v=>v);
+        const number     = Number($c.attr('id').replace(/[^\\d]/g,''));
+        const got        = (status === "get");
+        const left       = Math.max(number - currentStamps, 0);
+
+        let badge = '';
+        if(couponName.includes('抽選')) badge = \`<span class="badge badge-lottery">抽選</span>\`;
+        else if(couponName.includes('えらべる')||couponName.includes('選択')) badge=\`<span class="badge badge-select">選択</span>\`;
+
+        const statusText = got
+            ? \`<span class="ticket_status got_label">獲得済み</span>\`
+            : \`スタンプ残り：<b>\${left} 個</b>\`;
+
+        const imgDom = imgFiles.length > 0
+            ? imgFiles.map(img => {
+                const src = img.startsWith('http') ? img :
+                            img.startsWith('default/')
+                            ? \`https://toretastamp-prod.s3.amazonaws.com/media/upload/\${img}\`
+                            : \`https://toretastamp-prod.s3.amazonaws.com/media/upload/stamp/\${img}\`;
+                return \`<img src="\${src}" alt="\${couponName}">\`;
+            }).join('')
+            : \`<img src="https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/Tbq9BQVwgzzA8i5qFYv8.png" alt="ticket">\`;
+
+        listHtml += \`
+        <li class="ticket_list_item\${got?' got':''}\${imgFiles.length>1?' multi':''}" data-name="\${couponName}">
+            <div class="ticket_img">
+                <div class="ticket_img_multi" data-count="\${imgFiles.length}">\${imgDom}</div>
+            </div>
+            <dl class="ticket_info \${imgFiles.length>1?'multi':''}">
+                <dt>\${badge}\${couponName}</dt><dd>\${statusText}</dd>
+            </dl>
+        </li>\`;
+    });
+
+    listHtml += \`</ul>\`;
+
+    // 4. 「確認中...」を消して、リストを流し込む
+    $dynamicArea.hide().html(listHtml).fadeIn(500);
+}
+
+
+/* ============================================================
+    STEP 5: モーダル関連のイベント（変更なし）
+============================================================ */
+$(document).on('click', '.ticket_img_multi', function() {
+    const $imgs = $(this).find('img');
+    const $slider = $('.ticket_modal_slider');
+    const $dots = $('.ticket_modal_dots');
+    const $caption = $('.ticket_modal_caption');
+    const couponName = $(this).closest('.ticket_list_item').data('name');
+
+    let badgeHtml = '';
+    if (couponName.includes('抽選')) badgeHtml = '<span class="badge badge-lottery">抽選</span>';
+    else if (couponName.includes('えらべる') || couponName.includes('選択')) badgeHtml = '<span class="badge badge-select">選択</span>';
+
+    $slider.empty();
+    $dots.empty();
+    $caption.text(couponName);
+
+    $imgs.each(function(i) {
+        const src = $(this).attr('src');
+        const alt = $(this).attr('alt');
+        const active = i === 0 ? 'active' : '';
+        $slider.append(\`
+        <div class="ticket_slide \${active}">
+            <div class="ticket_slide_img">
+            \${badgeHtml}
+            <img src="\${src}" alt="\${alt}">
+            </div>
+        </div>
+        \`);
+        $dots.append(\`<span class="\${i === 0 ? 'active' : ''}" data-index="\${i}"></span>\`);
+    });
+
+    $('.ticket_modal_overlay').fadeIn(200);
+});
+
+$(document).on('click', '.ticket_modal_close, .ticket_modal_overlay', function(e) {
+    if ($(e.target).is('.ticket_modal_overlay, .ticket_modal_close')) {
+        $('.ticket_modal_overlay').fadeOut(200, function() {
+            $('.ticket_modal_slider, .ticket_modal_dots, .ticket_modal_caption').empty();
+        });
+    }
+});
+
+$(document).on('click', '.ticket_modal_dots span', function() {
+    const index = $(this).data('index');
+    $('.ticket_slide').removeClass('active').eq(index).addClass('active');
+    $('.ticket_modal_dots span').removeClass('active').eq(index).addClass('active');
+});
+
+let startX = 0;
+$(document).on('touchstart', '.ticket_modal_slider', e => startX = e.originalEvent.touches[0].clientX);
+$(document).on('touchend', '.ticket_modal_slider', e => {
+    const endX = e.originalEvent.changedTouches[0].clientX;
+    if (startX - endX > 50) {
+        let next = $('.ticket_slide.active').next('.ticket_slide');
+        if (!next.length) next = $('.ticket_slide').first();
+        next.addClass('active').siblings().removeClass('active');
+        const idx = next.index();
+        $('.ticket_modal_dots span').removeClass('active').eq(idx).addClass('active');
+    }
+    if (endX - startX > 50) {
+        let prev = $('.ticket_slide.active').prev('.ticket_slide');
+        if (!prev.length) prev = $('.ticket_slide').last();
+        prev.addClass('active').siblings().removeClass('active');
+        const idx = prev.index();
+        $('.ticket_modal_dots span').removeClass('active').eq(idx).addClass('active');
+    }
+});
+
+});`;
+
+const TICKET_FROM_STAMP_CSS = `
+/* =========================================
+    スタンプページ　チケット情報
+    ========================================= */
+    .ticket_list_from_stamp {
+    border-radius: 15px;
+    background-color: #ffffffc9;
+    margin: 0 20px 20px;
+    padding: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid #32231a;
+    font-family:'Noto Sans JP', sans-serif;
+}
+.ticket_list_title {
+    font-size: 18px;
+    font-weight: 700;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    border-bottom: 3px solid #000000ba;
+    margin-bottom: 25px;
+    margin-top: 10px;
+}
+.ticket_list_ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.ticket_list_item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    position: relative;
+    gap: 12px;
+}
+li.ticket_list_item.multi {
+    margin: 10px 0 0 -2px;
+}
+.ticket_modal .ticket_list_item {
+    display: block;
+}
+.ticket_list_item:last-child {
+    margin-bottom: 0;
+}
+.ticket_img img {
+    width: 80px;
+    height: auto;
+    border-radius: 8px;
+}
+dl.ticket_info {
+    width: 100%;
+    position: relative;
+}
+dl.ticket_info.multi {
+    margin: 0 0 0 72px;
+}
+.ticket_info dt {
+    color: #32231a;
+    font-weight: 700;
+    font-size: 15px;
+    margin: 5px 0 0 0;
+    padding: 25px 0 0 0;
+    line-height:1.4;
+}
+.ticket_info dd {
+    color: #32231a;
+    font-size: 13px;
+    margin: 6px 20px 0 0;
+    text-align: right;
+    font-weight: 500;
+}
+.ticket_none {
+    color: #32231a;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    padding: 0px 0 10px;
+    opacity: 0.9;
+}
+.ticket_list_item.got {
+    opacity: 0.6;
+    position: relative;
+}
+
+.ticket_list_item.got::after {
+    content: "獲得済";
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    padding: 5px 8px;
+    position: absolute;
+    top: 50%;
+    left: 40px;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+}
+
+/* =========================================
+    チケット一覧　タブ
+    ========================================= */
+    .ticket_tab_menu {
+    display: flex;
+    background-color: #ffffff33;
+    margin: 0px 0 20px;
+    border-bottom: 1.5px solid #e1e1e1;
+    align-items: stretch;
+}
+.ticket_tab_btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: #32231A;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 8px 0;
+    transition: background 0.2s ease;
+    font-weight: 300;
+}
+
+.ticket_tab_btn.active {
+    background-color: transparent;
+    color: #333;
+    border-bottom: 7px solid #333;
+    margin-top: 0;
+    padding: 0 0 0px 0;
+    font-weight: 600;
+}
+/* =============================
+▼ チケット画像全体レイアウト
+============================= */
+.ticket_modal .ticket_img {
+position: relative;
+display: inline-block;
+vertical-align: middle;
+margin-right: 20px;
+}
+
+/* =============================
+▼ 通常1枚画像
+============================= */
+.ticket_modal .ticket_img_multi[data-count="1"] {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+}
+.ticket_img_multi[data-count="1"] img {
+width: 85px;
+height: auto;
+border-radius: 0px;
+}
+
+/* =============================
+▼ 複数チケット画像（重なりあり）
+============================= */
+.ticket_modal .ticket_img_multi {
+position: relative;
+display: inline-block;
+width: 70px;
+height: 70px;
+vertical-align: middle;
+}
+
+/* ▼ 2枚重ね */
+.ticket_img_multi[data-count="2"] img:nth-child(1) {
+position: absolute;
+z-index: 2;
+top: 0;
+left: 0;
+width: 65px;
+border-radius: 0px;
+border: 1px solid #ddd;
+}
+.ticket_img_multi[data-count="2"] img:nth-child(2) {
+position: absolute;
+z-index: 1;
+top: 6px;
+left: 6px;
+width: 65px;
+border-radius: 0px;
+border: 1px solid #ddd;
+}
+
+/* ▼ 3枚重ね */
+.ticket_img_multi[data-count="3"] img:nth-child(1) {
+position: absolute;
+z-index: 3;
+top: 0;
+left: 0;
+width: 63px;
+}
+.ticket_img_multi[data-count="3"] img:nth-child(2) {
+position: absolute;
+z-index: 2;
+top: 6px;
+left: 6px;
+width: 63px;
+}
+.ticket_img_multi[data-count="3"] img:nth-child(3) {
+position: absolute;
+z-index: 1;
+top: 12px;
+left: 12px;
+width: 63px;
+}
+
+/* ▼ 4枚重ね */
+.ticket_img_multi[data-count="4"] img:nth-child(1) {
+position: absolute;
+z-index: 4;
+top: 0;
+left: 0;
+width: 60px;
+}
+.ticket_img_multi[data-count="4"] img:nth-child(2) {
+position: absolute;
+z-index: 3;
+top: 5px;
+left: 5px;
+width: 60px;
+}
+.ticket_img_multi[data-count="4"] img:nth-child(3) {
+position: absolute;
+z-index: 2;
+top: 10px;
+left: 10px;
+width: 60px;
+}
+.ticket_img_multi[data-count="4"] img:nth-child(4) {
+position: absolute;
+z-index: 1;
+top: 15px;
+left: 15px;
+width: 60px;
+}
+
+/* =============================
+▼ 選択／抽選ラベル
+============================= */
+.badge {
+position: absolute;
+top: 10px;
+left: 0;
+display: inline-block;
+font-size: 10.5px;
+font-weight: 700;
+padding: 2px 7px;
+border-radius: 5px;
+color: #fff;
+line-height: 1.1;
+box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+z-index: 20;
+}
+.badge-lottery {
+background-color: #c10003;
+}
+.badge-select {
+background-color: #f6a700;
+}
+
+/* =============================
+▼ スマホ対応
+============================= */
+@media (max-width: 600px) {
+.ticket_modal .ticket_img_multi[data-count="1"] img,
+.ticket_modal .ticket_img_multi[data-count="2"] img,
+.ticket_modal .ticket_img_multi[data-count="3"] img,
+.ticket_modal .ticket_img_multi[data-count="4"] img {
+width: 70px;
+}
+
+.ticket_modal .ticket_img {
+margin-right: 15px;
+}
+}
+
+/* =============================
+▼ チケットモーダル（ドット付）
+============================= */
+.ticket_modal_overlay {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.6);
+display: none;                 /* ✅ 最初は非表示 */
+justify-content: center;
+align-items: center;
+z-index: 9999;
+}
+
+.ticket_modal {
+background: #fff;
+border-radius: 20px;
+padding: 20px 25px 15px;
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 320px;
+max-width: 95%;
+text-align: center;
+box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+animation: fadeInModal 0.25s ease;
+}
+
+@keyframes fadeInModal {
+from {
+transform: translate(-50%, -50%) scale(0.95);  /* ← 位置と拡大を同時に指定 */
+opacity: 0;
+}
+to {
+transform: translate(-50%, -50%) scale(1);     /* ← 中央位置を維持したまま拡大 */
+opacity: 1;
+}
+}
+
+.ticket_modal_close {
+    position: absolute;
+    top: -17px;
+    right: -17px;
+    background: #000000;
+    border: 2px solid #000000;
+    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 33px;
+    line-height: 36px;
+    text-align: center;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0 0 6px 0;
+}
+/* 画像スライド */
+.ticket_modal_slider {
+position: relative;
+overflow: hidden;
+margin-bottom: 10px;
+}
+.ticket_slide {
+display: none;
+}
+.ticket_slide.active {
+display: block;
+}
+.ticket_slide_img {
+position: relative;
+}
+.ticket_slide_img img {
+width: 100%;
+height: auto;
+border-radius: 10px;
+}
+
+/* バッジ（選択・抽選） */
+.ticket_slide_img .badge {
+position: absolute;
+top: 6px;
+left: 6px;
+font-size: 15px;
+font-weight: 700;
+padding: 3px 8px;
+border-radius: 6px;
+color: #fff;
+box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.badge-lottery { background-color: #c10003; }
+.badge-select { background-color: #f6a700; }
+
+/* ドットインジケーター */
+.ticket_modal_dots {
+display: flex;
+justify-content: center;
+gap: 6px;
+margin: 8px 0 4px;
+}
+.ticket_modal_dots span {
+display: inline-block;
+width: 8px;
+height: 8px;
+border-radius: 50%;
+background: #ccc;
+transition: background 0.2s;
+cursor: pointer;
+}
+.ticket_modal_dots span.active {
+background: #444;
+}
+
+/* キャプション */
+.ticket_modal_caption {
+font-weight: 700;
+font-size: 14px;
+color: #32231a;
+margin-top: 15px;
+line-height: 1.4;
+}
+li.ticket_list_item .ticket_img_multi::after {
+    content: "＋";
+    z-index: 10;
+    border: 2px solid #444444;
+    border-radius: 100%;
+    font-size: 15px;
+    width: 25px;
+    height: 25px;
+    font-weight: 800;
+    left: -5px;
+    position: absolute;
+    /* bottom: 7px; */
+    top: 0;
+    background-color: #fffffff5;
+    color: #444444;
+    display: flex;
+    font-family: 'Noto Sans JP', sans-serif;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-top: 2px;
+}
+
+/* =============================
+▼ チケット獲得スタンプ（プレゼントアイコン）
+============================= */
+.stamp_image-list2 li.stamp_image-wrapper2.get_coupon::before {
+    content: "";
+    width: 40%;
+    height: 40%;
+    background-image: url(https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/jPMZk1GCUUFKBlpEslUG.png);
+    background-position: center;
+    background-size: contain;
+    z-index: 10;
+    position: absolute;
+    bottom: 5%;
+    right: 5%;
+    background-repeat: no-repeat;
+    opacity: 0.8;
+}`;
+
+/* プレビュー用：実データが無いので、チケット一覧画面と同じサンプルチケットを流用して見た目だけ再現する */
+function buildTicketFromStampPreviewHtml() {
+    const samples = [
+        {
+            name: 'お好きなピザプレゼント',
+            img: 'https://toretastamp-stg.s3.amazonaws.com/media/upload/stamp/j25fdwy2uJ1ykNwKelCg.png',
+            got: true
+        },
+        {
+            name: '選べるフードチケット（ドリンク1杯無料！）',
+            img: 'img/09_ticketdrink.png',
+            got: false,
+            left: 2,
+            badge: '<span class="badge badge-select">選択</span>'
+        }
+    ];
+
+    const items = samples.map(s => `
+        <li class="ticket_list_item${s.got ? ' got' : ''}" data-name="${s.name}">
+            <div class="ticket_img">
+                <div class="ticket_img_multi" data-count="1"><img src="${s.img}" alt="${s.name}"></div>
+            </div>
+            <dl class="ticket_info">
+                <dt>${s.badge || ''}${s.name}</dt>
+                <dd>${s.got ? '<span class="ticket_status got_label">獲得済み</span>' : `スタンプ残り：<b>${s.left} 個</b>`}</dd>
+            </dl>
+        </li>`).join('');
+
+    return `
+        <div class="ticket_list_from_stamp">
+            <h3 class="ticket_list_title">獲得可能チケット</h3>
+            <div id="ticket_dynamic_area">
+                <ul class="ticket_list_ul">${items}</ul>
+            </div>
+        </div>`;
+}
+
 const menuList = document.getElementById('menu-list');
 const previewUl = document.getElementById('preview-ul');
 
@@ -1525,6 +2214,23 @@ function applyCurrentDesignToMock() {
     // --- スタンプ詳細ページCSS ---
     if (mock.dataset.currentScreen === 'stamp_details' && typeof getStampDetailsCSS === 'function') {
         finalCSS += getStampDetailsCSS();
+    }
+
+    // --- スタンプ詳細ページ パターンB（チケット獲得表示）のプレビュー ---
+    if (mock.dataset.currentScreen === 'stamp_details') {
+        const sdPattern = document.querySelector('input[name="stamp-detail-pattern"]:checked')?.value || 'A';
+        const existingTicketFromStamp = mock.querySelector('.ticket_list_from_stamp');
+        if (sdPattern === 'B') {
+            finalCSS += `\n@scope (.mock-screen) {\n${TICKET_FROM_STAMP_CSS}\n}`;
+            // 管理画面側の共通 .badge スタイル（カードラベル用）が漏れて位置崩れするのを、プレビュー内だけ打ち消す
+            finalCSS += `\n.mock-screen .ticket_list_from_stamp .badge,\n.mock-screen .ticket_modal .badge {\n    margin: 0;\n    letter-spacing: normal;\n    right: auto;\n}`;
+            if (!existingTicketFromStamp) {
+                const stampSet = mock.querySelector('.stamp_set');
+                if (stampSet) stampSet.insertAdjacentHTML('afterend', buildTicketFromStampPreviewHtml());
+            }
+        } else if (existingTicketFromStamp) {
+            existingTicketFromStamp.remove();
+        }
     }
 
     // チケット一覧ページCSS
@@ -3407,6 +4113,12 @@ if (ticketTabLogic) {
     scriptInnerContent += ticketTabLogic + "\n";
 }
 
+// スタンプ詳細ページ パターンB（チケット獲得表示）
+const stampDetailPattern = document.querySelector('input[name="stamp-detail-pattern"]:checked')?.value || 'A';
+if (stampDetailPattern === 'B') {
+    scriptInnerContent += TICKET_FROM_STAMP_SCRIPT + "\n";
+}
+
 // 2. フッター または SNS があれば window.onload を追加
 if (footerJS || snsInsertJS) {
     scriptInnerContent += `
@@ -3440,6 +4152,7 @@ ${btnAreaOutput}
 ${patternCSS}
 ${stampPageCSS}
 ${stampDetailsCSS}
+${stampDetailPattern === 'B' ? TICKET_FROM_STAMP_CSS : ''}
 ${pageBtnCSS}
 ${noticeCSS}
 ${ticketPageCSS}
@@ -3801,7 +4514,8 @@ function loadFromLocal() {
             key === 'list-pattern' ||
             key === 'notice-pattern' ||
             key === 'sns-position' ||
-            key === 'ticket-pattern') {
+            key === 'ticket-pattern' ||
+            key === 'stamp-detail-pattern') {
             
             const val = settings[key];
             const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);

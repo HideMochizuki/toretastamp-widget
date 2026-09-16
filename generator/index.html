@@ -45,7 +45,7 @@
         </nav>
 
         <div style="position: absolute; bottom: 20px; left: 20px; color: #475569; font-size: 10px;">
-            ver 2.0.0
+            ver 3.0.0
         </div>
     </div>
  
@@ -773,7 +773,18 @@
                 <h2 class="card-title">スタンプ詳細ページ</h2>
                 <span class="badge stamp">スタンプ</span>
                 <div class="card full-width">
-                    
+
+                    <div class="card-sub-title">表示パターン選択</div>
+                    <div class="form-row" style="margin-bottom: 30px;">
+                        <div class="form-label-side">詳細ページ表示形式</div>
+                        <div class="form-input-side">
+                            <div class="radio-group" style="display: flex; gap: 20px;">
+                                <label class="check-label"><input type="radio" name="stamp-detail-pattern" value="A" checked onchange="updatePreview()"> パターンA (標準)</label>
+                                <label class="check-label"><input type="radio" name="stamp-detail-pattern" value="B" onchange="updatePreview()"> パターンB (チケット獲得表示)</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card-sub-title">全体枠設定 (.stamp_set)</div>
                     <div class="sub-config-box" style="margin-top: 0; margin-bottom: 30px;">
                         <div class="form-row">
