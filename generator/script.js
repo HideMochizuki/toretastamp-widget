@@ -2228,8 +2228,35 @@ function applyCurrentDesignToMock() {
                 const stampSet = mock.querySelector('.stamp_set');
                 if (stampSet) stampSet.insertAdjacentHTML('afterend', buildTicketFromStampPreviewHtml());
             }
-        } else if (existingTicketFromStamp) {
-            existingTicketFromStamp.remove();
+            // 3つ目のスタンプ画像に、チケット獲得アイコンをオーバーレイ表示する
+            const stampWrapper = mock.querySelector('.stamp_wrapper');
+            if (stampWrapper && !stampWrapper.querySelector('.stamp-get-coupon-preview')) {
+                const thirdImg = stampWrapper.querySelectorAll('img')[2];
+                if (thirdImg) {
+                    const wrapper = document.createElement('span');
+                    wrapper.className = 'stamp-get-coupon-preview';
+                    wrapper.style.cssText = 'position:relative; display:inline-block; width:25%; vertical-align:top;';
+                    thirdImg.parentNode.insertBefore(wrapper, thirdImg);
+                    thirdImg.style.width = '100%';
+                    wrapper.appendChild(thirdImg);
+
+                    const icon = document.createElement('span');
+                    icon.className = 'stamp-get-coupon-icon';
+                    icon.style.cssText = 'content:""; display:block; width:40%; height:40%; background-image:url(https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/jPMZk1GCUUFKBlpEslUG.png); background-position:center; background-size:contain; background-repeat:no-repeat; z-index:10; position:absolute; bottom:5%; right:5%; opacity:0.8;';
+                    wrapper.appendChild(icon);
+                }
+            }
+        } else {
+            if (existingTicketFromStamp) existingTicketFromStamp.remove();
+            const wrapper = mock.querySelector('.stamp-get-coupon-preview');
+            if (wrapper) {
+                const img = wrapper.querySelector('img');
+                if (img) {
+                    img.style.width = '25%';
+                    wrapper.parentNode.insertBefore(img, wrapper);
+                }
+                wrapper.remove();
+            }
         }
     }
 
