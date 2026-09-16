@@ -302,6 +302,22 @@
                         </div>
 
                         <div class="sub-config-box">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">見出しテキスト</p>
+                            <div class="form-row">
+                                <div class="form-label-side">BRANDバナー見出し</div>
+                                <div class="form-input-side">
+                                    <input type="text" id="cfg-brand-heading-text" value="BRAND" style="width: 160px;">
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">ブランド選択画面見出し</div>
+                                <div class="form-input-side">
+                                    <input type="text" id="cfg-brand-selection-heading-text" value="BRAND SELECTION" style="width: 160px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-config-box">
                             <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">menuボタン（店舗一覧）</p>
                             <div class="form-row" style="margin-bottom: 0;">
                                 <div class="form-label-side">ボタン文字</div>
@@ -500,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyButtonColorSettings();
 
     // ボタン文字（menu／RESERVATION）変更時に、店舗一覧・配布コードへ即反映
-    ['cfg-menu-btn-text', 'cfg-reserve-btn-text'].forEach(id => {
+    ['cfg-menu-btn-text', 'cfg-reserve-btn-text', 'cfg-brand-heading-text', 'cfg-brand-selection-heading-text'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
             if (window.brandData) { renderPreviewUI(); generateOutputCode(); }
@@ -580,7 +596,7 @@ const SHOP_FIELD_IDS = [
     'cfg-brand-data', 'cfg-shop-data',
     'cfg-area-banner-bg-val', 'cfg-modal-link-bg-val', 'cfg-modal-link-border-val',
     'cfg-reserve-btn-bg-val', 'cfg-modal-close-bg-val', 'cfg-area-btn-bg-val', 'cfg-area-btn-border-val',
-    'cfg-menu-btn-text', 'cfg-reserve-btn-text'
+    'cfg-menu-btn-text', 'cfg-reserve-btn-text', 'cfg-brand-heading-text', 'cfg-brand-selection-heading-text'
 ];
 
 function getShopAllSettings() {
@@ -888,7 +904,7 @@ function renderPreviewUI() {
 
     // B. BRANDバナー
     if (config.brandBoxSwitch == 1 && Object.keys(window.brandData).length >= config.brandBoxThreshold) {
-        html += `<h3 class="titleh3 brand-box">BRAND</h3><div class="menu_banners scrollable">`;
+        html += `<h3 class="titleh3 brand-box">${document.getElementById('cfg-brand-heading-text')?.value || 'BRAND'}</h3><div class="menu_banners scrollable">`;
         Object.keys(window.brandData).forEach(key => {
             const b = window.brandData[key];
             html += `<a href="#" class="menu_banner clickable" data-brand="${key}"><div class="logo-box"><img src="${b.logo}" alt="${b.name}"></div><span>${b.name}</span></a>`;
@@ -1924,7 +1940,7 @@ else {
         $('.menu_banners').remove();
 
         const banners = \`
-            <h3 class="titleh3 brand-box">BRAND</h3>
+            <h3 class="titleh3 brand-box">${document.getElementById('cfg-brand-heading-text')?.value || 'BRAND'}</h3>
             <div class="menu_banners scrollable">
             \${Object.keys(brandData)
                 .map(k => {
@@ -2094,7 +2110,7 @@ else {
         const selectHtml = \`
             <div class="nearby-placeholder"></div> 
             <div class="brand-selection-section" style="margin-top:30px;">
-                <h4 class="nearby-section-h4">BRAND SELECTION</h4>
+                <h4 class="nearby-section-h4">${document.getElementById('cfg-brand-selection-heading-text')?.value || 'BRAND SELECTION'}</h4>
                 <div class="brand-select-grid">
                     \${Object.keys(brandData).map(k => {
                         const b = brandData[k];
