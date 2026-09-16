@@ -240,7 +240,7 @@
                 </div>
 
                 <div class="card-wrapper">
-                    <h2 class="card-title">ボタンの色</h2>
+                    <h2 class="card-title">ボタン設定</h2>
                     <span class="badge all" style="background-color: #f1f5f9; color: #475569;">デザイン設定</span>
 
                     <div class="card full-width">
@@ -302,14 +302,30 @@
                         </div>
 
                         <div class="sub-config-box">
-                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">予約ボタン（店舗一覧）</p>
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">menuボタン（店舗一覧）</p>
                             <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">ボタン文字</div>
+                                <div class="form-input-side">
+                                    <input type="text" id="cfg-menu-btn-text" value="menu" style="width: 160px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sub-config-box">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">予約ボタン（店舗一覧）</p>
+                            <div class="form-row">
                                 <div class="form-label-side">背景色</div>
                                 <div class="form-input-side">
                                     <div class="color-picker-group">
                                         <input type="color" id="cfg-reserve-btn-bg" value="#0E3461">
                                         <input type="text" id="cfg-reserve-btn-bg-val" value="#0E3461">
                                     </div>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">ボタン文字</div>
+                                <div class="form-input-side">
+                                    <input type="text" id="cfg-reserve-btn-text" value="RESERVATION" style="width: 160px;">
                                 </div>
                             </div>
                         </div>
@@ -483,6 +499,14 @@ document.addEventListener('DOMContentLoaded', () => {
     ].forEach(pair => setupButtonColorSync(pair[0], pair[1]));
     applyButtonColorSettings();
 
+    // ボタン文字（menu／RESERVATION）変更時に、店舗一覧・配布コードへ即反映
+    ['cfg-menu-btn-text', 'cfg-reserve-btn-text'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+            if (window.brandData) { renderPreviewUI(); generateOutputCode(); }
+        });
+    });
+
     // BRANDバナー／エリアボタンのクリックでモーダルプレビューを開く
     document.getElementById('store-preview-screen').addEventListener('click', (e) => {
         const brandEl = e.target.closest('.menu_banner');
@@ -555,7 +579,8 @@ const SHOP_FIELD_IDS = [
     'cfg-area-sw', 'cfg-area-thr', 'cfg-shoplist-sw',
     'cfg-brand-data', 'cfg-shop-data',
     'cfg-area-banner-bg-val', 'cfg-modal-link-bg-val', 'cfg-modal-link-border-val',
-    'cfg-reserve-btn-bg-val', 'cfg-modal-close-bg-val', 'cfg-area-btn-bg-val', 'cfg-area-btn-border-val'
+    'cfg-reserve-btn-bg-val', 'cfg-modal-close-bg-val', 'cfg-area-btn-bg-val', 'cfg-area-btn-border-val',
+    'cfg-menu-btn-text', 'cfg-reserve-btn-text'
 ];
 
 function getShopAllSettings() {
@@ -657,8 +682,8 @@ function extractPreviewCity(address) {
 
 function previewShopCardHTML(s) {
     const btns = [];
-    if (s.menu) btns.push('<button class="shop-btn">menu</button>');
-    if (s.reserve) btns.push('<button class="reserve-btn">RESERVATION</button>');
+    if (s.menu) btns.push(`<button class="shop-btn">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>`);
+    if (s.reserve) btns.push(`<button class="reserve-btn">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>`);
     return `
         <div class="shop">
             <p class="shop-name"><strong>${s.name}</strong></p>
@@ -929,8 +954,8 @@ function renderPreviewUI() {
                         <p class="tel" style="margin:5px 0;"><a href="tel:${s.tel}" style="color:#333; text-decoration:none; font-size:14px;">📞 ${s.tel}</a></p>
                         ${s.hours ? `<p class="shop-hours" style="background:#f0f0f0; border-radius:7px; padding:10px; font-size:10px; line-height:1.5; margin:10px 0;">${s.hours}</p>` : ''}
                         <div class="shop-btns" style="display:flex; gap:10px; margin-top:10px;">
-                            ${s.menu ? `<button class="shop-btn" style="flex:1; height:33px; border:1.5px solid #444; background:#fff; border-radius:8px; font-size:13px;">menu</button>` : ''}
-                            ${s.reserve ? `<button class="reserve-btn" style="flex:1; height:33px; background:#f08519; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:bold;">RESERVATION</button>` : ''}
+                            ${s.menu ? `<button class="shop-btn" style="flex:1; height:33px; border:1.5px solid #444; background:#fff; border-radius:8px; font-size:13px;">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>` : ''}
+                            ${s.reserve ? `<button class="reserve-btn" style="flex:1; height:33px; background:#f08519; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:bold;">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>` : ''}
                         </div>
                     </div>
                 </div>`;
@@ -1502,12 +1527,12 @@ else {
             <div class="shop-btns">
                 \${
                 s.menu
-                    ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\`
+                    ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>\`
                     : ''
                 }
                 \${
                 s.reserve
-                    ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\`
+                    ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>\`
                     : ''
                 }
             </div>
@@ -1561,8 +1586,8 @@ else {
                     <p class="tel">\${telLink(s.tel)}</p>
                     <p class="distance">\${nearestText}</p>
                     <div class="btn-wrap">
-                    \${s.menu ? \`<button class="menu-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : ''}
-                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : ''}
+                    \${s.menu ? \`<button class="menu-btn" onclick="window.open('\${s.menu}','_blank')">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>\` : ''}
+                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>\` : ''}
                     </div>
                 </div>
                 </div>
@@ -1722,8 +1747,8 @@ else {
                                 \${shop.tel ? \`<p><a href="tel:\${shop.tel.replace(/-/g, '')}" class="tel-link"><i class="fa-solid fa-phone"></i> \${shop.tel}</a></p>\` : ""}
                                 \${shop.hours ? \`<p class="shop-hours">\${shop.hours}</p>\` : ""}
                                 <div class="shop-btns">
-                                    \${shop.menu ? \`<button class="shop-btn" onclick="window.open('\${shop.menu}','_blank')">menu</button>\` : ""}
-                                    \${shop.reserve ? \`<button class="reserve-btn" onclick="window.open('\${shop.reserve}','_blank')">RESERVATION</button>\` : ""}
+                                    \${shop.menu ? \`<button class="shop-btn" onclick="window.open('\${shop.menu}','_blank')">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>\` : ""}
+                                    \${shop.reserve ? \`<button class="reserve-btn" onclick="window.open('\${shop.reserve}','_blank')">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>\` : ""}
                                 </div>
                                 \${nearestStationText ? \`<p class="nearest-station">\${nearestStationText}</p>\` : ""}
                                 <iframe src="\${mapUrl}" loading="lazy" allowfullscreen
@@ -2030,8 +2055,8 @@ else {
                 <p>\${telLink(s.tel)}</p>
                 \${s.hours ? \`<p class="shop-hours">\${s.hours}</p>\` : ""}
                 <div class="shop-btns">
-                    \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : \`\`}
-                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : \`\`}
+                    \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>\` : \`\`}
+                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>\` : \`\`}
                 </div>
                     <div style="font-size: 12px; text-align: right; margin: 0 10px 0 0px; font-weight: 700; color: #333;">詳細 →</div>
                 </div>
@@ -2371,8 +2396,8 @@ else {
                         <p><i class="fa-solid fa-phone"></i> \${s.tel ? \`<a href="tel:\${s.tel.replace(/-/g,'')}" class="tel-link">\${s.tel}</a>\` : \'\'}</p>
                         \${s.hours ? \`<p class="shop-hours">\${s.hours}</p>\` : \'\'}
                         <div class="shop-btns">
-                            \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">menu</button>\` : \'\'}
-                            \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">RESERVATION</button>\` : ''}
+                            \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}','_blank')">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>\` : \'\'}
+                            \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}','_blank')">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>\` : ''}
                         </div>
                     </div>
                 </div>
@@ -2537,8 +2562,8 @@ else {
                                 <p>\${s.tel ? \`<a href="tel:\${s.tel.replace(/-/g,'')}" class="tel-link">\${s.tel}</a>\` : \'\'}</p>
                                 \${s.hours ? \`<p class="shop-hours">\${s.hours}</p>\` : \'\'}
                                 <div class="shop-btns">
-                                    \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}', '_blank')">menu</button>\` : \'\'}
-                                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}', '_blank')">RESERVATION</button>\` : \'\'}
+                                    \${s.menu ? \`<button class="shop-btn" onclick="window.open('\${s.menu}', '_blank')">${document.getElementById('cfg-menu-btn-text')?.value || 'menu'}</button>\` : \'\'}
+                                    \${s.reserve ? \`<button class="reserve-btn" onclick="window.open('\${s.reserve}', '_blank')">${document.getElementById('cfg-reserve-btn-text')?.value || 'RESERVATION'}</button>\` : \'\'}
                                 </div>
                             </div>
                         \`;
