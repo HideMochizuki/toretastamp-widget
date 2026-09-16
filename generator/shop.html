@@ -40,9 +40,17 @@
         #store-preview-screen .shop-btn { background: #fff !important; color: #444 !important; border: 1px solid #444 !important; }
         #store-preview-screen .reserve-btn { font-size: 7px; background: var(--reserve-btn-bg, #0E3461) !important; color: #fff !important; border: none;}
         .mock-screen a span { font-size: 8px; color: #000; text-align: center;}
-        #store-preview-screen .menu_banners.scrollable, 
+        #store-preview-screen .menu_banners.scrollable,
         #store-preview-screen .area-scroll {
             display: flex !important; overflow-x: auto !important; gap: 12px !important; padding: 10px 15px !important; -webkit-overflow-scrolling: touch;
+        }
+        #store-preview-screen .shop-search-title,
+        #store-preview-screen .shop-search-box,
+        #store-preview-screen .brand-box,
+        #store-preview-screen .menu_banners.scrollable,
+        #store-preview-screen .area-box,
+        #store-preview-screen .area-scroll {
+            background: var(--shop-info-area-bg, #FFFFFF) !important;
         }
         #store-preview-screen .area-banner {
             flex: 0 0 auto !important; background: var(--area-banner-bg, #567190) !important; color: #ffffff !important; border: 1px solid #ffffff !important; border-radius: 20px !important; padding: 5px 15px !important; font-size: 13px !important;
@@ -240,11 +248,25 @@
                 </div>
 
                 <div class="card-wrapper">
-                    <h2 class="card-title">ボタン設定</h2>
+                    <h2 class="card-title">UI設定</h2>
                     <span class="badge all" style="background-color: #f1f5f9; color: #475569;">デザイン設定</span>
 
                     <div class="card full-width">
                         <div class="sub-config-box" style="margin-top: 0;">
+                            <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">店舗情報エリア</p>
+                            <div class="form-row" style="margin-bottom: 0;">
+                                <div class="form-label-side">背景色</div>
+                                <div class="form-input-side">
+                                    <div class="color-picker-group">
+                                        <input type="color" id="cfg-shop-info-area-bg" value="#FFFFFF">
+                                        <input type="text" id="cfg-shop-info-area-bg-val" value="#FFFFFF">
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">※店舗検索・BRANDバナー・エリア一覧の背景色（まとめて変更されます）</p>
+                        </div>
+
+                        <div class="sub-config-box">
                             <p class="column-label" style="font-size: 13px; margin-bottom: 20px; font-weight: bold; color: #64748b;">エリアボタン</p>
                             <div class="form-row">
                                 <div class="form-label-side">背景色</div>
@@ -487,6 +509,7 @@ function applyButtonColorSettings() {
     document.documentElement.style.setProperty('--modal-link-border', getV('cfg-modal-link-border-val') || '#043161');
     document.documentElement.style.setProperty('--reserve-btn-bg', getV('cfg-reserve-btn-bg-val') || '#0E3461');
     document.documentElement.style.setProperty('--modal-close-bg', getV('cfg-modal-close-bg-val') || '#043161');
+    document.documentElement.style.setProperty('--shop-info-area-bg', getV('cfg-shop-info-area-bg-val') || '#FFFFFF');
 }
 
 const setupButtonColorSync = (p, t) => {
@@ -505,6 +528,7 @@ const setupButtonColorSync = (p, t) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     [
+        ['cfg-shop-info-area-bg', 'cfg-shop-info-area-bg-val'],
         ['cfg-area-banner-bg', 'cfg-area-banner-bg-val'],
         ['cfg-modal-link-bg', 'cfg-modal-link-bg-val'],
         ['cfg-modal-link-border', 'cfg-modal-link-border-val'],
@@ -594,6 +618,7 @@ const SHOP_FIELD_IDS = [
     'cfg-main-sw', 'cfg-search-sw', 'cfg-search-thr', 'cfg-brand-sw', 'cfg-brand-thr',
     'cfg-area-sw', 'cfg-area-thr', 'cfg-shoplist-sw',
     'cfg-brand-data', 'cfg-shop-data',
+    'cfg-shop-info-area-bg-val',
     'cfg-area-banner-bg-val', 'cfg-modal-link-bg-val', 'cfg-modal-link-border-val',
     'cfg-reserve-btn-bg-val', 'cfg-modal-close-bg-val', 'cfg-area-btn-bg-val', 'cfg-area-btn-border-val',
     'cfg-menu-btn-text', 'cfg-reserve-btn-text', 'cfg-brand-heading-text', 'cfg-brand-selection-heading-text'
@@ -2209,7 +2234,7 @@ else {
                 if (history.length === 0) return $results.empty();
 
                 let html = \`
-                    <div class="search-history-area" style="margin: 0px 0 20px;padding:15px;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                    <div class="search-history-area" style="margin: 0px;padding:15px;background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
                         <p style="font-size:11px;color:#888;margin-bottom:10px;text-align: left;"><i class="fa-solid fa-clock-rotate-left"></i> 最近の検索履歴</p>
                         <div style="display:flex; flex-wrap:wrap; gap:8px;">
                             \${history.map(word => \`
@@ -2672,11 +2697,11 @@ $(document).on('click', '.clear-icon', function () {
 .modal-header-link { text-align: right; margin: 0 0 20px; width: 100%;}
 .modal-header-link a { font-size: 12px; color: #fff; transition: opacity 0.2s; border: 1px solid ${document.getElementById('cfg-modal-link-border-val')?.value || '#043161'}; padding: 6px 15px; border-radius: 30px; font-weight: 100; margin-right: 10px; background-color: ${document.getElementById('cfg-modal-link-bg-val')?.value || '#043161'};}
 .modal-header-link a:hover { opacity: 0.7;}
-h3.titleh3.brand-box { display: block;}
+h3.titleh3.brand-box { display: block; padding: 10px 20px 15px; background: ${document.getElementById('cfg-shop-info-area-bg-val')?.value || '#FFFFFF'};}
 .brand-logo-area { position: relative; width: 100%; height: 180px; background-size: cover; background-position: center bottom; border-radius: 0; overflow: visible; margin: 10px 0 50px; box-shadow: 0 3px 10px rgba(0,0,0,0.15) ; border-radius: 15px 15px 0 0;}
 .brand-logo-circle { position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2;}
 .brand-logo-title { width: 70%; height: 70%; object-fit: contain;}
-h3.titleh3.area-box { display: block;}
+h3.titleh3.area-box { display: block; background: ${document.getElementById('cfg-shop-info-area-bg-val')?.value || '#FFFFFF'};}
 .area-section h4 { font-size: 18px; font-weight: 700; color: #333; margin: 10px 0 8px 5px;}
 .area-section { padding: 0 30px;}
 .area-btn { width: 100%; color: #ffffff; border: none; border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 15px; font-weight: 300; display: flex; align-items: center; justify-content: center; position: relative; transition: all .2s ease; border: 1px solid ${document.getElementById('cfg-area-btn-border-val')?.value || '#567190'}; background: ${document.getElementById('cfg-area-btn-bg-val')?.value || '#567190'};}
@@ -2699,7 +2724,7 @@ h3.titleh3.area-box { display: block;}
 .shop-btns .shop-btn { background: #fff; color: #000; border: 1.5px solid #444;}
 .shop-btns button:not(.shop-btn) { background: ${document.getElementById('cfg-reserve-btn-bg-val')?.value || '#0E3461'}; color: #fff; border: none; margin-bottom: 10px;}
 .shop-btns button:hover { opacity: 0.85;}
-.menu_banners.scrollable { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; margin: 0 0 30px 0; padding: 12px 10px; -webkit-overflow-scrolling: touch; justify-content: flex-start; align-items: flex-start;}
+.menu_banners.scrollable { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; margin: 0; padding: 12px 10px 20px; -webkit-overflow-scrolling: touch; justify-content: flex-start; align-items: flex-start; background: ${document.getElementById('cfg-shop-info-area-bg-val')?.value || '#FFFFFF'};}
 .menu_banners::-webkit-scrollbar { display: none;}
 .menu_banners::before { content: ""; flex: 0 0 0px;}
 .menu_banner { flex: 0 0 auto; width: 110px; text-align: center; scroll-snap-align: center; text-decoration: none; color: #333; transition: transform .2s ease;}
@@ -2743,7 +2768,7 @@ h3.titleh3.area-box { display: block;}
 .tel-link { color: #333; text-decoration: none;}
 .btn-wrap { display: flex; justify-content: space-between; margin-top: 8px;}
 .btn-wrap button { flex: 1; margin: 0 4px; border: none; border-radius: 6px; padding: 8px 0; background: #000000; color: #fff; font-weight: bold; font-size: 10px;}
-.area-scroll { display: flex; overflow-x: auto; gap: 10px; padding: 10px 30px 30px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;}
+.area-scroll { display: flex; overflow-x: auto; gap: 10px; margin: 0 0 20px; padding: 10px 30px 30px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; background: ${document.getElementById('cfg-shop-info-area-bg-val')?.value || '#FFFFFF'};}
 .area-scroll::-webkit-scrollbar { display: none;}
 .area-banner { flex: 0 0 auto; background: ${document.getElementById('cfg-area-banner-bg-val')?.value || '#567190'}; color: #ffffff; border: none; border-radius: 20px; padding: 7px 20px; font-size: 15px; font-weight: 600; scroll-snap-align: center; transition: all .2s ease; border: 1px solid #ffffff; font-weight: 100;}
 .area-banner:active { transform: scale(.95); opacity: .85;}
@@ -2778,14 +2803,14 @@ h3.titleh3.area-box { display: block;}
 .brand-separator img { width: 65px; height: 65px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); object-fit: contain; padding: 9px; margin: 0 0 10px 0;}
 .shop.no-border { border-bottom: none !important; margin-bottom: 0 !important; padding-bottom: 0 !important;}
 p.shop-hours { background-color: #f0f0f0; border-radius: 7px; padding: 12px 10px; line-height: 1.5; font-size: 10px; margin: 10px 0 10px 0;}
-.shop-search-box { display: block; text-align: center;}
+.shop-search-box { display: block; text-align: center; background: ${document.getElementById('cfg-shop-info-area-bg-val')?.value || '#FFFFFF'};}
 .search-box { position: relative; display: inline-block; width: 91%; max-width: 91%; margin: 0 auto 30px; text-align: center;}
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #999; font-size: 16px; pointer-events: none;}
 .clear-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 18px; cursor: pointer; display: none; z-index: 10; user-select: none;}
 #shopSearchInput:focus ~ .clear-icon, #shopSearchInput:not(:placeholder-shown) ~ .clear-icon { display: block;}
 .clear-icon:active, .clear-icon:hover { color: #333;}
-.titleh3.shop-search-title { margin: 30px 0 5px; display: block;}
-.search-results { margin: -15px 20px 0;}
+.titleh3.shop-search-title { margin: 30px 0 0; padding: 30px 10px 20px 20px; display: block; background: ${document.getElementById('cfg-shop-info-area-bg-val')?.value || '#FFFFFF'};}
+.search-results { margin: -15px 20px 0px;}
 .search-results .shop { border-bottom: 1px solid #ddd; padding: 12px 0; display: flex; align-items: flex-start; gap: 12px;}
 .search-results .shop:last-child { border-bottom: none;}
 .dli-pin { display: inline-block; vertical-align: middle; color: #333; line-height: 1; position: relative; width: 0.8em; height: 0.8em; border: 0.1em solid currentColor; border-radius: 40% 60% 0% 100% / 40% 100% 0% 60%; box-sizing: content-box; transform: rotate(45deg); margin-right: 6px; margin-bottom: 3px; }
