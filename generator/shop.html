@@ -422,13 +422,19 @@
                     </div>
                 </div>
             
-                <div style="margin: 20px auto 0; text-align: center;">
-                    <button class="btn" onclick="location.reload()" 
-                            style="background-color: #94a3b8; color: #fff; width: 140px; height: 36px; font-size: 12px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; transition: background 0.2s;">
-                        <i class="fa fa-sync-alt"></i> 全設定をリセット
+                <div style="margin: 10px auto; display: flex; justify-content: center; gap: 10px; padding: 15px; border-radius: 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">
+                    <button class="btn" id="shop-reset-btn" style="background-color: #94a3b8; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                        <i class="fa fa-undo"></i> リセット
                     </button>
-                    <p style="font-size: 10px; color: #94a3b8; margin-top: 10px;">※ページを再読み込みして全ての入力を初期化します</p>
+                    <button class="btn" id="shop-export-btn" style="background-color: #334155; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                        <i class="fa fa-download"></i> 書き出し
+                    </button>
+                    <button class="btn" id="shop-import-btn" style="background-color: #8ace36; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                        <i class="fa fa-upload"></i> 読み込み
+                    </button>
+                    <input type="file" id="shop-import-file" style="display: none;" accept=".json">
                 </div>
+                <p style="font-size: 10px; color: #94a3b8; margin-top: 5px; text-align: center;">※CSVデータ・設定は入力するたびに自動保存されます（このブラウザ内のみ）。別端末で使う場合は「書き出し」→「読み込み」でファイル経由してください。</p>
             </div>
     
         </div><!-- main-wrapper -->
@@ -490,7 +496,108 @@ document.addEventListener('DOMContentLoaded', () => {
             openAreaModal(areaEl.dataset.area);
         }
     });
+
+    // 設定の自動保存・復元、リセット／書き出し／読み込みボタン
+    loadShopFromLocal();
+    document.addEventListener('input', saveShopToLocal);
+    document.addEventListener('change', saveShopToLocal);
+
+    document.getElementById('shop-reset-btn').onclick = () => {
+        if (confirm("すべての設定（CSVデータ含む）を初期状態にリセットしますか？")) {
+            localStorage.removeItem(SHOP_LOCAL_KEY);
+            location.reload();
+        }
+    };
+
+    document.getElementById('shop-export-btn').onclick = () => {
+        const jsonStr = JSON.stringify(getShopAllSettings(), null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.download = `shop_generator_settings_${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const shopImportBtn = document.getElementById('shop-import-btn');
+    const shopFileInput = document.getElementById('shop-import-file');
+    shopImportBtn.onclick = () => shopFileInput.click();
+    shopFileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                applyShopSettings(data);
+                saveShopToLocal();
+                showToast("設定を読み込みました！");
+            } catch (err) {
+                alert("ファイルの読み込みに失敗しました。正しい設定ファイルか確認してください。");
+            }
+        };
+        reader.readAsText(file);
+        shopFileInput.value = '';
+    };
 });
+
+/**
+ * 店舗情報設定（shop.html）の自動保存・復元
+ * CSVデータ・スイッチ・ボタンの色設定をまとめてlocalStorageに保存し、次回開いたときに自動で復元する
+ */
+const SHOP_LOCAL_KEY = 'shop_generator_backup';
+const SHOP_FIELD_IDS = [
+    'cfg-main-sw', 'cfg-search-sw', 'cfg-search-thr', 'cfg-brand-sw', 'cfg-brand-thr',
+    'cfg-area-sw', 'cfg-area-thr', 'cfg-shoplist-sw',
+    'cfg-brand-data', 'cfg-shop-data',
+    'cfg-area-banner-bg-val', 'cfg-modal-link-bg-val', 'cfg-modal-link-border-val',
+    'cfg-reserve-btn-bg-val', 'cfg-modal-close-bg-val', 'cfg-area-btn-bg-val', 'cfg-area-btn-border-val'
+];
+
+function getShopAllSettings() {
+    const data = {};
+    SHOP_FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) data[id] = el.value;
+    });
+    return data;
+}
+
+function applyShopSettings(data) {
+    if (!data) return;
+    SHOP_FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && data[id] !== undefined) el.value = data[id];
+    });
+    // 色テキスト欄の値を、対応するカラーピッカー（type=color）にも反映する
+    SHOP_FIELD_IDS.filter(id => id.endsWith('-val')).forEach(valId => {
+        const picker = document.getElementById(valId.slice(0, -4));
+        const val = document.getElementById(valId);
+        if (picker && val && /^#[0-9A-Fa-f]{6}$/.test(val.value)) picker.value = val.value;
+    });
+    applyButtonColorSettings();
+    if (data['cfg-brand-data'] && data['cfg-shop-data']) {
+        applyDataToPreview();
+    }
+}
+
+function saveShopToLocal() {
+    localStorage.setItem(SHOP_LOCAL_KEY, JSON.stringify(getShopAllSettings()));
+}
+
+function loadShopFromLocal() {
+    const raw = localStorage.getItem(SHOP_LOCAL_KEY);
+    if (!raw) return;
+    try {
+        applyShopSettings(JSON.parse(raw));
+    } catch (e) {
+        console.error(e);
+    }
+}
 
 /**
  * ブランドモーダル／エリアモーダルのライブプレビュー
