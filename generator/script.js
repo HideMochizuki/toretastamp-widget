@@ -2604,14 +2604,17 @@ function handleClassChange(select) {
     const href = item.querySelector('.field-href');
     const aclass = item.querySelector('.field-aclass');
     const label = item.querySelector('.field-label');
-    
+    const mapHint = item.querySelector('.map-hint');
+
     // 一旦リセット
     href.disabled = false;
     href.style.background = '';
     aclass.disabled = false;
     aclass.style.background = '';
+    if (mapHint) mapHint.style.display = 'none';
 
     if (select.value === 'map') {
+        if (mapHint) mapHint.style.display = 'block';
         href.value = '#'; href.disabled = true;
         aclass.value = 'open-reserve'; aclass.disabled = true;
         label.value = '近くの店舗';
@@ -4311,6 +4314,9 @@ function createItem(isFirst = false) {
             <div class="form-group full-width"><label>URL</label><input type="text" class="field-href" oninput="updatePreview()" placeholder="https://"></div>
             <div class="form-group"><label>aclass (固定)</label><input type="text" class="field-aclass" disabled style="background:#f0f0f0;"></div>
             <div class="form-group" style="flex-direction:row; align-items:center; gap:8px; margin-top:24px;"><input type="checkbox" class="field-ext" onchange="updatePreview()"> <label style="margin:0;">別タブ</label></div>
+            <div class="map-hint" style="display:none; grid-column: 1 / -1; font-size: 11px; color: #92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:4px; padding:6px 10px;">
+                ⚠️ 「map」は単体では動作しません。「店舗情報設定」ページで生成したJavaScript／CSSコードも、実際のサイトに合わせて設置してください。
+            </div>
         </div>`;
     menuList.appendChild(div);
     relabelItems(); updatePreview();
