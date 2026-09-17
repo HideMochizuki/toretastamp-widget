@@ -663,6 +663,19 @@
                                 <input type="text" id="cfg-st-label-radius" value="5px" style="width: 80px;" oninput="updatePreview()">
                             </div>
                         </div>
+
+                        <div class="form-row">
+                            <div class="form-label-side" style="width: 180px;">有効期限ラベル 枠線設定</div>
+                            <div class="form-input-side">
+                                <label class="check-label"><input type="checkbox" id="cfg-st-due-border-on" onchange="updatePreview()"> 有効</label>
+                                <input type="text" id="cfg-st-due-border-w" value="1px" style="width: 50px;" oninput="updatePreview()" placeholder="太さ">
+                                <div class="color-picker-group">
+                                    <input type="color" id="cfg-st-due-border-c" value="#000000">
+                                    <input type="text" id="cfg-st-due-border-c-val" value="#000000">
+                                </div>
+                                <span style="font-size: 11px; color: #94a3b8; margin-left: 5px;">(カード枠線とは独立)</span>
+                            </div>
+                        </div>
             
                         <div class="form-row">
                             <div class="form-label-side" style="width: 180px;">獲得スタンプ枠色 (bタグ)</div>

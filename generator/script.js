@@ -1265,6 +1265,7 @@ const syncPairs = [
     ['cfg-st-due-txt-c', 'cfg-st-due-txt-c-val'],
     ['cfg-st-label-bg', 'cfg-st-label-bg-val'],
     ['cfg-st-icon-border', 'cfg-st-icon-border-val'],
+    ['cfg-st-due-border-c', 'cfg-st-due-border-c-val'],
     // 共通ボタン用
     ['cfg-pgbtn-bg-c', 'cfg-pgbtn-bg-val'],
     ['cfg-pgbtn-txt-c', 'cfg-pgbtn-txt-val'],
@@ -2199,7 +2200,7 @@ function applyCurrentDesignToMock() {
 
             /* その他テキスト・アイコンのデザイン */
             .mock-screen .stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stColor} !important; }
-            .mock-screen .ticket_list_due { color: ${stDueTxtColor} !important; border: ${borderOn ? '1px solid ' + stColor : 'none'} !important; border-radius: ${getV('cfg-st-label-radius')} !important; background-color: ${getV('cfg-st-label-bg-val')} !important; }
+            .mock-screen .ticket_list_due { color: ${stDueTxtColor} !important; border: ${document.getElementById('cfg-st-due-border-on')?.checked ? `${getV('cfg-st-due-border-w')} solid ${getV('cfg-st-due-border-c-val')}` : 'none'} !important; border-radius: ${getV('cfg-st-label-radius')} !important; background-color: ${getV('cfg-st-label-bg-val')} !important; }
             .mock-screen .stampicon { color: ${stTxtColor} !important; }
             .mock-screen .stampicon > b { border: 2px solid ${getV('cfg-st-icon-border-val')} !important; }
             .mock-screen .stampicon > b > span { filter: ${stIconFilter} !important; }
@@ -2213,7 +2214,7 @@ function applyCurrentDesignToMock() {
 
     // --- スタンプ詳細ページCSS ---
     if (mock.dataset.currentScreen === 'stamp_details' && typeof getStampDetailsCSS === 'function') {
-        finalCSS += getStampDetailsCSS();
+        finalCSS += getStampDetailsCSS(false);
     }
 
     // --- スタンプ詳細ページ パターンB（チケット獲得表示）のプレビュー ---
@@ -2976,6 +2977,9 @@ function getStampPageCSS() {
     const stIconChoice = document.getElementById('cfg-st-icon-choice')?.value || 'black';
     const wmShape = document.getElementById('cfg-st-watermark-shape')?.value || 'landscape';
     const stBorderOn = document.getElementById('cfg-st-border-on')?.checked || false;
+    const stDueBorderOn = document.getElementById('cfg-st-due-border-on')?.checked || false;
+    const stDueBorderW = getV('cfg-st-due-border-w');
+    const stDueBorderC = getV('cfg-st-due-border-c-val').toUpperCase();
 
     // 2. デフォルト状態（初期値）の判定
     const isDefault = (
@@ -2983,7 +2987,9 @@ function getStampPageCSS() {
         (stRadius === '16px' || stRadius === '16' || stRadius === '') &&
         stBorderOn === false &&
         (stBorderC === '#000000' || stBorderC === '') &&
-        (stWatermarkUrl === '' || stWatermarkUrl.includes('TCNteaCYUPectHdLS0JD.png')) && 
+        stDueBorderOn === false &&
+        (stDueBorderC === '#000000' || stDueBorderC === '') &&
+        (stWatermarkUrl === '' || stWatermarkUrl.includes('TCNteaCYUPectHdLS0JD.png')) &&
         (stTxtColor === '#000000' || stTxtColor === '') &&
         (stDueTxtColor === '#000000' || stDueTxtColor === '') &&
         (stLabelBg === '#F9D5BD' || stLabelBg === '' || stLabelBg === '#000000') && // #000000も念のため追加
@@ -3025,7 +3031,7 @@ body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; 
 .stamp_list_title { color: ${stTxtColor} !important; border-bottom: 1px dashed ${stBorderC} !important; font-size: 20px; }
 .stamp_card .ticket_list_due {
     color: ${stDueTxtColor} !important;
-    border: ${stBorderOn ? '1px solid ' + stBorderC : 'none'} !important;
+    border: ${stDueBorderOn ? stDueBorderW + ' solid ' + stDueBorderC : 'none'} !important;
     border-radius: ${stLabelRadius} !important;
     background-color: ${stLabelBg} !important;
 }
@@ -3106,8 +3112,11 @@ ${prefix}a.page_button.orange > span, ${prefix}.stamp_set a.page_button.orange >
 }
 
 // 7. スタンプ詳細ページのCSSを生成する関数
-function getStampDetailsCSS() {
+function getStampDetailsCSS(isExport = false) {
     const getV = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    // 配布用：body.stamp_card でスコープしスタンプ帳一覧ページの .stamp_set と衝突しないようにする
+    // プレビュー用：.mock-screen でスコープする（プレビューのbodyには stamp_card クラスが付かないため）
+    const prefix = isExport ? 'body.stamp_card ' : '.mock-screen ';
 
     // 設定値を取得
     const stdBg = getV('cfg-std-bg-val').toUpperCase();
@@ -3143,10 +3152,10 @@ function getStampDetailsCSS() {
 /* =========================================
 スタンプ詳細ページ設定
 ========================================= */
-.stamp_set { border-radius: ${stdRadius} !important; background-color: ${stdBg} !important; border: ${borderCSS} !important; }
-.stamp_title { color: ${titleColor} !important; font-size: ${titleSize} !important; }
-.stamp_due { background-color: ${dueBg} !important; border-radius: ${dueRadius} !important; color: ${dueTxt} !important; border: ${dueBorderCSS} !important; display: inline-block; padding: 2px 8px; }
-.stamp_note { font-size: ${noteSize} !important; color: ${noteTxtColor} !important; border-bottom: 1px dashed ${noteLineC} !important; }
+${prefix}.stamp_set { border-radius: ${stdRadius} !important; background-color: ${stdBg} !important; border: ${borderCSS} !important; }
+${prefix}.stamp_title { color: ${titleColor} !important; font-size: ${titleSize} !important; }
+${prefix}.stamp_due { background-color: ${dueBg} !important; border-radius: ${dueRadius} !important; color: ${dueTxt} !important; border: ${dueBorderCSS} !important; display: inline-block; }
+${prefix}.stamp_note { font-size: ${noteSize} !important; color: ${noteTxtColor} !important; border-bottom: 1px dashed ${noteLineC} !important; }
 `;
 }
 
@@ -3602,7 +3611,7 @@ pointer-events: none;
     const stampPageCSS = getStampPageCSS();
     const pageBtnCSS = getPageBtnCSS(true); 
     const noticeCSS = getNoticeCSS(true);  
-    const stampDetailsCSS = getStampDetailsCSS();
+    const stampDetailsCSS = getStampDetailsCSS(true);
     const ticketPageCSS = getTicketPageCSS(true);
     const ticketDetailCSS = getTicketDetailPageCSS(true);
     const userPageCSS = getUserPageCSS(true);
