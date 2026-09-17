@@ -678,8 +678,44 @@ function applyShopSettings(data) {
     }
 }
 
+// window.brandData / window.shopData（表の編集・削除・複製・追加で変わる実データ）を
+// CSVテキストに変換してテキストエリアへ書き戻す。これをしないと、書き出し・自動保存が
+// 「最初に貼り付けたCSVの内容」のままになり、表での編集が保存・書き出しに反映されない。
+function csvEscape(val) {
+    val = (val ?? '').toString();
+    if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        return '"' + val.replace(/"/g, '""') + '"';
+    }
+    return val;
+}
+
+function syncCsvTextareasFromData() {
+    if (window.brandData) {
+        const brandHeader = ['brand_id', ...EDIT_TABLE_BRAND_FIELDS];
+        const brandRows = Object.keys(window.brandData).map(key => {
+            const b = window.brandData[key];
+            return [csvEscape(key), ...EDIT_TABLE_BRAND_FIELDS.map(f => csvEscape(b[f]))].join(',');
+        });
+        document.getElementById('cfg-brand-data').value = [brandHeader.join(','), ...brandRows].join('\n');
+    }
+    if (window.shopData) {
+        const shopHeader = ['id', 'brand_id', ...EDIT_TABLE_SHOP_FIELDS];
+        const shopRows = window.shopData.map(s => {
+            return [csvEscape(s.id), csvEscape(s.brand_id), ...EDIT_TABLE_SHOP_FIELDS.map(f => csvEscape(s[f]))].join(',');
+        });
+        document.getElementById('cfg-shop-data').value = [shopHeader.join(','), ...shopRows].join('\n');
+    }
+}
+
 function saveShopToLocal() {
     localStorage.setItem(SHOP_LOCAL_KEY, JSON.stringify(getShopAllSettings()));
+}
+
+// 表（削除・複製・新規追加・セル編集）から呼ぶ専用の保存関数。
+// CSVテキストエリアへの直接入力時は呼ばない（入力中の内容を上書きしてしまうため）。
+function syncAndSaveShop() {
+    syncCsvTextareasFromData();
+    saveShopToLocal();
 }
 
 function loadShopFromLocal() {
@@ -3013,7 +3049,7 @@ function handleEditCellInput(e) {
     }
     renderPreviewUI();
     generateOutputCode();
-    saveShopToLocal();
+    syncAndSaveShop();
 }
 document.getElementById('brand-edit-body').addEventListener('input', handleEditCellInput);
 document.getElementById('shop-edit-body').addEventListener('input', handleEditCellInput);
@@ -3028,7 +3064,7 @@ document.getElementById('shop-edit-body').addEventListener('change', (e) => {
     shop.brand = select.value;
     renderPreviewUI();
     generateOutputCode();
-    saveShopToLocal();
+    syncAndSaveShop();
 });
 
 // 既存データと重複しない新しいbrand_idを発行する
@@ -3064,7 +3100,7 @@ document.getElementById('shop-edit-body').addEventListener('click', (e) => {
         renderEditTables();
         renderPreviewUI();
         generateOutputCode();
-        saveShopToLocal();
+        syncAndSaveShop();
         showToast("店舗を削除しました");
         return;
     }
@@ -3081,7 +3117,7 @@ document.getElementById('shop-edit-body').addEventListener('click', (e) => {
         renderEditTables();
         renderPreviewUI();
         generateOutputCode();
-        saveShopToLocal();
+        syncAndSaveShop();
         showToast("店舗を複製しました（住所・電話番号などを編集してください）");
     }
 });
@@ -3095,7 +3131,7 @@ document.getElementById('add-shop-row-btn').addEventListener('click', () => {
     renderEditTables();
     renderPreviewUI();
     generateOutputCode();
-    saveShopToLocal();
+    syncAndSaveShop();
     showToast("新規店舗を追加しました。表の一番下の行を編集してください");
 });
 
@@ -3115,7 +3151,7 @@ document.getElementById('brand-edit-body').addEventListener('click', (e) => {
         renderEditTables();
         renderPreviewUI();
         generateOutputCode();
-        saveShopToLocal();
+        syncAndSaveShop();
         showToast("ブランドを削除しました");
         return;
     }
@@ -3135,7 +3171,7 @@ document.getElementById('brand-edit-body').addEventListener('click', (e) => {
         renderEditTables();
         renderPreviewUI();
         generateOutputCode();
-        saveShopToLocal();
+        syncAndSaveShop();
         showToast("ブランドを複製しました");
     }
 });
@@ -3148,7 +3184,7 @@ document.getElementById('add-brand-row-btn').addEventListener('click', () => {
     renderEditTables();
     renderPreviewUI();
     generateOutputCode();
-    saveShopToLocal();
+    syncAndSaveShop();
     showToast("新規ブランドを追加しました。表の一番下の行を編集してください");
 });
 
@@ -3196,9 +3232,10 @@ function updateDataOrder() {
     window.shopData = finalShopData;
 
     renderPreviewUI();
-    renderEditTables(); 
+    renderEditTables();
     generateOutputCode();
-    
+    syncAndSaveShop();
+
     showToast("並び順を更新し、関連データを同期しました");
 }
 
