@@ -390,8 +390,11 @@
                     </p>
                 
                     <div class="sub-config-box" style="margin-bottom: 25px;">
-                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">ブランドデータ編集・並び替え (brand_id)</p>
-                        <p style="font-size: 0.7rem; color: #94a3b8; margin: 4px 0 10px;">※ brand_id は他データとの紐付けに使われるため編集できません。それ以外のセルは直接編集できます。</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                            <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b; margin: 0;">ブランドデータ編集・並び替え (brand_id)</p>
+                            <button type="button" id="add-brand-row-btn" class="btn" style="background:#1e293b; color:#fff; padding:5px 12px; font-size:12px; border-radius:4px;"><i class="fa fa-plus"></i> 新規ブランドを追加</button>
+                        </div>
+                        <p style="font-size: 0.7rem; color: #94a3b8; margin: 4px 0 10px;">※ brand_id は他データとの紐付けに使われるため編集できません。店舗が1件でも紐づいているブランドは削除できません。</p>
                         <div style="overflow-x: auto;">
                             <table class="edit-table">
                                 <thead>
@@ -404,6 +407,7 @@
                                         <th>bg</th>
                                         <th>description</th>
                                         <th>url</th>
+                                        <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="brand-edit-body"></tbody>
@@ -412,8 +416,11 @@
                     </div>
 
                     <div class="sub-config-box">
-                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">店舗データ編集・並び替え (id)</p>
-                        <p style="font-size: 0.7rem; color: #94a3b8; margin: 4px 0 10px;">※ id・brand_id は他データとの紐付けに使われるため編集できません。それ以外のセルは直接編集できます。</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                            <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b; margin: 0;">店舗データ編集・並び替え (id)</p>
+                            <button type="button" id="add-shop-row-btn" class="btn" style="background:#1e293b; color:#fff; padding:5px 12px; font-size:12px; border-radius:4px;"><i class="fa fa-plus"></i> 新規店舗を追加</button>
+                        </div>
+                        <p style="font-size: 0.7rem; color: #94a3b8; margin: 4px 0 10px;">※ id は他データとの紐付けに使われるため編集できません。brand_id はプルダウンで所属ブランドを選び直せます。それ以外のセルは直接編集できます。</p>
                         <div style="overflow-x: auto;">
                             <table class="edit-table">
                                 <thead>
@@ -2962,18 +2969,29 @@ function renderEditTables() {
             <td class="drag-handle-cell"><i class="fa fa-grip-vertical"></i></td>
             <td><code>${key}</code></td>
             ${cells}
+            <td style="white-space:nowrap;">
+                <button type="button" class="brand-row-copy-btn" data-id="${key}" title="このブランドを複製" style="background:#e0f2fe; color:#0369a1; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer; margin-right:4px;"><i class="fa fa-copy"></i></button>
+                <button type="button" class="brand-row-delete-btn" data-id="${key}" title="このブランドを削除" style="background:#fee2e2; color:#dc2626; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer;"><i class="fa fa-trash"></i></button>
+            </td>
         </tr>`;
     }).join('');
 
-    // 店舗テーブル（id・brand_id以外は編集可能）
+    // 店舗テーブル（idのみ編集不可。brand_idはプルダウンで選び直せる）
     shopBody.innerHTML = window.shopData.map(s => {
         const cells = EDIT_TABLE_SHOP_FIELDS.map(f => `<td>${editCellInput(s[f], s.id, f)}</td>`).join('');
+        const brandOptions = Object.keys(window.brandData).map(key => {
+            const label = window.brandData[key]?.name ? `${key} (${window.brandData[key].name})` : key;
+            return `<option value="${key}" ${key === s.brand ? 'selected' : ''}>${label}</option>`;
+        }).join('');
         return `<tr data-id="${s.id}">
             <td class="drag-handle-cell"><i class="fa fa-grip-vertical"></i></td>
             <td><code>${s.id}</code></td>
-            <td><code>${s.brand}</code></td>
+            <td><select class="edit-cell-select" data-key="${s.id}" data-field="brand_id" style="font-size:13px; max-width:160px;">${brandOptions}</select></td>
             ${cells}
-            <td><button type="button" class="shop-row-delete-btn" data-id="${s.id}" title="この店舗を削除" style="background:#fee2e2; color:#dc2626; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer;"><i class="fa fa-trash"></i></button></td>
+            <td style="white-space:nowrap;">
+                <button type="button" class="shop-row-copy-btn" data-id="${s.id}" title="この店舗を複製" style="background:#e0f2fe; color:#0369a1; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer; margin-right:4px;"><i class="fa fa-copy"></i></button>
+                <button type="button" class="shop-row-delete-btn" data-id="${s.id}" title="この店舗を削除" style="background:#fee2e2; color:#dc2626; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer;"><i class="fa fa-trash"></i></button>
+            </td>
         </tr>`;
     }).join('');
 
@@ -3000,19 +3018,138 @@ function handleEditCellInput(e) {
 document.getElementById('brand-edit-body').addEventListener('input', handleEditCellInput);
 document.getElementById('shop-edit-body').addEventListener('input', handleEditCellInput);
 
-// 店舗行の削除
+// 所属ブランドのプルダウン変更
+document.getElementById('shop-edit-body').addEventListener('change', (e) => {
+    const select = e.target;
+    if (!select.classList.contains('edit-cell-select') || select.dataset.field !== 'brand_id') return;
+    const shop = window.shopData.find(s => s.id === select.dataset.key);
+    if (!shop) return;
+    shop.brand_id = select.value;
+    shop.brand = select.value;
+    renderPreviewUI();
+    generateOutputCode();
+    saveShopToLocal();
+});
+
+// 既存データと重複しない新しいbrand_idを発行する
+function generateUniqueBrandId(prefix = 'brand_new') {
+    let n = 1;
+    let id = `${prefix}_${n}`;
+    while (window.brandData[id]) {
+        n++;
+        id = `${prefix}_${n}`;
+    }
+    return id;
+}
+
+// 既存データと重複しない新しい店舗idを発行する
+function generateUniqueShopId(prefix = 'shop_new') {
+    let n = 1;
+    let id = `${prefix}_${n}`;
+    while (window.shopData.some(s => s.id === id)) {
+        n++;
+        id = `${prefix}_${n}`;
+    }
+    return id;
+}
+
+// 店舗行の削除・複製
 document.getElementById('shop-edit-body').addEventListener('click', (e) => {
-    const btn = e.target.closest('.shop-row-delete-btn');
-    if (!btn) return;
-    const id = btn.dataset.id;
-    const shop = window.shopData.find(s => s.id === id);
-    if (!confirm(`「${shop ? shop.name : id}」を削除しますか？この操作は元に戻せません。`)) return;
-    window.shopData = window.shopData.filter(s => s.id !== id);
+    const deleteBtn = e.target.closest('.shop-row-delete-btn');
+    if (deleteBtn) {
+        const id = deleteBtn.dataset.id;
+        const shop = window.shopData.find(s => s.id === id);
+        if (!confirm(`「${shop ? shop.name : id}」を削除しますか？この操作は元に戻せません。`)) return;
+        window.shopData = window.shopData.filter(s => s.id !== id);
+        renderEditTables();
+        renderPreviewUI();
+        generateOutputCode();
+        saveShopToLocal();
+        showToast("店舗を削除しました");
+        return;
+    }
+
+    const copyBtn = e.target.closest('.shop-row-copy-btn');
+    if (copyBtn) {
+        const id = copyBtn.dataset.id;
+        const original = window.shopData.find(s => s.id === id);
+        if (!original) return;
+        const newId = generateUniqueShopId(id);
+        const copy = { ...original, id: newId };
+        const idx = window.shopData.findIndex(s => s.id === id);
+        window.shopData.splice(idx + 1, 0, copy);
+        renderEditTables();
+        renderPreviewUI();
+        generateOutputCode();
+        saveShopToLocal();
+        showToast("店舗を複製しました（住所・電話番号などを編集してください）");
+    }
+});
+
+// 新規店舗の追加
+document.getElementById('add-shop-row-btn').addEventListener('click', () => {
+    const defaultBrand = Object.keys(window.brandData)[0] || '';
+    const newShop = { id: generateUniqueShopId(), brand_id: defaultBrand, brand: defaultBrand, name: '', address: '', tel: '', lat: 0, lng: 0 };
+    EDIT_TABLE_SHOP_FIELDS.forEach(f => { if (!(f in newShop)) newShop[f] = ''; });
+    window.shopData.push(newShop);
     renderEditTables();
     renderPreviewUI();
     generateOutputCode();
     saveShopToLocal();
-    showToast("店舗を削除しました");
+    showToast("新規店舗を追加しました。表の一番下の行を編集してください");
+});
+
+// ブランド行の削除・複製
+document.getElementById('brand-edit-body').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.brand-row-delete-btn');
+    if (deleteBtn) {
+        const key = deleteBtn.dataset.id;
+        const linkedShops = window.shopData.filter(s => s.brand === key);
+        if (linkedShops.length > 0) {
+            alert(`このブランドは${linkedShops.length}件の店舗（${linkedShops.map(s => s.name || s.id).join('、')}）に紐づいているため削除できません。先に店舗側のブランドを変更するか、店舗を削除してください。`);
+            return;
+        }
+        const brand = window.brandData[key];
+        if (!confirm(`ブランド「${brand ? brand.name : key}」を削除しますか？この操作は元に戻せません。`)) return;
+        delete window.brandData[key];
+        renderEditTables();
+        renderPreviewUI();
+        generateOutputCode();
+        saveShopToLocal();
+        showToast("ブランドを削除しました");
+        return;
+    }
+
+    const copyBtn = e.target.closest('.brand-row-copy-btn');
+    if (copyBtn) {
+        const key = copyBtn.dataset.id;
+        const original = window.brandData[key];
+        if (!original) return;
+        const newKey = generateUniqueBrandId(key);
+        const newBrandData = {};
+        Object.keys(window.brandData).forEach(k => {
+            newBrandData[k] = window.brandData[k];
+            if (k === key) newBrandData[newKey] = { ...original, brand_id: newKey };
+        });
+        window.brandData = newBrandData;
+        renderEditTables();
+        renderPreviewUI();
+        generateOutputCode();
+        saveShopToLocal();
+        showToast("ブランドを複製しました");
+    }
+});
+
+// 新規ブランドの追加
+document.getElementById('add-brand-row-btn').addEventListener('click', () => {
+    const newKey = generateUniqueBrandId();
+    window.brandData[newKey] = { brand_id: newKey };
+    EDIT_TABLE_BRAND_FIELDS.forEach(f => { window.brandData[newKey][f] = ''; });
+    renderEditTables();
+    renderPreviewUI();
+    generateOutputCode();
+    saveShopToLocal();
+    showToast("新規ブランドを追加しました。表の一番下の行を編集してください");
 });
 
 function initSortable() {
