@@ -229,7 +229,7 @@
                                     <textarea id="cfg-shop-data"
                                               class="data-input-area"
                                               style="width: 100%; height: 160px; font-family: monospace; line-height: 1.6;" 
-                                              placeholder="id,brand_id,name,address,tel,lat,lng,menu,reserve,hours"></textarea>
+                                              placeholder="id,brand_id,name,address,tel,lat,lng,menu,reserve,hours,shopimg,snsx,snsf,snsi,snst"></textarea>
                                     <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">※店舗情報の一覧をCSV形式で入力してください。</p>
                                 </div>
                             </div>
@@ -390,31 +390,51 @@
                     </p>
                 
                     <div class="sub-config-box" style="margin-bottom: 25px;">
-                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">ブランド順序設定 (brand_id)</p>
+                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">ブランドデータ編集・並び替え (brand_id)</p>
+                        <p style="font-size: 0.7rem; color: #94a3b8; margin: 4px 0 10px;">※ brand_id は他データとの紐付けに使われるため編集できません。それ以外のセルは直接編集できます。</p>
                         <div style="overflow-x: auto;">
                             <table class="edit-table">
                                 <thead>
                                     <tr>
                                         <th style="width: 40px;"></th>
                                         <th>brand_id</th>
-                                        <th>ブランド名</th>
+                                        <th>slug</th>
+                                        <th>name</th>
+                                        <th>logo</th>
+                                        <th>bg</th>
+                                        <th>description</th>
+                                        <th>url</th>
                                     </tr>
                                 </thead>
                                 <tbody id="brand-edit-body"></tbody>
                             </table>
                         </div>
                     </div>
-                
+
                     <div class="sub-config-box">
-                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">店舗表示順設定 (id)</p>
+                        <p class="column-label" style="font-size: 13px; font-weight: bold; color: #1e293b;">店舗データ編集・並び替え (id)</p>
+                        <p style="font-size: 0.7rem; color: #94a3b8; margin: 4px 0 10px;">※ id・brand_id は他データとの紐付けに使われるため編集できません。それ以外のセルは直接編集できます。</p>
                         <div style="overflow-x: auto;">
                             <table class="edit-table">
                                 <thead>
                                     <tr>
                                         <th style="width: 40px;"></th>
                                         <th>id</th>
-                                        <th>店舗名</th>
-                                        <th>所属ブランド</th>
+                                        <th>brand_id</th>
+                                        <th>name</th>
+                                        <th>address</th>
+                                        <th>tel</th>
+                                        <th>lat</th>
+                                        <th>lng</th>
+                                        <th>menu</th>
+                                        <th>reserve</th>
+                                        <th>hours</th>
+                                        <th>shopimg</th>
+                                        <th>snsx</th>
+                                        <th>snsf</th>
+                                        <th>snsi</th>
+                                        <th>snst</th>
+                                        <th style="width: 40px;"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="shop-edit-body"></tbody>
@@ -2922,33 +2942,78 @@ function injectLiveCSS(cssCode) {
 /**
  * 5. 編集用テーブルの描画
  */
+const EDIT_TABLE_BRAND_FIELDS = ['slug', 'name', 'logo', 'bg', 'description', 'url'];
+const EDIT_TABLE_SHOP_FIELDS = ['name', 'address', 'tel', 'lat', 'lng', 'menu', 'reserve', 'hours', 'shopimg', 'snsx', 'snsf', 'snsi', 'snst'];
+
+function editCellInput(value, key, field) {
+    const safe = (value ?? '').toString().replace(/"/g, '&quot;');
+    return `<input type="text" class="edit-cell-input" data-key="${key}" data-field="${field}" value="${safe}" style="width:100%; min-width:90px; border:none; background:transparent; font-size:13px; padding:2px; font-family:inherit;">`;
+}
+
 function renderEditTables() {
     const brandBody = document.getElementById('brand-edit-body');
     const shopBody = document.getElementById('shop-edit-body');
-    
-    // ブランドテーブル
+
+    // ブランドテーブル（brand_id以外は編集可能）
     brandBody.innerHTML = Object.keys(window.brandData).map(key => {
         const b = window.brandData[key];
+        const cells = EDIT_TABLE_BRAND_FIELDS.map(f => `<td>${editCellInput(b[f], key, f)}</td>`).join('');
         return `<tr data-id="${key}">
             <td class="drag-handle-cell"><i class="fa fa-grip-vertical"></i></td>
             <td><code>${key}</code></td>
-            <td>${b.name}</td>
+            ${cells}
         </tr>`;
     }).join('');
 
-    // 店舗テーブル
+    // 店舗テーブル（id・brand_id以外は編集可能）
     shopBody.innerHTML = window.shopData.map(s => {
+        const cells = EDIT_TABLE_SHOP_FIELDS.map(f => `<td>${editCellInput(s[f], s.id, f)}</td>`).join('');
         return `<tr data-id="${s.id}">
             <td class="drag-handle-cell"><i class="fa fa-grip-vertical"></i></td>
             <td><code>${s.id}</code></td>
-            <td>${s.name}</td>
-            <td><span class="badge" style="position:static; padding:2px 8px; background:#e2e8f0; color:#475569;">${s.brand}</span></td>
+            <td><code>${s.brand}</code></td>
+            ${cells}
+            <td><button type="button" class="shop-row-delete-btn" data-id="${s.id}" title="この店舗を削除" style="background:#fee2e2; color:#dc2626; border:none; border-radius:4px; width:26px; height:26px; cursor:pointer;"><i class="fa fa-trash"></i></button></td>
         </tr>`;
     }).join('');
 
     // Sortableの有効化
     initSortable();
 }
+
+// セル編集時：テーブルは再描画せず（入力フォーカスを保つため）、データとプレビュー／配布コードだけ更新する
+function handleEditCellInput(e) {
+    const input = e.target;
+    if (!input.classList.contains('edit-cell-input')) return;
+    const key = input.dataset.key;
+    const field = input.dataset.field;
+    if (e.currentTarget.id === 'shop-edit-body') {
+        const shop = window.shopData.find(s => s.id === key);
+        if (shop) shop[field] = input.value;
+    } else {
+        if (window.brandData[key]) window.brandData[key][field] = input.value;
+    }
+    renderPreviewUI();
+    generateOutputCode();
+    saveShopToLocal();
+}
+document.getElementById('brand-edit-body').addEventListener('input', handleEditCellInput);
+document.getElementById('shop-edit-body').addEventListener('input', handleEditCellInput);
+
+// 店舗行の削除
+document.getElementById('shop-edit-body').addEventListener('click', (e) => {
+    const btn = e.target.closest('.shop-row-delete-btn');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const shop = window.shopData.find(s => s.id === id);
+    if (!confirm(`「${shop ? shop.name : id}」を削除しますか？この操作は元に戻せません。`)) return;
+    window.shopData = window.shopData.filter(s => s.id !== id);
+    renderEditTables();
+    renderPreviewUI();
+    generateOutputCode();
+    saveShopToLocal();
+    showToast("店舗を削除しました");
+});
 
 function initSortable() {
     // ブランドの並び替え
