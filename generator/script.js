@@ -2157,8 +2157,8 @@ function applyCurrentDesignToMock() {
         }
     `;
 
-    // --- 4. スタンプ帳デザインCSSの生成 ---
-    if (mock.dataset.currentScreen === 'stamp') {
+    // --- 4. スタンプ帳デザインCSSの生成（スタンプ帳一覧・スタンプ履歴の両方で同じデザインを使う） ---
+    if (mock.dataset.currentScreen === 'stamp' || mock.dataset.currentScreen === 'history') {
         const stColor = getV('cfg-st-border-c-val');
         const borderOn = document.getElementById('cfg-st-border-on')?.checked;
         const stTxtColor = getV('cfg-st-txt-c-val');
@@ -2171,20 +2171,24 @@ function applyCurrentDesignToMock() {
         const wmWidth = (wmShape === 'square') ? '75px' : '100px';
         const wmHeight = (wmShape === 'square') ? '75px' : '40px';
 
+        // スタンプ帳一覧では「カード」= .stamp_card（.stamp_setは外枠）。
+        // スタンプ履歴では .stamp_card が存在せず、.stamp_set 自体がカードなので対象を切り替える。
+        const cardSelector = mock.dataset.currentScreen === 'history' ? '.mock-screen .stamp_set' : '.mock-screen .stamp_card';
+
         finalCSS += `
             /* カード本体のデザイン */
-            .mock-screen .stamp_card { 
-                background-color: ${getV('cfg-st-card-bg-val')} !important; 
-                border-radius: ${getV('cfg-st-radius')} !important; 
-                border: ${borderOn ? `${getV('cfg-st-border-w')} solid ${stColor}` : 'none'} !important; 
-                outline: ${borderOn ? `${getV('cfg-st-outline-w')} solid ${stColor}` : 'none'} !important; 
-                outline-offset: -7px; 
-                position: relative; 
-                overflow: hidden; 
+            ${cardSelector} {
+                background-color: ${getV('cfg-st-card-bg-val')} !important;
+                border-radius: ${getV('cfg-st-radius')} !important;
+                border: ${borderOn ? `${getV('cfg-st-border-w')} solid ${stColor}` : 'none'} !important;
+                outline: ${borderOn ? `${getV('cfg-st-outline-w')} solid ${stColor}` : 'none'} !important;
+                outline-offset: -7px;
+                position: relative;
+                overflow: hidden;
             }
 
             /* カード透かしロゴ（選択したサイズを適用） */
-            .mock-screen .stamp_card::before { 
+            ${cardSelector}::before {
                 content: ""; 
                 position: absolute; 
                 bottom: 10px; 
@@ -3041,6 +3045,33 @@ body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; 
 body.stamp .stampicon { color: ${stTxtColor} !important; }
 body.stamp .stampicon > b { border: 2px solid ${stIconBorder} !important; }
 body.stamp .stampicon > b > span { filter: ${stIconFilter} !important; }
+
+/* ====== スタンプ履歴ページ（.stamp_setがカード本体。.stamp_card は無い） ====== */
+body.stamp_history .stamp_set {
+    background: ${stCardBg} !important;
+    border-radius: ${stRadius} !important;
+    border: ${stBorderOn ? stBorderW + ' solid ' + stBorderC : 'none'} !important;
+    outline: ${stBorderOn ? stOutlineW + ' solid ' + stBorderC : 'none'} !important;
+    outline-offset: -7px;
+    background-blend-mode: lighten;
+    position: relative; overflow: hidden;
+}
+body.stamp_history .stamp_set::before {
+    content: ""; position: absolute; z-index: 0; bottom: 10px; right: 10px;
+    width: ${wmWidth} !important;
+    height: ${wmHeight} !important;
+    background-image: url(${stWatermarkUrl});
+    background-position: right,bottom; background-size: contain; background-repeat: no-repeat; pointer-events: none;
+}
+body.stamp_history .ticket_list_due {
+    color: ${stDueTxtColor} !important;
+    border: ${stDueBorderOn ? stDueBorderW + ' solid ' + stDueBorderC : 'none'} !important;
+    border-radius: ${stLabelRadius} !important;
+    background-color: ${stLabelBg} !important;
+}
+body.stamp_history .stampicon { color: ${stTxtColor} !important; }
+body.stamp_history .stampicon > b { border: 2px solid ${stIconBorder} !important; }
+body.stamp_history .stampicon > b > span { filter: ${stIconFilter} !important; }
 `;
 }
 
