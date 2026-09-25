@@ -4772,6 +4772,9 @@ document.getElementById('reset-btn').onclick = () => {
     if (confirm("すべての設定を初期状態にリセットしますか？")) {
         // 1. LocalStorageのデータを削除
         localStorage.removeItem('generator_backup');
+        localStorage.removeItem('generated_ui_js');
+        localStorage.removeItem('generated_ui_css');
+        localStorage.removeItem('generated_ui_at');
         location.reload();
     }
 };

@@ -268,6 +268,9 @@ window.addEventListener('DOMContentLoaded', () => {
 document.getElementById('reset-btn').onclick = () => {
     if (confirm("すべての設定を初期状態にリセットしますか？")) {
         localStorage.removeItem('rankSettingsData');
+        localStorage.removeItem('generated_status_js');
+        localStorage.removeItem('generated_status_css');
+        localStorage.removeItem('generated_status_at');
         location.reload();
     }
 };

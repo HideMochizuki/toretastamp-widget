@@ -601,6 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('shop-reset-btn').onclick = () => {
         if (confirm("すべての設定（CSVデータ含む）を初期状態にリセットしますか？")) {
             localStorage.removeItem(SHOP_LOCAL_KEY);
+            localStorage.removeItem('generated_shop_js');
+            localStorage.removeItem('generated_shop_css');
+            localStorage.removeItem('generated_shop_at');
             location.reload();
         }
     };
