@@ -780,7 +780,9 @@ function closePreviewModal() {
 const PREVIEW_AREA_ORDER = ['北海道','福島','茨城','埼玉','千葉','東京','神奈川','富山','石川','静岡','愛知','滋賀','京都','大阪','兵庫','鳥取','岡山','広島','山口','香川','福岡','長崎','熊本','沖縄'];
 
 function extractPreviewArea(address) {
-    return PREVIEW_AREA_ORDER.find(a => address && address.indexOf(a) !== -1) || 'その他';
+    if (!address) return 'その他';
+    const cleanAddr = address.replace(/^〒\s*\d{3}-\d{4}\s*/, '').trim();
+    return PREVIEW_AREA_ORDER.find(a => cleanAddr.startsWith(a)) || 'その他';
 }
 
 function extractPreviewCity(address) {
@@ -1037,9 +1039,8 @@ function renderPreviewUI() {
             '沖縄', 
             'その他'
         ];
-        const extractedAreas = areaOrder.filter(a => 
-            window.shopData.some(s => s.address && s.address.indexOf(a) !== -1)
-        );
+        const shopAreas = new Set(window.shopData.map(s => extractPreviewArea(s.address)));
+        const extractedAreas = areaOrder.filter(a => shopAreas.has(a));
 
         if (extractedAreas.length >= config.areaBoxThreshold) {
             html += `<h3 class="titleh3 area-box">エリアから探す</h3><div class="area-scroll">`;
