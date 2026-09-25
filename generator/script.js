@@ -4079,6 +4079,7 @@ $(document).ready(function() {
 if (!$('body').hasClass('coupon')) return;
 
 $('.ticket_sort_select').hide();
+$('.login_note').hide(); // プラットフォーム標準の「チケットがありません」表示（タブ非対応）を、独自タブのメッセージに一本化するため隠す
 
 const tabMenu = \`
 <div class="ticket_tab_menu">
