@@ -458,6 +458,13 @@ const TICKET_FROM_STAMP_SCRIPT = `$(document).ready(function(){
 
 if($('.stamp_image-list2').length === 0) return;
 
+// ステージング/本番でS3バケットのドメインが異なるため、既存のスタンプ画像から実際のドメインを取得して使う
+const s3Base = (() => {
+    const sampleSrc = $('.stamp_image-wrapper2 img').first().attr('src') || '';
+    const match = sampleSrc.match(/^https?:\\/\\/[^\\/]+/);
+    return match ? match[0] : 'https://toretastamp-prod.s3.amazonaws.com';
+})();
+
 /* ============================================================
     STEP 1: 「器」だけをページ読み込み直後に【最速】で生成する
 ============================================================ */
@@ -497,16 +504,25 @@ function couponReady(){
 
 /* ============================================================
     STEP 3: 変化を監視して実行（分割処理対応）
+    ▼ DOMの変化が一定時間（600ms）止まってから確定する。
+      ②のページ分割処理はAjaxで非同期に表示範囲を絞り込むため、
+      「最初の変化」だけで即確定すると、絞り込みが終わる前の
+      （＝まだ全クーポンが見えている）状態を拾ってしまうことがある。
 ============================================================ */
+let settleTimer = null;
 const observer = new MutationObserver(()=>{
-    if(!executed && couponReady()){
-        executed = true;
-        observer.disconnect();
-        buildTicketList();
-    }
+    if(executed) return;
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(()=>{
+        if(!executed && couponReady()){
+            executed = true;
+            observer.disconnect();
+            buildTicketList();
+        }
+    }, 600);
 });
 
-observer.observe(document.body,{ childList:true, subtree:true });
+observer.observe(document.body,{ childList:true, subtree:true, attributes:true, attributeFilter:['style'] });
 
 // ▼ 最悪 DOMが来なかった場合でも3秒後には強制実行
 setTimeout(()=>{
@@ -566,8 +582,8 @@ function buildTicketList(){
             ? imgFiles.map(img => {
                 const src = img.startsWith('http') ? img :
                             img.startsWith('default/')
-                            ? \`https://toretastamp-prod.s3.amazonaws.com/media/upload/\${img}\`
-                            : \`https://toretastamp-prod.s3.amazonaws.com/media/upload/stamp/\${img}\`;
+                            ? \`\${s3Base}/media/upload/\${img}\`
+                            : \`\${s3Base}/media/upload/stamp/\${img}\`;
                 return \`<img src="\${src}" alt="\${couponName}">\`;
             }).join('')
             : \`<img src="https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/Tbq9BQVwgzzA8i5qFYv8.png" alt="ticket">\`;
@@ -705,9 +721,9 @@ li.ticket_list_item.multi {
 .ticket_list_item:last-child {
     margin-bottom: 0;
 }
-.ticket_img img {
-    width: 80px;
-    height: auto;
+.ticket_list_from_stamp .ticket_img img {
+    width: 80px !important;
+    height: auto !important;
     border-radius: 8px;
 }
 dl.ticket_info {
@@ -760,36 +776,6 @@ dl.ticket_info.multi {
     z-index: 100;
 }
 
-/* =========================================
-    チケット一覧　タブ
-    ========================================= */
-    .ticket_tab_menu {
-    display: flex;
-    background-color: #ffffff33;
-    margin: 0px 0 20px;
-    border-bottom: 1.5px solid #e1e1e1;
-    align-items: stretch;
-}
-.ticket_tab_btn {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: #32231A;
-    font-weight: 700;
-    font-size: 12px;
-    padding: 8px 0;
-    transition: background 0.2s ease;
-    font-weight: 300;
-}
-
-.ticket_tab_btn.active {
-    background-color: transparent;
-    color: #333;
-    border-bottom: 7px solid #333;
-    margin-top: 0;
-    padding: 0 0 0px 0;
-    font-weight: 600;
-}
 /* =============================
 ▼ チケット画像全体レイアウト
 ============================= */
@@ -4327,6 +4313,9 @@ const cssOutput = `<style type="text/css">\n${coreUIStyles}\n${footerSpecificSty
 // 反映
 document.getElementById('out-js').value = jsOutput;
 document.getElementById('out-css').value = cssOutput;
+localStorage.setItem('generated_ui_js', jsOutput);
+localStorage.setItem('generated_ui_css', cssOutput);
+localStorage.setItem('generated_ui_at', new Date().toLocaleString('ja-JP'));
 showToast("配布用コードを正常に生成しました！");
 };
 

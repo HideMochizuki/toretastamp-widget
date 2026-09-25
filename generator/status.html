@@ -27,7 +27,7 @@
         </div>
 
         <nav>
-            <a href="index.html" class="nav-item">
+            <a href="home.html" class="nav-item">
                 <i class="fa fa-home" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ホーム
             </a>
             
@@ -80,7 +80,51 @@
                             </div>
                         </div>
                     </div>
-            
+
+                    <div class="form-row">
+                        <div class="form-label-side">Base URL（スタンプ帳一覧ページ）</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="base-url" placeholder="https://fbc.toreta-stamp.com/.../mypage/stamp" oninput="saveData()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-label-side">プロフィール表示ページURL（change/）</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="change-url" placeholder="https://fbc.toreta-stamp.com/.../change/" oninput="saveData()">
+                            <div style="color: #64748b; font-size: 11px; margin-top: 5px;">
+                                ※プロフィール画面のステータス表示（配布用コード③）を出すページのURL
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-label-side">「？」説明ページURL</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="question-url" placeholder="任意" oninput="saveData()">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-label-side">ページ分割の小ページ単位</div>
+                        <div class="form-input-side">
+                            <input type="number" class="data-input" id="page-unit" placeholder="例: 10" value="10" style="width:80px" oninput="saveData()">
+                            <div style="color: #64748b; font-size: 11px; margin-top: 5px;">
+                                ※最上位ランク到達後、スタンプ画像を何個ずつページ送りするか
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-label-side">NowLoading GIFのURL</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="loading-gif-url" placeholder="https://..." value="https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/BmDrEPGf02aOPrRjyo1h.gif" oninput="saveData()">
+                            <div style="color: #64748b; font-size: 11px; margin-top: 5px;">
+                                ※プロフィール画面のステータス読み込み中に表示するGIF
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
     
@@ -99,6 +143,7 @@
                             <th>Class名</th>
                             <th>下限（自動）</th>
                             <th>上限（設定）</th>
+                            <th>お得な情報URL</th>
                             <th>デザイン</th>
                             <th>操作</th>
                           </tr>
@@ -115,12 +160,12 @@
             </div>
 
             <div class="button-group" style="display: flex; gap: 10px; margin-top: 40px; margin-bottom: 20px;">
-                <button class="btn btn-generate" id="generate-btn" 
+                <button class="btn btn-generate" id="generate-btn"
                         style="flex: 1; padding: 18px; font-size: 16px; font-weight: bold; background: #1e293b; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
                     <i class="fa fa-magic" style="margin-right: 8px;"></i> 配布用コードを生成する
                 </button>
             </div>
-            
+
             <div style="margin-top: 50px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
                 
                 <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0; margin-bottom: 30px;">
@@ -174,10 +219,22 @@
                 
                     <div id="preview-content"></div>
                 </div>
-            
+
             </div>
-        
-            
+
+            <div style="margin: 10px auto; display: flex; justify-content: center; gap: 10px; padding: 15px; border-radius: 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">
+                <button class="btn" id="reset-btn" style="background-color: #94a3b8; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-undo"></i> リセット
+                </button>
+                <button class="btn" id="export-btn" style="background-color: #334155; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-download"></i> 書き出し
+                </button>
+                <button class="btn" id="import-btn" style="background-color: #8ace36; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-upload"></i> 読み込み
+                </button>
+                <input type="file" id="import-file" style="display: none;" accept=".json">
+            </div>
+
         </div>
 
 
@@ -203,9 +260,67 @@ const RANK_CLASSES = ['normal', 'bronze', 'silver', 'gold', 'platinum', 'sapphir
 // --- 1. 初期化 ---
 window.addEventListener('DOMContentLoaded', () => {
     loadData();
-    isInitializing = false; 
-    calculateRanks();       
+    isInitializing = false;
+    calculateRanks();
 });
+
+// --- 1-2. リセット・書き出し・読み込み ---
+document.getElementById('reset-btn').onclick = () => {
+    if (confirm("すべての設定を初期状態にリセットしますか？")) {
+        localStorage.removeItem('rankSettingsData');
+        location.reload();
+    }
+};
+
+document.getElementById('export-btn').onclick = () => {
+    const jsonStr = localStorage.getItem('rankSettingsData') || '{}';
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+    a.download = `status_generator_settings_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+const importBtn = document.getElementById('import-btn');
+const fileInput = document.getElementById('import-file');
+
+importBtn.onclick = () => {
+    fileInput.click();
+};
+
+fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const jsonStr = event.target.result;
+            const data = JSON.parse(jsonStr);
+
+            if (!Array.isArray(data.ranks)) {
+                alert("無効なファイル形式です。");
+                return;
+            }
+
+            if (confirm("現在の設定を上書きして、ファイルを読み込みますか？")) {
+                localStorage.setItem('rankSettingsData', JSON.stringify(data));
+                location.reload();
+            }
+        } catch (error) {
+            console.error(error);
+            alert("ファイルの読み込みに失敗しました。\n正しいJSONファイルを選択してください。");
+        }
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+};
 
 // --- 2. データの保存 ---
 function saveData() {
@@ -217,15 +332,21 @@ function saveData() {
             id: row.id,
             name: row.querySelector('.rank-name').value,
             max: row.querySelector('.rank-max').value,
-            className: row.dataset.className
+            className: row.dataset.className,
+            infoUrl: row.querySelector('.rank-info-url')?.value || ''
         });
     });
 
     localStorage.setItem('rankSettingsData', JSON.stringify({
-        basic: { 
+        basic: {
             normalId: document.getElementById('normal-id').value,
             platinumId: document.getElementById('platinum-id').value,
-            totalNum: document.getElementById('total-num').value 
+            totalNum: document.getElementById('total-num').value,
+            baseUrl: document.getElementById('base-url').value,
+            changeUrl: document.getElementById('change-url').value,
+            questionUrl: document.getElementById('question-url').value,
+            pageUnit: document.getElementById('page-unit').value,
+            loadingGifUrl: document.getElementById('loading-gif-url').value
         },
         ranks: rows,
         designs: rankDesignSettings
@@ -244,12 +365,17 @@ function loadData() {
                 document.getElementById('normal-id').value = data.basic.normalId || '';
                 document.getElementById('platinum-id').value = data.basic.platinumId || '';
                 document.getElementById('total-num').value = data.basic.totalNum || '';
+                document.getElementById('base-url').value = data.basic.baseUrl || '';
+                document.getElementById('change-url').value = data.basic.changeUrl || '';
+                document.getElementById('question-url').value = data.basic.questionUrl || '';
+                document.getElementById('page-unit').value = data.basic.pageUnit || '10';
+                document.getElementById('loading-gif-url').value = data.basic.loadingGifUrl || 'https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/BmDrEPGf02aOPrRjyo1h.gif';
             }
             rankDesignSettings = data.designs || {};
             const tbody = document.getElementById('rank-tbody');
-            tbody.innerHTML = ''; 
+            tbody.innerHTML = '';
             data.ranks.forEach(r => {
-                tbody.appendChild(createRowElement(r.id, r.name, r.max, r.className));
+                tbody.appendChild(createRowElement(r.id, r.name, r.max, r.className, r.infoUrl));
             });
         } catch (e) {
             console.error("データ読み込みエラー:", e);
@@ -260,23 +386,24 @@ function loadData() {
 }
 
 // --- 4. 行生成 ---
-function createRowElement(id, name = '', max = '', className = '') {
+function createRowElement(id, name = '', max = '', className = '', infoUrl = '') {
     const tr = document.createElement('tr');
     tr.id = id;
     tr.dataset.className = className;
-    
+
     // ③ .is-top-rank クラスの付与 (作成時にも適用)
     if (className === 'diamond') tr.classList.add('is-top-rank');
 
     tr.innerHTML = `
         <td><input type="text" class="data-input rank-name" placeholder="名称" value="${name}" oninput="saveData()"></td>
-        <td class="rank-class-cell">${className}</td> 
+        <td class="rank-class-cell">${className}</td>
         <td><input type="number" class="data-input rank-min" readonly style="width:60px; background:#f1f5f9;"></td>
         <td>
             <input type="number" class="data-input rank-max" placeholder="上限" style="width:60px" value="${max}" oninput="calculateRanks(); saveData();">
             <div class="error-msg" style="color:#ef4444; font-size:10px; margin-top:4px;"></div>
             <span class="rank-max-display">〜</span>
         </td>
+        <td><input type="text" class="data-input rank-info-url" placeholder="任意" style="width:140px" value="${infoUrl}" oninput="saveData()"></td>
         <td><button class="btn btn-sm" onclick="openDesignModal('${id}')" style="background:#64748b; color:white;"><i class="fa fa-palette"></i> 設定</button></td>
         <td><button class="btn btn-sm" onclick="removeRow('${id}')" style="background:#ef4444; color:white;"><i class="fa fa-trash"></i></button></td>
     `;
@@ -302,8 +429,8 @@ function calculateRanks() {
         
         let className = (index === 0) ? 'normal' : (RANK_CLASSES[index] || 'custom');
         
-        // ダイアモンド判定
-        if (index > 0 && lastMax >= totalNum && totalNum > 0) {
+        // ダイアモンド判定（直前行の上限が totalNum、または totalNum-1 のどちらでも最上位ランクとみなす）
+        if (index > 0 && lastMax >= totalNum - 1 && totalNum > 0) {
             className = 'diamond';
             hasTopRank = true;
         }
@@ -320,10 +447,10 @@ function calculateRanks() {
         const currentMax = parseInt(maxInput.value);
         if (!isNaN(currentMax)) {
             lastMax = currentMax;
-            // ① エラー表示
-            if (totalNum > 0 && currentMax > totalNum) {
+            // ① エラー表示（最上位ランクの下限がtotalNumちょうどになるよう、totalNum-1までに制限）
+            if (totalNum > 0 && currentMax > totalNum - 1) {
                 maxInput.classList.add('input-error');
-                if(errorMsg) errorMsg.textContent = `※${totalNum}以下にしてください`;
+                if(errorMsg) errorMsg.textContent = `※${totalNum - 1}以下にしてください`;
                 hasError = true;
             } else {
                 maxInput.classList.remove('input-error');
@@ -368,12 +495,17 @@ function removeRow(rowId) {
 // --- 7. デザイン設定モーダル ---
 function openDesignModal(rowId) {
     currentEditingRowId = rowId;
-    const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '', border: '' };
+    const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '', border: '', badgeImg: '', cardBorder: '', dueBg: '', dueBorder: '', dueColor: '' };
     document.getElementById('modal-bg').value = data.bg;
     document.getElementById('modal-color').value = data.color;
     document.getElementById('modal-bg-img').value = data.bgImg;
     document.getElementById('modal-filter').value = data.filter || 'none';
     document.getElementById('modal-border').value = data.border || '#FFFFFF'; // デフォルト値
+    document.getElementById('modal-badge-img').value = data.badgeImg || '';
+    document.getElementById('modal-card-border').value = data.cardBorder || '';
+    document.getElementById('modal-due-bg').value = data.dueBg || '';
+    document.getElementById('modal-due-border').value = data.dueBorder || '';
+    document.getElementById('modal-due-color').value = data.dueColor || '';
     document.getElementById('design-modal').style.display = 'flex';
 }
 
@@ -389,7 +521,12 @@ function saveDesignModal() {
         color: document.getElementById('modal-color').value,
         bgImg: document.getElementById('modal-bg-img').value,
         filter: document.getElementById('modal-filter').value,
-        border: document.getElementById('modal-border').value 
+        border: document.getElementById('modal-border').value,
+        badgeImg: document.getElementById('modal-badge-img').value,
+        cardBorder: document.getElementById('modal-card-border').value,
+        dueBg: document.getElementById('modal-due-bg').value,
+        dueBorder: document.getElementById('modal-due-border').value,
+        dueColor: document.getElementById('modal-due-color').value
     };
     saveData();
     calculateRanks(); // 保存したら即プレビュー更新
@@ -401,17 +538,41 @@ function saveDesignModal() {
 document.getElementById('generate-btn').addEventListener('click', generateCode);
 
 function generateCode() {
-    const totalNum = document.getElementById('total-num').value;
+    const totalNum = parseInt(document.getElementById('total-num').value) || 0;
     const normalId = document.getElementById('normal-id').value;
     const platinumId = document.getElementById('platinum-id').value;
-    
-    const config = {
-        ids: { normal: normalId, platinum: platinumId },
-        maxStamps: parseInt(totalNum),
-        ranks: []
-    };
+    const baseUrl = document.getElementById('base-url').value;
+    const changeUrl = document.getElementById('change-url').value;
+    const questionUrl = document.getElementById('question-url').value;
+    const loadingGifUrl = document.getElementById('loading-gif-url').value || 'https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/BmDrEPGf02aOPrRjyo1h.gif';
+    const pageUnit = parseInt(document.getElementById('page-unit').value) || 10;
+    const hasPlatinum = !!platinumId;
 
-    // CSSの組み立て
+    // ランク行を集計（下限=前の行の上限+1 を算出しながら1行ずつ拾う）
+    const ranks = [];
+    let nextMin = 0;
+    document.querySelectorAll('#rank-tbody tr').forEach(row => {
+        const name = row.querySelector('.rank-name').value;
+        const className = row.dataset.className;
+        const maxVal = row.querySelector('.rank-max').value;
+        const max = maxVal ? parseInt(maxVal) : null;
+        const infoUrl = row.querySelector('.rank-info-url')?.value || '';
+        const design = rankDesignSettings[row.id] || {};
+        ranks.push({ name, className, min: nextMin, max, infoUrl, design });
+        if (max !== null) nextMin = max + 1;
+    });
+
+    if (ranks.length < 2) {
+        alert('ランク設定を2行以上（通常ランク＋最上位ランク）登録してください。');
+        return;
+    }
+
+    const lastRank = ranks[ranks.length - 1];
+    const allClasses = ranks.map(r => r.className).join(' ');
+    const hasInfoLinks = ranks.some(r => r.infoUrl);
+    const displayRanks = ranks.slice(0, -1); // 最上位（無制限）を除いた区分
+
+    // ===== CSSの組み立て（既存仕様のまま） =====
     let cssOutput = `<style type="text/css">
 #stamp-list > .stamp_set { overflow: hidden; }
 
@@ -420,88 +581,270 @@ function generateCode() {
 ========================================= */\n
 `;
 
-    // ランクごとの設定ループ
-    document.querySelectorAll('#rank-tbody tr').forEach(row => {
-        const name = row.querySelector('.rank-name').value;
-        const className = row.dataset.className;
-        const max = row.querySelector('.rank-max').value ? parseInt(row.querySelector('.rank-max').value) : null;
-        const design = rankDesignSettings[row.id] || {};
-        
-        config.ranks.push({ name, className, max, design });
-
-        cssOutput += `body.stamp_card .stamp_set.${className} .stamp_title::before { content: "【${name}】"; margin-right: 5px; }\n`;
+    ranks.forEach(r => {
+        cssOutput += `body.stamp_card .stamp_set.${r.className} .stamp_title::before { content: "【${r.name}】"; margin-right: 5px; }\n`;
     });
 
     cssOutput += `\n/* =========================================
     スタンプ一覧 (カード本体)
 ========================================= */\n`;
 
-    document.querySelectorAll('#rank-tbody tr').forEach(row => {
-        const name = row.querySelector('.rank-name').value;
-        const className = row.dataset.className;
-        const design = rankDesignSettings[row.id] || {};
-        
-        let bgStyle = design.bgImg ? `background-image: url('${design.bgImg}'); background-size: cover;` : `background: ${design.bg};`;
+    const getBgStyle = (design) => design.bgImg ? `background-image: url('${design.bgImg}') !important; background-size: cover !important;` : `background: ${design.bg} !important;`;
+
+    ranks.forEach(r => {
+        const design = r.design;
+        const bgStyle = getBgStyle(design);
 
         cssOutput += `
-/* ${name} */
-#stamp-list > .stamp_set > .stamp_card.${className} { ${bgStyle} }
-#stamp-list > .stamp_set > .stamp_card.${className} .stamp_list_title { color: ${design.color || '#333333'} !important; border-bottom: 1px dashed ${design.color || '#333333'}; }
-#stamp-list > .stamp_set > .stamp_card.${className} .stamp_list_title:before { content: "【${name}】"; }
-#stamp-list > .stamp_set > .stamp_card.${className} .ticket_list_due { background: rgb(255 255 255 / 35%); border: none; color: #FFFFFF; }
-#stamp-list > .stamp_set > .stamp_card.${className} .stampicon { color: #FFFFFF; }
-#stamp-list > .stamp_set > .stamp_card.${className} .stampicon > b { border: 2px solid ${design.border || '#FFFFFF'}; }
-#stamp-list > .stamp_set > .stamp_card.${className} .stampicon > b > span { filter: ${design.filter || 'none'}; }
+/* ${r.name} */
+#stamp-list > .stamp_set > .stamp_card.${r.className} { ${bgStyle} border: ${design.cardBorder || 'none'} !important; outline: ${design.cardBorder || 'none'} !important; outline-offset: -7px; }
+#stamp-list > .stamp_set > .stamp_card.${r.className} .stamp_list_title { color: ${design.color || '#333333'} !important; border-bottom: 1px dashed ${design.color || '#333333'} !important; }
+#stamp-list > .stamp_set > .stamp_card.${r.className} .stamp_list_title:before { content: "【${r.name}】"; }
+#stamp-list > .stamp_set > .stamp_card.${r.className} .ticket_list_due { background: ${design.dueBg || 'rgb(255 255 255 / 35%)'} !important; border: ${design.dueBorder || 'none'} !important; color: ${design.dueColor || '#FFFFFF'} !important; }
+#stamp-list > .stamp_set > .stamp_card.${r.className} .stampicon { color: #FFFFFF !important; }
+#stamp-list > .stamp_set > .stamp_card.${r.className} .stampicon > b { border: 2px solid ${design.border || '#FFFFFF'} !important; }
+#stamp-list > .stamp_set > .stamp_card.${r.className} .stampicon > b > span { filter: ${design.filter || 'none'} !important; }
 `;
     });
 
+    if (hasPlatinum) {
+        const topDesign = lastRank.design;
+        const topBgStyle = getBgStyle(topDesign);
+        cssOutput += `
+/* B帳（プラチナ帳）内の「まだ削除できないカード」= 最上位ランク相当の見た目にする */
+#stamp-list > .stamp_set > .stamp_card.d-normal,
+#stamp-list > .stamp_set.${platinumId} > .stamp_card { ${topBgStyle} border: ${topDesign.cardBorder || 'none'} !important; outline: ${topDesign.cardBorder || 'none'} !important; outline-offset: -7px; }
+#stamp-list > .stamp_set > .stamp_card.d-normal .ticket_list_due { background: ${topDesign.dueBg || 'rgb(255 255 255 / 35%)'} !important; border: ${topDesign.dueBorder || 'none'} !important; color: ${topDesign.dueColor || '#FFFFFF'} !important; }
+#stamp-list > .stamp_set > .stamp_card.d-normal .stampicon { color: #FFFFFF !important; }
+#stamp-list > .stamp_set > .stamp_card.d-normal .stampicon > b { border: 2px solid ${topDesign.border || '#FFFFFF'} !important; }
+#stamp-list > .stamp_set > .stamp_card.d-normal .stampicon > b > span { filter: ${topDesign.filter || 'none'} !important; }
+`;
+    }
+
+    cssOutput += `
+/* =========================================
+    プロフィール画面 ステータス表示（ランクごとの背景・バッジ）
+========================================= */\n`;
+
+    ranks.forEach(r => {
+        const design = r.design;
+        const bgStyle = getBgStyle(design);
+        cssOutput += `.status.${r.className} { background: ${design.bg || 'transparent'}; ${design.bgImg ? bgStyle : ''} padding-left: ${design.badgeImg ? '90px' : '15px'}; }\n`;
+        if (design.badgeImg) {
+            cssOutput += `.status.${r.className}:before { content: ""; width: 49px; height: 49px; background-image: url(${design.badgeImg}); background-position: center; background-size: contain; position: absolute; z-index: 0; top: 20px; left: 25px; }\n`;
+        }
+    });
+
+    cssOutput += `
+.status.${lastRank.className} .status_message span b { font-size: 45px; font-weight: 500; font-family: Arial; }
+.status.${lastRank.className} .status_rest { color: #6e6e6e; background-color: #ffffff; }
+.status.${lastRank.className} .status_rest::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 85%;
+    display: block;
+    width: 0;
+    height: 0;
+    border-right: 5px solid transparent;
+    border-bottom: 8px solid #ffffff;
+    border-left: 5px solid transparent;
+}
+.stamp_set.${lastRank.className} .stamp_wrapper > ul.stamp_image-list2:nth-of-type(1) { flex-wrap: wrap; }
+`;
+
+    cssOutput += `
+/* =========================================
+    プロフィール画面 ステータス表示（共通レイアウト）
+========================================= */
+body.change .titleh3 > b { font-size: 20px; }
+p.date_of_expiry {
+    position: absolute; bottom: 16px; right: 20px; font-size: 10px; color: #ffffff;
+    font-family: "游ゴシック体", YuGothic, "游ゴシック", "Yu Gothic", sans-serif;
+}
+.status_title .a_question { display: initial; }
+.question {
+    display: inline-block; vertical-align: middle; color: #ffffff; line-height: 1;
+    position: relative; width: 0.7em; height: 0.7em; border: 0.1em solid currentColor;
+    border-radius: 50%; box-sizing: content-box; margin: 0 0 0 5px;
+}
+.question > span {
+    position: relative; width: 0.1em; height: 0.1504em; background: currentColor;
+    border-radius: 0.05em 0 0.025em 0.025em; position: absolute; top: 9%; left: 0; right: 0; bottom: 0; margin: auto;
+}
+.question > span::before {
+    content: ''; position: absolute; left: 0.05em; bottom: calc(100% - 0.1em);
+    width: 0.168em; height: 0.168em; border: 0.1em solid currentColor; border-left-color: transparent;
+    border-radius: 50%; box-sizing: content-box; transform: translateX(-50%) rotate(-45deg);
+}
+.question > span::after {
+    content: ''; position: absolute; top: calc(100% + 0.06667em); left: 0; width: inherit; height: 0.1em;
+    background: currentColor; border-radius: 50%;
+}
+.pieces {
+    margin: 0px 0 0 15px; padding: 5px 8px 5px 8px; font-size: 9px; font-weight: 300; color: #000000;
+    background-color: #FFFFFF; position: relative; display: inline-block; border-radius: 5px; transform: translate(0, -12%);
+}
+.pieces::before {
+    content: ""; position: absolute; top: 60%; left: -17px; margin-top: -9px;
+    border: 6px solid transparent; border-right: 15px solid #FFFFFF; z-index: 0;
+}
+.status {
+    border-radius: 15px; background: linear-gradient(128deg, #619485 0%, #2a433b 50%, #28443b 100%);
+    margin: -10px 15px 20px; padding: 22px 15px 15px 90px; color: #FFF; font-size: 14px; position: relative;
+    font-family:"ヒラギノ丸ゴ Pro W4","ヒラギノ丸ゴ Pro","Hiragino Maru Gothic Pro","ヒラギノ角ゴ Pro W3","Hiragino Kaku Gothic Pro","HG丸ｺﾞｼｯｸM-PRO","HGMaruGothicMPRO";
+    box-shadow: 0 0 7px 5px #65656552;
+}
+.status a { display: block; position: relative; }
+body.change .titleh3 { position: relative; margin: 0 0 10px 0; }
+.titleh3 .date_of_expiry {
+    padding: 0 0 0 70px; position: absolute; top: 20px; right: 0;
+    margin: 0 0 0 70px; padding: 2px 21px; border-radius: 3px; background-color: #FFFFFF0F; font-size: 10px; color: #141414;
+}
+.status_title { color: #fff; font-size: 18px; line-height: 1.2; font-weight: 700; margin: 0 25px 0px 0px; }
+.status_message { color: #fff; margin: 0 0 0 0px; font-size: 12px; }
+.status_message span {
+    color: #fff; font-size: 15px; line-height: 1; font-weight: 700; margin: 5px 0px 0 0px;
+    padding: 0 25px 0 0; display: block; text-align: right; position: relative;
+}
+.status_message span b { font-size: 26px; }
+.status_message span::before {
+    content: ""; width: 15px; height: 19px;
+    background-image: url(https://toretastamp-stg.s3.amazonaws.com/static/front/images/stamp_default_w.png);
+    background-position: center; background-size: contain; position: absolute; bottom: 1px; right: 5px;
+}
+.status_bar {
+    background-color: #ffffff9c; height: 16px; width: 100%; margin: 10px 0px 5px 0px; border-radius: 10px;
+    overflow: visible; position: relative; padding: 0.1px 5px 0px; box-shadow: inset 1px 1px 2px 0px #00000040;
+}
+.status_bar_inner {
+    background-color: #c70d0d; height: 7px; width: 0; border-radius: 4px; margin: 5px 0 4px 0px; transition: width 1s ease-in-out;
+}
+.status_bar .triangle {
+    position: absolute; top: 18px; width: 0; height: 0; border-right: 5px solid transparent;
+    border-bottom: 8px solid #ffffff; border-left: 5px solid transparent; z-index: 2; transition: left 0.5s ease;
+}
+.status_ticket {
+    color: #fff; margin: 5px 0 0 0px; font-size: 10px; border-top: 1px solid #ffffff4a;
+    padding: 3px 0 0 25px; position: relative; vertical-align: bottom;
+}
+.status_ticket img {
+    width: 19px; filter: invert(100%) sepia(80%) saturate(0%) hue-rotate(182deg) brightness(100%) contrast(360%);
+    margin: 0 0px 0 0px; position: absolute; top: 5.5px; left: 0px; padding: 0 0px 0 0;
+}
+.status_ticket span {
+    color: #fff; font-size: 14px; line-height: 1; font-weight: 700; margin: 10px 0px 0 0px; padding: 0 3px;
+    text-align: right; position: relative;
+}
+.status_rest {
+    color: #666; margin: 10px 0 0 0px; background-color: #ffffff; border-radius: 5px; font-size: 10px;
+    padding: 3px 0 3px 10px; position: relative; font-weight: 600; display: flex; align-items: center;
+}
+.status_rest span { font-size: 10px; font-weight: 600; padding: 0 2px; }
+.dli-arrow-right {
+    display: inline-block; vertical-align: middle; color: #ffffff; line-height: 1; position: relative;
+    width: 1.1em; height: 0.15em; background: currentColor; position: absolute; top: 0px; right: 5px;
+}
+.dli-arrow-right::before {
+    content: ''; width: 0.75em; height: 0.75em; border: 0.15em solid currentColor; border-left: 0; border-bottom: 0;
+    transform: rotate(45deg); transform-origin: top right; position: absolute; top: 50%; right: -0.2em; box-sizing: border-box;
+}
+.stamp_card.expired .stamp_card_delete_btn + a,
+.stamp_card.expired:has(.stamp_card_delete_btn) { display:none !important; }
+#stamp-list > .stamp_set hr { display:none; }
+.stamp_set.${lastRank.className} .stamp_paging { display: none; }
+.stamp_detail { display: none; }
+.rank_info_link {
+    margin: 20px 45px 20px; padding: 10px 0; border: 1px solid #eeeeee; box-shadow: 2px 2px 3px #5858581c;
+    text-align: center; border-radius: 9px; background-color: #FFF; color: #000;
+}
+.rank_info_link p a {
+    font-family: "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+    line-height: 1.5; color: #000; font-size: 15px;
+}
+`;
+
     cssOutput += `<\/style>`;
 
-    // JSテンプレート（前回と同じ内容です）
-    const jsTemplate = `<script>
-const STATUS_CONFIG = ${JSON.stringify(config, null, 2)};
+    // ===== JS①：スタンプ帳一覧のランク判定チェーンを組み立て =====
+    const nonFirstRanks = ranks.slice(1);
+    let rankChain1 = '';
+    nonFirstRanks.forEach((r, i) => {
+        const isLast = i === nonFirstRanks.length - 1;
+        const keyword = i === 0 ? 'if' : 'else if';
+        const cond = isLast ? `obtained >= ${r.min}` : `obtained >= ${r.min} && obtained <= ${r.max}`;
+        rankChain1 += `${keyword} (${cond}) { $card.removeClass('normal').addClass('${r.className}'); }\n        `;
+    });
 
+    const script1 = `<script>
 $(document).ready(function () {
-    const stampCardIds = STATUS_CONFIG.ids;
-    const $normalSet = $('.stamp_set.' + stampCardIds.normal);
+    const stampCardIds = {
+        platinum: ${hasPlatinum ? `'${platinumId}'` : 'null'}, // プラチナ帳（B帳）
+        normal: '${normalId}' // ノーマル帳（A帳）
+    };
+
+    const $normalSet = $('.stamp_set[class*="' + stampCardIds.normal + '"]');
     const $platinumSet = stampCardIds.platinum ? $('.stamp_set.' + stampCardIds.platinum) : $();
 
+    // ① hrefからstamp_card IDを抽出し、.stamp_setにIDクラスを追加
     $('.stamp_card a').each(function () {
         const href = $(this).attr('href');
         const match = href.match(/stamp_card\\/([a-zA-Z0-9]+)/);
         if (match && match[1]) { $(this).closest('.stamp_set').addClass(match[1]); }
     });
 
+    // ② プラチナ帳の .stamp_card（削除ボタン無し）に .d-normal を付与
     $platinumSet.find('.stamp_card').each(function () {
         if ($(this).find('.stamp_card_delete_btn').length === 0) { $(this).addClass('d-normal'); }
     });
 
+    // ③ スタンプ数が最大（❶ = ❷）のカードに .acquisition を付与
     $('.stamp_set .stamp_num').each(function () {
         const text = $(this).text().trim();
         let match = text.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
-        let firstNum = match ? parseInt(match[1], 10) : parseInt(text.match(/(\\d+)/)?.[1], 10);
-        let secondNum = match ? parseInt(match[2], 10) : STATUS_CONFIG.maxStamps;
-        if (firstNum != null && secondNum != null && firstNum >= secondNum) {
-            $(this).addClass('acquisition').closest('.stamp_card').addClass('acquisition');
+        let firstNum, secondNum;
+        if (match) {
+            firstNum = parseInt(match[1], 10);
+            secondNum = parseInt(match[2], 10);
+        } else {
+            match = text.match(/(\\d+)/);
+            if (match) { firstNum = parseInt(match[1], 10); secondNum = ${totalNum}; }
         }
-    }); 
+        if (firstNum != null && secondNum != null) {
+            if (stampCardIds.platinum && firstNum >= secondNum) {
+                $(this).addClass('acquisition');
+                $(this).closest('.stamp_card').addClass('acquisition');
+            }
+        }
+    });
 
-    handleAandB();
+    // ④ A帳内で満了カードがあれば → B帳を表示（ステップ①対応）
+    if (stampCardIds.platinum) {
+        handleAandB(); // B帳がある時だけ、満了チェック＆切り替え判定
+    } else {
+        handleAOnly(); // B帳がない時は、最初からA帳単独の表示・ランク付与へ進む
+    }
 
     function handleAandB() {
         const $cards = $normalSet.find('.stamp_card');
         let isFullExists = false;
         $cards.each(function () {
-            const text = $(this).find('.stamp_num').text().replace(/[^\\d\\/]/g, '').trim();
-            const match = text.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
-            if (match && parseInt(match[1], 10) >= parseInt(match[2], 10)) { isFullExists = true; return false; }
+            if ($(this).hasClass('acquisition')) {
+                isFullExists = true;
+                return false;
+            }
         });
 
-        if (isFullExists && $platinumSet.length) {
-            $platinumSet.closest('.stamp_set').show();
-            $normalSet.closest('.stamp_set').hide();
+        if (isFullExists) {
+            if ($platinumSet.length) {
+                $platinumSet.closest('.stamp_set').show();
+                $normalSet.closest('.stamp_set').hide();
+            } else {
+                $normalSet.closest('.stamp_set').show();
+                const $fullCard = $normalSet.find('.stamp_card.acquisition').first();
+                if ($fullCard.length) assignRankAndMessage($fullCard);
+            }
         } else {
-            $normalSet.closest('.stamp_set').show();
             handleAOnly();
         }
     }
@@ -518,44 +861,569 @@ $(document).ready(function () {
             const dateMatch = text.match(/(\\d{4})年(\\d{2})月(\\d{2})日/);
             if (dateMatch) {
                 const date = new Date(dateMatch[0].replace(/[年月]/g, '/').replace('日', ''));
+                date.setHours(0, 0, 0, 0);
                 if (date >= today) { showCard = $card; return false; }
             }
             if (!fallbackCard && $card.find('.stamp_card_delete_btn').length === 0) fallbackCard = $card;
         });
-        assignRankAndMessage(showCard || fallbackCard);
+
+        $platinumSet.closest('.stamp_set').hide();
+        $normalSet.closest('.stamp_set').show();
+
+        if (showCard) assignRankAndMessage(showCard);
+        else if (fallbackCard) assignRankAndMessage(fallbackCard);
+        else console.warn("該当するAスタンプ帳が存在しません（例外）");
     }
 
     function assignRankAndMessage($card) {
-        if (!$card || $card.length === 0) return;
-        
+        $card.addClass('normal');
         const text = $card.find('.stamp_num').text().trim();
-        let match = text.match(/(\\d+)/);
-        let obtained = match ? parseInt(match[1], 10) : 0;
-        
-        let matchedClass = 'normal';
-        let lower = 0;
-        
-        STATUS_CONFIG.ranks.forEach(rank => {
-            let upper = rank.max !== null ? parseInt(rank.max) : Infinity;
-            if (obtained >= lower && obtained <= upper) {
-                matchedClass = rank.className;
-            }
-            lower = upper + 1;
-        });
+        let match = text.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+        let obtained, total;
+        if (match) { obtained = parseInt(match[1], 10); total = parseInt(match[2], 10); }
+        else { match = text.match(/(\\d+)/); if (match) { obtained = parseInt(match[1], 10); total = ${totalNum}; } }
+        if (!obtained || !total) return;
 
-        const allClasses = STATUS_CONFIG.ranks.map(r => r.className).join(' ');
-        $card.removeClass('normal ' + allClasses).addClass(matchedClass);
-        
-        if ($platinumSet.length && obtained >= STATUS_CONFIG.maxStamps) {
-            $card.removeClass('normal ' + allClasses).addClass('diamond');
+        ${rankChain1}
+
+        if ($platinumSet.length && obtained >= ${totalNum}) {
+            $card.removeClass('${displayRanks.map(r => r.className).join(' ')}').addClass('${lastRank.className}');
         }
     }
 });
 <\/script>`;
 
+    // ===== JS②：ページ分割処理 =====
+    let rankChain2 = '';
+    displayRanks.forEach((r, i) => {
+        const keyword = i === 0 ? 'if' : 'else if';
+        rankChain2 += `${keyword} (number <= ${r.max}) { updateStampDisplay('${r.className}', ${r.min + 1}, ${r.max + 1}, '${i + 1}/${displayRanks.length}', ${r.min}); }\n        `;
+    });
+
+    const script2 = `<script>
+$(document).ready(function () {
+
+    const aStampKey = '${normalId}';
+    const totalNum = ${totalNum};
+    const rawPath = window.location.pathname || '';
+    let stampCardId = null, uniqueId = null;
+
+    if (rawPath.includes('/stamp_card/')) {
+        const parts = rawPath.split("/stamp_card/")[1]?.split("/").filter(Boolean) || [];
+        stampCardId = parts[0] || null;
+        uniqueId    = parts[1] || null;
+    }
+
+    if (stampCardId === aStampKey && document.body.className.includes(stampCardId)) {
+        $('.stamp_set').hide();
+        $.ajax({
+            url: "${baseUrl}",
+            method: "GET",
+            success: function (data) {
+                const $response = $(data);
+                const today = new Date();
+                const cards = [];
+                let matchedCard = null;
+
+                $response.find(".stamp_card").each(function () {
+                    const $card = $(this);
+                    const href = $card.find("a").attr("href") || "";
+                    if (!href.includes(stampCardId)) return;
+                    const txt = $card.find(".ticket_list_due").text().replace(/\\s/g,'');
+                    const m = txt.match(/(\\d{4})年(\\d{1,2})月(\\d{1,2})日/);
+                    let isAlive = true;
+                    if (m) {
+                        const expiry = new Date(m[1], m[2]-1, m[3], 23,59,59);
+                        isAlive = (expiry >= today);
+                    }
+                    cards.push({ $card, href, isAlive });
+                });
+
+                if (uniqueId) {
+                    const hit = cards.find(c => c.href.includes(uniqueId));
+                    if (hit) matchedCard = hit.$card;
+                } else {
+                    const alive = cards.filter(c => c.isAlive);
+                    if (alive.length > 0) matchedCard = alive[0].$card;
+                    else if (cards.length) matchedCard = cards[0].$card;
+                }
+                if (!matchedCard) return console.warn("一致カードなし");
+
+                const txtNum  = matchedCard.find(".stamp_num").text().trim();
+                const txtIcon = matchedCard.find(".stampicon").text().trim();
+                const firstNumber = extractNumber(txtNum) ?? extractNumber(txtIcon);
+                if (firstNumber !== null) updateDisplayBasedOnNumber(firstNumber);
+
+                let shown = false;
+                $('.stamp_card a').each(function () {
+                    const href = $(this).attr('href') || "";
+                    if (href.includes(stampCardId) && (!uniqueId || href.includes(uniqueId))) {
+                        $(this).closest('.stamp_set').fadeIn();
+                        shown = true;
+                        return false;
+                    }
+                });
+                if (!shown) $('.stamp_set').first().fadeIn();
+            }
+        });
+    }
+
+    function extractNumber(text) {
+        let m = text.match(/(\\d+)\\s*\\/\\s*\\d+\\s*獲得/);
+        if (m) return Number(m[1]);
+        m = text.match(/(\\d+)\\s*獲得/);
+        return m ? Number(m[1]) : null;
+    }
+
+    function updateDisplayBasedOnNumber(number) {
+        $('li.stamp_image-wrapper2').hide();
+
+        ${rankChain2}else {
+            $('.stamp_set').removeClass('${allClasses}').addClass('${lastRank.className}');
+            $('#now_stamps').hide();
+
+            const perPage = totalNum;
+            const unit = ${pageUnit};
+            const page = Math.floor((number - 1) / perPage) + 1;
+            let within = number - (page - 1) * perPage;
+            if (within === perPage) within = 1;
+            const subPageIndex = Math.floor((within - 1) / unit);
+            let subStart = subPageIndex * unit + 1;
+            let subEnd = subStart + unit - 1;
+
+            $('li.stamp_image-wrapper2').each(function () {
+                const id = Number($(this).attr('id').replace('stamp',''));
+                if (!id) return;
+                if (id < subStart || id > subEnd) { $(this).hide(); return; }
+                $(this).show();
+                const local = id - subStart + 1;
+                const $num = $(this).find('span.number');
+                if ($num.length) $num.text(local);
+                else $(this).find('img').after(\`<span class="number">\${local}</span>\`);
+            });
+            $('#now_stamps').show().text(\`Page \${page}\`);
+        }
+    }
+
+    function updateStampDisplay(className, start, end, labelText, adjust = 0) {
+        $('.stamp_set').removeClass('${allClasses}').addClass(className);
+        $('#now_stamps').text(labelText);
+        $('li.stamp_image-wrapper2').each(function () {
+            const id = Number($(this).attr('id')?.replace('stamp',''));
+            if (!id) return;
+            if (id >= start && id <= end) {
+                $(this).show();
+                if (!$(this).find('span.number').length) {
+                    $(this).find('img').after(\`<span class="number">\${id - adjust}</span>\`);
+                }
+            }
+        });
+    }
+});
+<\/script>`;
+
+    // ===== JS③：プロフィール画面のステータスウィジェット =====
+    const rankDataArr = displayRanks.map((r, i) => {
+        const nextRank = ranks[i + 1];
+        return `        { min: ${r.min}, max: ${r.max}, label: '${r.name}', nextLabel: '${nextRank.name}', class: '${r.className}', nextVal: ${r.max + 1} }`;
+    }).join(',\n');
+
+    const questionLinksBlock = `    const questionLinks = {
+${ranks.map(r => `        "${r.name}": ${r.infoUrl ? `'${r.infoUrl}'` : 'null'}`).join(',\n')}
+    };
+    const rankLinkAvailable = {
+${ranks.map(r => `        "${r.name}": false`).join(',\n')}
+    };
+`;
+
+    const bScanBlock = hasPlatinum ? `
+                        if (bStampKey && href.includes(bStampKey)) {
+                            const match = rawText.match(/\\d+/);
+                            if (match) bStampCount = parseInt(match[0], 10);
+                            bStampUrl = fullUrl;
+                        }
+` : '';
+
+    const bDisplayBlock = hasPlatinum ? `
+                if (isBStampDefined && hasCompletedA) {
+                    $.get(bStampUrl, function (pageB) {
+                        const $bHtml = $(pageB);
+                        const currentOnStampCount = $bHtml.find(".stamp_image-wrapper2").filter(function () {
+                            return ($(this).hasClass('stamp_on_img') || $(this).data('coupon-status') === 'get');
+                        }).length;
+
+                        const $coupon = $bHtml.find("li.stamp_image-wrapper2.get_coupon").first();
+                        let bTicketHtml = "";
+
+                        if ($coupon.length) {
+                            const nextCouponStamp = parseInt($coupon.attr("id").replace("stamp",""));
+                            const remain = nextCouponStamp - currentOnStampCount;
+                            bTicketHtml = \`
+                                <p class="status_ticket">
+                                    <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/MQoDW06lmEcnBqyHnVtN.png">
+                                    チケット獲得まで残り<span><b>\${remain}</b></span>スタンプ
+                                </p>\`;
+                        }
+
+                        const rankInfoHtml = buildRankInfoHtml('${lastRank.name}');
+
+                        insertHtml(\`
+                            <h3 class="titleh3"><b>現在のステータス</b></h3>
+                            <div class="status ${lastRank.className}">
+                                <a href="\${bStampUrl}">
+                                    <p class="status_title"><span class="font_sizeS">あなたは</span>${lastRank.name}会員<object><a class="a_question" href="\${questionUrl}"><span class="question"><span></span></span></a></object></p>
+                                    <p class="status_message">現在獲得しているスタンプ数<span><b>\${bStampCount}</b></span></p>
+                                    <p class="status_rest">いつもご利用ありがとうございます！！</p>
+                                    \${bTicketHtml}
+                                    <span class="dli-arrow-right"></span>
+                                </a>
+                            </div>
+                            \${rankInfoHtml}
+                        \`);
+                    });
+                    return;
+                }
+` : '';
+
+    const script3 = `<script>
+$(document).ready(function () {
+    // ===============================
+    // 設定値・定数
+    // ===============================
+    const aPageUrl = '${baseUrl}';
+    const bPageUrl = '${changeUrl}';
+    const aStampKey = '${normalId}';
+    const bStampKey = ${hasPlatinum ? `'${platinumId}'` : 'null'};
+    const isBStampDefined = !!bStampKey;
+    const totalNum = ${totalNum};
+
+    const questionUrl = '${questionUrl}';
+
+${questionLinksBlock}
+    // URLチェック（部分一致で安全に）
+    if (window.location.href.indexOf('/change/') === -1) return;
+
+    // 最初からコンテナを用意して真っ白になるのを防ぐ
+    const $profileSet = $('.profile_set');
+    const $container = $('<div id="dynamic-status-container" style="display:none;"></div>');
+    if ($profileSet.length) {
+        $profileSet.before($container);
+    } else {
+        $('body').prepend($container);
+    }
+
+    // 🔽 ローディングGIF追加
+    $('#loading').remove();
+    const $loading = $('<div id="loading" style="text-align:center; margin-top:170px;"><img src="${loadingGifUrl}" alt="Loading..." style="width:100px;"></div>');
+    $('body').prepend($loading);
+
+    const rankLabels = [${ranks.map(r => `"${r.name}"`).join(', ')}];
+    let checkCount = 0;
+    let statusLoaded = false;
+
+    function tryLoadStatus() {
+        if (statusLoaded) return;
+        statusLoaded = true;
+        loadStampStatus();
+    }
+
+    rankLabels.forEach(label => {
+        const url = questionLinks[label];
+        if (!url) {
+            checkCount++;
+            return;
+        }
+        $.ajax({
+            url: url,
+            type: 'HEAD',
+            success: function () { rankLinkAvailable[label] = true; },
+            error: function () { rankLinkAvailable[label] = false; },
+            complete: function () {
+                checkCount++;
+                if (checkCount === rankLabels.length) {
+                    tryLoadStatus();
+                }
+            }
+        });
+    });
+    setTimeout(tryLoadStatus, 3000);
+
+    if (rankLabels.every(l => !questionLinks[l])) {
+        tryLoadStatus();
+    }
+
+    function loadStampStatus() {
+        $.ajax({
+        url: aPageUrl,
+        method: 'GET',
+        success: function (data) {
+            const $html = $(data);
+            const $stampSets = $html.find('#stamp-list .stamp_set');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let bStampCount = 0, bStampUrl = '', aStampUrl = '';
+            let maxObtained = 0, maxTotal = null;
+            let hasCompletedA = false, hasValidAStamp = false, hasExpiredAStamp = false;
+            let isUnusedInitial = false;
+            let dateOfExpiryText = '';
+            let $targetCard = null;
+
+            // ===============================
+            // ランク関連
+            // ===============================
+            const RANKS = [
+${rankDataArr}
+            ];
+
+            const getRankData = (obtained) => {
+                if (obtained >= ${lastRank.min}) {
+                    return { label: '${lastRank.name}', class: '${lastRank.className}', message: isBStampDefined ? '${lastRank.name}会員 達成！' : 'いつもご利用いただきましてありがとうございます！' };
+                }
+                const rank = RANKS.find(r => obtained >= r.min && obtained <= r.max);
+                if (!rank) return { label: '${ranks[0].name}', class: '${ranks[0].className}', message: '' };
+                return { label: rank.label, class: rank.class, message: \`あと<span>\${rank.nextVal - obtained}</span>個で\${rank.nextLabel}にランクUP\` };
+            };
+
+            const formatStampMessage = (obtained, total) => {
+                if (total !== null && obtained >= total) {
+                    return \`<p class="status_message">現在獲得しているスタンプ数<span><b>\${obtained}</b></span></p>\`;
+                }
+                return \`<p class="status_message">現在獲得しているスタンプ数<span><b>\${obtained}</b> \${total !== null ? '/ ' + total : ''}</span></p>\`;
+            };
+
+            const buildRankInfoHtml = (rankLabel) => {
+                if (!rankLinkAvailable[rankLabel]) return '';
+                const url = questionLinks[rankLabel];
+                return \`<div class="rank_info_link"><p><a href="\${url}">\${rankLabel}会員の方へお得な情報</a></p></div>\`;
+            };
+
+            const insertHtml = (html) => {
+                $('#loading').remove();
+                $container.html(html).show();
+                animateStatusBar();
+                setTimeout(updateTrianglePosition, 100);
+            };
+
+            const animateStatusBar = () => {
+                $('.status_bar_inner').each(function () {
+                    const $bar = $(this);
+                    const targetWidth = $bar.data('width');
+                    $bar.css('width', '0');
+                    setTimeout(() => $bar.css('width', targetWidth), 300);
+                });
+            };
+
+            function updateTrianglePosition() {
+                $('.status_bar').each(function () {
+                    const $bar = $(this);
+                    const $inner = $bar.find('.status_bar_inner');
+                    const $triangle = $bar.find('.triangle');
+                    if ($inner.length && $triangle.length) {
+                        const percent = parseFloat($inner.data('width')) || 0;
+                        const barWidth = $bar.width();
+                        const triangleWidth = 10;
+                        const correctionPercent = (triangleWidth / 2) / barWidth * 100;
+                        const minLeftPercent = (5 / barWidth) * 100;
+                        const triangleWidthPercent = (triangleWidth / barWidth) * 100;
+                        const maxLeftPercent = 100 - triangleWidthPercent - minLeftPercent;
+                        const rawLeft = percent - correctionPercent;
+                        const leftPercent = Math.min(Math.max(rawLeft, minLeftPercent), maxLeftPercent);
+                        $triangle.css('left', \`\${leftPercent}%\`);
+                    }
+                });
+            }
+
+            // === スタンプ帳走査（パターン①/② 両対応版） ===
+            $stampSets.each(function () {
+                const $cards = $(this).find('.stamp_card');
+                $cards.each(function () {
+                    const $card = $(this);
+                    const href = $card.find('a').attr('href') || '';
+                    const fullUrl = href.startsWith('http') ? href : 'https:' + href;
+                    const rawText = $card.find('.stamp_num').text().trim() || $card.find('dt.stampicon').text().trim();
+                    const dueText = $card.find('.ticket_list_due').text().trim();
+                    const isNone = dueText.replace(/\\s/g, '').includes('有効期限：なし');
+                    const hasDeleteBtn = $card.find('.stamp_card_delete_btn').length > 0;
+${bScanBlock}
+                    if (href.includes(aStampKey)) {
+                        let obtained = null;
+                        let total = null;
+
+                        // 【パターン①】「0 / ${totalNum}獲得」
+                        let match = rawText.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+                        if (match) {
+                            obtained = parseInt(match[1], 10);
+                            total = parseInt(match[2], 10);
+                        } else {
+                            // 【パターン②】「0獲得」
+                            match = rawText.match(/(\\d+)/);
+                            if (match) {
+                                obtained = parseInt(match[1], 10);
+                                total = totalNum ? parseInt(totalNum, 10) : null;
+                            }
+                        }
+
+                        if (obtained === null) return;
+                        if (obtained === 0 && isNone) isUnusedInitial = true;
+                        if (total !== null && obtained === total) hasCompletedA = true;
+
+                        const isTarget = ($cards.length === 1 || !hasDeleteBtn);
+                        if (isTarget && obtained >= maxObtained) {
+                            maxObtained = obtained;
+                            maxTotal = total;
+                            aStampUrl = fullUrl;
+                            $targetCard = $card;
+                            dateOfExpiryText = isNone ? '有効期限：なし' : \`有効期限：\${dueText.replace(/\\s/g, '').replace('有効期限：', '')}\`;
+                        }
+                    }
+                    });
+            });
+
+            // ★ 画面真っ白を解消する最重要修正 ★
+            // 「有効期限： 」のように日付が空欄の場合でも、エラーで止めずに「有効」として扱う
+            if ($targetCard) {
+                const dueText = $targetCard.find('.ticket_list_due').text().trim();
+                const dateMatch = dueText.match(/(\\d{4})年?\\s*(\\d{1,2})月?\\s*(\\d{1,2})日?/);
+
+                if (!dateMatch) {
+                    // 日付が見つからない（空欄 or なし）場合は有効とみなす
+                    hasValidAStamp = true;
+                } else {
+                    const year = parseInt(dateMatch[1]);
+                    const month = parseInt(dateMatch[2]) - 1;
+                    const day = parseInt(dateMatch[3]);
+                    const dueDate = new Date(year, month, day);
+                    if (dueDate >= today) {
+                        hasValidAStamp = true;
+                    } else {
+                        hasExpiredAStamp = true;
+                    }
+                }
+            }
+
+            const rank = getRankData(maxObtained);
+            const safeBarWidth = maxTotal ? ((maxObtained / maxTotal) * 100).toFixed(1) : 0;
+${bDisplayBlock}
+            if (isUnusedInitial || hasExpiredAStamp) {
+                const rankInfoHtml = buildRankInfoHtml(rank.label);
+                insertHtml(\`
+                    <h3 class="titleh3"><b>現在のステータス</b><p class="date_of_expiry">\${dateOfExpiryText}</p></h3>
+                    <div class="status \${rank.class}">
+                        <a href="\${aStampUrl}">
+                            <p class="status_title">\${hasExpiredAStamp ? '有効期限が切れています。' : \`<span class="font_sizeS">あなたは</span> \${rank.label}会員\`}<object><a class="a_question" href="\${questionUrl}"><span class="question"><span></span></span></a></object></p>
+                            \${hasExpiredAStamp ? '<p class="status_message">現在獲得しているスタンプ数<span><b>0</b></span></p>' : formatStampMessage(maxObtained, maxTotal)}
+                            \${hasExpiredAStamp || !maxTotal ? '' : \`<div class="status_bar"><div class="status_bar_inner" data-width="\${safeBarWidth}%"></div><span class="triangle"></span></div>\`}
+                            <p class="status_rest">\${hasExpiredAStamp ? '次回QRコードを読み込むと新しいスタンプ帳ができます。' : rank.message}</p>
+                            <span class="dli-arrow-right"></span>
+                        </a>
+                    </div>
+                    \${rankInfoHtml}
+                \`);
+
+            } else if (hasValidAStamp) {
+                $.get(aStampUrl, function (pageData) {
+                    const $pageHtml = $(pageData);
+                    const rawStamp = $pageHtml.find('.stamp_num').first().text().trim();
+
+                    let obtained = maxObtained;
+                    let total = maxTotal || (totalNum ? parseInt(totalNum, 10) : null);
+
+                    let m = rawStamp.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+                    if (m) {
+                        obtained = parseInt(m[1], 10);
+                        total = parseInt(m[2], 10);
+                    } else {
+                        m = rawStamp.match(/(\\d+)/);
+                        if (m && total == null && totalNum) {
+                            obtained = parseInt(m[1], 10);
+                            total = parseInt(totalNum, 10);
+                        }
+                    }
+
+                    const $couponLis = $pageHtml.find('li.stamp_image-wrapper2').filter(function () { return typeof $(this).data('coupon') !== 'undefined'; });
+                    const $nextCoupon = $couponLis.filter(function () { return !$(this).data('coupon-status'); }).first();
+                    let ticketHtml = '';
+
+                    if ($nextCoupon.length) {
+                        const couponId = parseInt($nextCoupon.attr('id').replace('stamp', ''), 10);
+                        const currentOnStampCount = $pageHtml.find("li.stamp_image-wrapper2").filter(function () {
+                            return ($(this).hasClass('stamp_on_img') || $(this).data('coupon-status') === 'get');
+                        }).length;
+                        const remaining = couponId - currentOnStampCount;
+                        if (remaining >= 0) {
+                            ticketHtml = \`<p class="status_ticket"><img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/MQoDW06lmEcnBqyHnVtN.png">チケット獲得まで残り<span><b>\${remaining}</b></span>スタンプ</p>\`;
+                        }
+                    }
+
+                    const rankNow = getRankData(obtained);
+                    const rankInfoHtml = buildRankInfoHtml(rankNow.label);
+                    const barWidthPercentNow = total ? ((obtained / total) * 100).toFixed(1) : 0;
+
+                    insertHtml(\`
+                        <h3 class="titleh3"><b>現在のステータス</b><p class="date_of_expiry">\${dateOfExpiryText}</p></h3>
+                        <div class="status \${rankNow.class}">
+                            <a href="\${aStampUrl}">
+                                <p class="status_title"><span class="font_sizeS">あなたは</span>\${rankNow.label}会員<object><a class="a_question" href="\${questionUrl}"><span class="question"><span></span></span></a></object></p>
+                                \${formatStampMessage(obtained, total)}
+                                \${total !== null && obtained >= total ? '' : \`<div class="status_bar"><div class="status_bar_inner" data-width="\${barWidthPercentNow}%"></div><span class="triangle"></span></div>\`}
+                                <p class="status_rest">\${rankNow.message}</p>
+                                \${ticketHtml}
+                                <span class="dli-arrow-right"></span>
+                            </a>
+                        </div>
+                        \${rankInfoHtml}
+                    \`);
+                });
+            } else {
+                $('#loading').remove();
+            }
+        },
+        complete: function () {
+            $('#loading').remove();
+        }
+        });
+    }
+});
+<\/script>`;
+
+
+    // ===== JS⓪：各div内のリンクを読み取りスタンプ帳IDをclass名として追加する（前提スクリプト） =====
+    const script0 = `<script>
+$(document).ready(function() {
+$('div#stamp-list div.stamp_set').each(function() {
+var links = $(this).find('a');
+var directoryName = '';
+
+if (links.length > 0) {
+    var href = links.eq(0).attr('href');
+    var match = href.match(/stamp_card\\/([^\\/]+)/);
+    if (match && match.length > 1) {
+    directoryName = match[1];
+    }
+}
+
+$(this).addClass(directoryName);
+});
+});
+<\/script>`;
+
+
+    const jsTemplate = `${script0}
+
+${script1}
+
+${script2}
+
+${script3}
+`;
+
     document.getElementById('out-js').value = jsTemplate;
     document.getElementById('out-css').value = cssOutput;
-    showToast("配布用コードを生成しました！");
+    localStorage.setItem('generated_status_js', jsTemplate);
+    localStorage.setItem('generated_status_css', cssOutput);
+    localStorage.setItem('generated_status_at', new Date().toLocaleString('ja-JP'));
+    showToast("配布用コードを生成しました！（①一覧②ページ分割③プロフィールの3スクリプト）");
 }
 
 // --- 9. プレビュー ---
@@ -600,12 +1468,13 @@ function updatePreview() {
 
         // ★ここでCSSを反映
         cssText += `
-            #preview-${row.id} { ${bgStyle} color: ${design.color || '#333'}; border-radius: 8px; }
+            #preview-${row.id} { ${bgStyle} color: ${design.color || '#333'}; border-radius: 8px; border: ${design.cardBorder || 'none'} !important; }
             #preview-${row.id} .stamp_list_title { color: ${design.color || '#333'} !important; }
             #preview-${row.id} .stampicon { color: ${design.color || '#333'} !important; }
             #preview-${row.id} .stampicon > b { border: 2px solid ${design.border || '#FFFFFF'} !important; }
             /* ★ filter: を1回だけ記述し、最後に !important を追加 */
             #preview-${row.id} .stampicon > b > span { filter: ${design.filter || 'none'} !important; }
+            #preview-${row.id} .ticket_list_due { background: ${design.dueBg || 'rgb(255 255 255 / 35%)'} !important; border: ${design.dueBorder || 'none'} !important; color: ${design.dueColor || '#FFFFFF'} !important; }
         `;
     });
 
@@ -630,6 +1499,19 @@ function updatePreview() {
                 <option value="invert(0%)">黒</option>
             </select>
         </div>
+        <div class="form-row">
+            <label>プロフィールのバッジ画像URL</label>
+            <input type="text" id="modal-badge-img" class="data-input" placeholder="任意（空欄ならバッジ非表示）">
+        </div>
+        <div class="form-row">
+            <label>カード全体の枠線</label>
+            <input type="text" id="modal-card-border" class="data-input" placeholder="任意（空欄なら枠線なし）例: 3px solid gold">
+        </div>
+
+        <div class="card-sub-title" style="margin:20px 0 10px; font-weight:bold; color:#1e293b; font-size:13px;">有効期限ラベル</div>
+        <div class="form-row"><label>背景色</label><input type="text" id="modal-due-bg" class="data-input" placeholder="任意（既定: rgb(255 255 255 / 35%)）"></div>
+        <div class="form-row"><label>枠の色</label><input type="text" id="modal-due-border" class="data-input" placeholder="任意（既定: 枠なし）"></div>
+        <div class="form-row"><label>文字の色</label><input type="text" id="modal-due-color" class="data-input" placeholder="任意（既定: #FFFFFF）"></div>
 
         <div style="margin-top: 25px; display: flex; gap: 10px;">
             <button class="btn" style="background:#94a3b8; color:#fff; flex:1; padding:12px; border-radius:6px; border:none; cursor:pointer; font-weight:bold;" onclick="closeDesignModal()">

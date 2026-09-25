@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホーム | オプション機能ジェネレーター</title>
+    <link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="generator">
+    <button id="sidebar-toggle" class="sidebar-toggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div style="font-weight: bold;">オプション機能ジェネレーター ホーム</div>
+</header>
+
+<div class="app-container">
+    <div class="sidebar" style="width: 200px; background-color: #1e293b; color: #fff; height: 100vh; padding: 20px 0; box-shadow: 4px 0 10px rgba(0,0,0,0.1);">
+        <div style="padding: 0 20px 30px; border-bottom: 1px solid #334155; margin-bottom: 20px;">
+            <p style="font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Widget Generator</p>
+        </div>
+
+        <nav>
+            <a href="home.html" class="nav-item active">
+                <i class="fa fa-home" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ホーム
+            </a>
+
+            <a href="index.html" class="nav-item">
+                <i class="fa fa-paint-brush" style="width: 20px; margin-right: 10px;"></i> UIデザイン設定
+            </a>
+
+            <a href="shop.html" class="nav-item">
+                <i class="fa fa-store" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> 店舗情報設定
+            </a>
+
+            <a href="status.html" class="nav-item">
+                <i class="fa fa-medal" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ステータス設定
+            </a>
+        </nav>
+
+        <div style="position: absolute; bottom: 20px; left: 20px; color: #475569; font-size: 10px;">
+            ver 2.0.0
+        </div>
+    </div>
+
+    <main class="main-wrapper">
+        <div class="config-side" style="max-width: 900px;">
+
+            <div class="card-wrapper">
+                <h2 class="card-title">各画面の生成状況</h2>
+                <div class="card">
+                    <div class="card-sub-title">3つの設定画面でそれぞれ「配布用コードを生成する」を押すと、ここに反映されます</div>
+
+                    <div id="status-cards" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;"></div>
+
+                    <button class="btn" id="refresh-btn" style="margin-top: 15px; background:#64748b; color:#fff; padding:8px 16px; border-radius:6px; border:none; cursor:pointer;">
+                        <i class="fa fa-rotate"></i> 最新の状態に更新
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-wrapper">
+                <h2 class="card-title">全部まとめてコピー</h2>
+                <div class="card">
+                    <div class="card-sub-title">生成済みの画面ぶんだけ、JavaScript・CSSをそれぞれ1つにまとめます（未生成の画面は含まれません）</div>
+
+                    <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                                <i class="fab fa-js-square" style="color: #f7df1e; margin-right: 5px;"></i> JavaScriptコード（全画面分）
+                            </label>
+                            <button class="btn" onclick="copyText('combined-js')" style="background: #475569; color: #fff; padding: 6px 16px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer;">
+                                <i class="fa fa-copy"></i> コピー
+                            </button>
+                        </div>
+                        <textarea id="combined-js" class="output-area data-input-area" readonly
+                                style="height: 250px; background-color: #0f172a; color: #cbd5e1; border: none;"
+                                placeholder="まだ生成済みの画面がありません"></textarea>
+                    </div>
+
+                    <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                                <i class="fa fa-css3-alt" style="color: #264de4; margin-right: 5px;"></i> CSSコード（全画面分）
+                            </label>
+                            <button class="btn" onclick="copyText('combined-css')" style="background: #475569; color: #fff; padding: 6px 16px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer;">
+                                <i class="fa fa-copy"></i> コピー
+                            </button>
+                        </div>
+                        <textarea id="combined-css" class="output-area data-input-area" readonly
+                                style="height: 250px; background-color: #0f172a; color: #cbd5e1; border: none;"
+                                placeholder="まだ生成済みの画面がありません"></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<div id="custom-toast" class="toast-hidden">
+    <div class="toast-content"><span id="toast-message"></span></div>
+</div>
+
+<script src="common-ui.js"></script>
+<script>
+const PAGES = [
+    { key: 'ui', label: 'UIデザイン設定', href: 'index.html' },
+    { key: 'shop', label: '店舗情報設定', href: 'shop.html' },
+    { key: 'status', label: 'ステータス設定', href: 'status.html' },
+];
+
+// content内の script タグや style タグ（複数あっても全部）を取り除き、中身だけを残す
+function stripTags(content, tagName) {
+    const re = new RegExp(`</?${tagName}[^>]*>`, 'gi');
+    return content.replace(re, '').trim();
+}
+
+function refreshHome() {
+    const cardsEl = document.getElementById('status-cards');
+    cardsEl.innerHTML = '';
+
+    let combinedJs = '';
+    let combinedCss = '';
+
+    PAGES.forEach(page => {
+        const js = localStorage.getItem(`generated_${page.key}_js`);
+        const css = localStorage.getItem(`generated_${page.key}_css`);
+        const at = localStorage.getItem(`generated_${page.key}_at`);
+        const generated = !!(js || css);
+
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-radius:8px; border:1px solid #e2e8f0;' + (generated ? ' background:#f0fdf4;' : ' background:#fef2f2;');
+        row.innerHTML = `
+            <div>
+                <span style="font-weight:bold; color:#1e293b;">${page.label}</span>
+                <span style="margin-left:10px; font-size:12px; color:${generated ? '#16a34a' : '#dc2626'};">
+                    ${generated ? `✅ 生成済み（${at || '日時不明'}）` : '⚠️ 未生成'}
+                </span>
+            </div>
+            <a href="${page.href}" style="font-size:12px; color:#475569; text-decoration:underline;">この画面を開く</a>
+        `;
+        cardsEl.appendChild(row);
+
+        // 各画面の出力に含まれる <script>/<style> タグをいったん剥がし、中身だけを集める。
+        // （タグ付きのまま3つ並べると、貼り付け先が全体をさらに1つのタグで包む仕組みの場合、
+        // 　1つ目の閉じタグで外枠が早期に閉じてしまい、残りが生のHTMLとして漏れ出るため）
+        if (js) combinedJs += `// ===== ${page.label} =====\n${stripTags(js, 'script')}\n\n`;
+        if (css) combinedCss += `/* ===== ${page.label} ===== */\n${stripTags(css, 'style')}\n\n`;
+    });
+
+    document.getElementById('combined-js').value = combinedJs.trim()
+        ? `<script>\n${combinedJs.trim()}\n<\/script>`
+        : '';
+    document.getElementById('combined-css').value = combinedCss.trim()
+        ? `<style type="text/css">\n${combinedCss.trim()}\n</style>`
+        : '';
+}
+
+document.getElementById('refresh-btn').addEventListener('click', () => {
+    refreshHome();
+    showToast('最新の状態に更新しました');
+});
+
+window.addEventListener('DOMContentLoaded', refreshHome);
+</script>
+
+</body>
+</html>
