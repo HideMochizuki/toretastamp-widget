@@ -496,6 +496,14 @@ function removeRow(rowId) {
 }
 
 // --- 7. デザイン設定モーダル ---
+// テキスト欄が「#RRGGBB」形式の単色のときだけ、隣のカラーピッカーに反映する（グラデーション等は無視）
+function syncColorPicker(textId, pickerId) {
+    const v = document.getElementById(textId).value.trim();
+    if (/^#([0-9A-Fa-f]{6})$/.test(v)) {
+        document.getElementById(pickerId).value = v;
+    }
+}
+
 function openDesignModal(rowId) {
     currentEditingRowId = rowId;
     const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '', border: '', badgeImg: '', cardBorder: '', dueBg: '', dueBorder: '', dueColor: '' };
@@ -509,6 +517,8 @@ function openDesignModal(rowId) {
     document.getElementById('modal-due-bg').value = data.dueBg || '';
     document.getElementById('modal-due-border').value = data.dueBorder || '';
     document.getElementById('modal-due-color').value = data.dueColor || '';
+    ['modal-bg', 'modal-color', 'modal-border', 'modal-due-bg', 'modal-due-border', 'modal-due-color']
+        .forEach(id => syncColorPicker(id, id + '-picker'));
     document.getElementById('design-modal').style.display = 'flex';
 }
 
@@ -1488,17 +1498,32 @@ function updatePreview() {
 </script>
 
 <div id="design-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-    <div class="card" style="width: 400px; max-width: 90%; background:#fff; padding:20px; border-radius:12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <div class="card" style="width: 400px; max-width: 90%; max-height: 90vh; overflow-y: auto; background:#fff; padding:20px; border-radius:12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
         <div class="card-sub-title" style="margin-bottom:20px; font-weight:bold; color:#1e293b;">詳細デザイン設定</div>
-        <div class="form-row"><label>背景設定</label><input type="text" id="modal-bg" class="data-input" placeholder="#ffffff または linear-gradient(...)" ></div>
+        <div class="form-row"><label>背景設定</label>
+            <div class="color-picker-group">
+                <input type="color" id="modal-bg-picker" value="#ffffff" oninput="document.getElementById('modal-bg').value = this.value.toUpperCase()">
+                <input type="text" id="modal-bg" placeholder="#ffffff または linear-gradient(...)" oninput="syncColorPicker('modal-bg','modal-bg-picker')">
+            </div>
+        </div>
         <p style="font-size: 11px; color: #94a3b8; margin: -8px 0 12px;">
             ※グラデーションにしたい場合は
             <a href="https://front-end-tools.com/generateGradient/" target="_blank" rel="noopener noreferrer">グラデーションジェネレーター</a>
-            で色・角度を作成し、出力された <code>linear-gradient(...)</code> のコードをそのままこの欄に貼り付けてください。
+            で色・角度を作成し、出力された <code>linear-gradient(...)</code> のコードをそのままこの欄に貼り付けてください。（グラデーション指定時、左の色見本は反映されません）
         </p>
-        <div class="form-row"><label>文字色</label><input type="text" id="modal-color" class="data-input" placeholder="#000000"></div>
+        <div class="form-row"><label>文字色</label>
+            <div class="color-picker-group">
+                <input type="color" id="modal-color-picker" value="#000000" oninput="document.getElementById('modal-color').value = this.value.toUpperCase()">
+                <input type="text" id="modal-color" placeholder="#000000" oninput="syncColorPicker('modal-color','modal-color-picker')">
+            </div>
+        </div>
         <div class="form-row"><label>背景画像URL</label><input type="text" id="modal-bg-img" class="data-input" placeholder="https://..."></div>
-        <div class="form-row"><label>ボーダー色</label><input type="text" id="modal-border" class="data-input" placeholder="#ffffff"></div>
+        <div class="form-row"><label>ボーダー色</label>
+            <div class="color-picker-group">
+                <input type="color" id="modal-border-picker" value="#ffffff" oninput="document.getElementById('modal-border').value = this.value.toUpperCase()">
+                <input type="text" id="modal-border" placeholder="#ffffff" oninput="syncColorPicker('modal-border','modal-border-picker')">
+            </div>
+        </div>
         <div class="form-row">
             <label>アイコン色</label>
             <select id="modal-filter" class="data-input">
@@ -1517,9 +1542,24 @@ function updatePreview() {
         </div>
 
         <div class="card-sub-title" style="margin:20px 0 10px; font-weight:bold; color:#1e293b; font-size:13px;">有効期限ラベル</div>
-        <div class="form-row"><label>背景色</label><input type="text" id="modal-due-bg" class="data-input" placeholder="任意（既定: rgb(255 255 255 / 35%)）"></div>
-        <div class="form-row"><label>枠の色</label><input type="text" id="modal-due-border" class="data-input" placeholder="任意（既定: 枠なし）"></div>
-        <div class="form-row"><label>文字の色</label><input type="text" id="modal-due-color" class="data-input" placeholder="任意（既定: #FFFFFF）"></div>
+        <div class="form-row"><label>背景色</label>
+            <div class="color-picker-group">
+                <input type="color" id="modal-due-bg-picker" value="#ffffff" oninput="document.getElementById('modal-due-bg').value = this.value.toUpperCase()">
+                <input type="text" id="modal-due-bg" placeholder="任意（既定: rgb(255 255 255 / 35%)）" oninput="syncColorPicker('modal-due-bg','modal-due-bg-picker')">
+            </div>
+        </div>
+        <div class="form-row"><label>枠の色</label>
+            <div class="color-picker-group">
+                <input type="color" id="modal-due-border-picker" value="#ffffff" oninput="document.getElementById('modal-due-border').value = this.value.toUpperCase()">
+                <input type="text" id="modal-due-border" placeholder="任意（既定: 枠なし）" oninput="syncColorPicker('modal-due-border','modal-due-border-picker')">
+            </div>
+        </div>
+        <div class="form-row"><label>文字の色</label>
+            <div class="color-picker-group">
+                <input type="color" id="modal-due-color-picker" value="#ffffff" oninput="document.getElementById('modal-due-color').value = this.value.toUpperCase()">
+                <input type="text" id="modal-due-color" placeholder="任意（既定: #FFFFFF）" oninput="syncColorPicker('modal-due-color','modal-due-color-picker')">
+            </div>
+        </div>
 
         <div style="margin-top: 25px; display: flex; gap: 10px;">
             <button class="btn" style="background:#94a3b8; color:#fff; flex:1; padding:12px; border-radius:6px; border:none; cursor:pointer; font-weight:bold;" onclick="closeDesignModal()">
