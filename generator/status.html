@@ -465,10 +465,10 @@ function calculateRanks() {
 
     if(addBtn) addBtn.style.display = (hasTopRank || hasError) ? 'none' : 'inline-block';
     
-    // 残り数計算
+    // 残り数計算（最上位ランクが確定済みなら、それ以上割り当てできる枠は無いので0にする）
     const remainingEl = document.getElementById('remaining-limit');
     if (remainingEl) {
-        remainingEl.textContent = totalNum - lastMax;
+        remainingEl.textContent = hasTopRank ? 0 : totalNum - lastMax;
     }
     
     if(document.getElementById('total-num-display')) document.getElementById('total-num-display').textContent = totalNum;
@@ -504,6 +504,12 @@ function syncColorPicker(textId, pickerId) {
     }
 }
 
+// 「背景設定」欄の値（単色 or linear-gradient(...)）をそのままプレビューバーの背景に反映する
+function updateBgPreview() {
+    const v = document.getElementById('modal-bg').value.trim();
+    document.getElementById('modal-bg-preview').style.background = v || '#ffffff';
+}
+
 function openDesignModal(rowId) {
     currentEditingRowId = rowId;
     const data = rankDesignSettings[rowId] || { bg: '', color: '', bgImg: '', filter: '', border: '', badgeImg: '', cardBorder: '', dueBg: '', dueBorder: '', dueColor: '' };
@@ -519,6 +525,7 @@ function openDesignModal(rowId) {
     document.getElementById('modal-due-color').value = data.dueColor || '';
     ['modal-bg', 'modal-color', 'modal-border', 'modal-due-bg', 'modal-due-border', 'modal-due-color']
         .forEach(id => syncColorPicker(id, id + '-picker'));
+    updateBgPreview();
     document.getElementById('design-modal').style.display = 'flex';
 }
 
@@ -1502,14 +1509,15 @@ function updatePreview() {
         <div class="card-sub-title" style="margin-bottom:20px; font-weight:bold; color:#1e293b;">詳細デザイン設定</div>
         <div class="form-row"><label>背景設定</label>
             <div class="color-picker-group">
-                <input type="color" id="modal-bg-picker" value="#ffffff" oninput="document.getElementById('modal-bg').value = this.value.toUpperCase()">
-                <input type="text" id="modal-bg" placeholder="#ffffff または linear-gradient(...)" oninput="syncColorPicker('modal-bg','modal-bg-picker')">
+                <input type="color" id="modal-bg-picker" value="#ffffff" oninput="document.getElementById('modal-bg').value = this.value.toUpperCase(); updateBgPreview();">
+                <input type="text" id="modal-bg" placeholder="#ffffff または linear-gradient(...)" oninput="syncColorPicker('modal-bg','modal-bg-picker'); updateBgPreview();">
             </div>
         </div>
-        <p style="font-size: 11px; color: #94a3b8; margin: -8px 0 12px;">
+        <div id="modal-bg-preview" style="width:100%; height:36px; border-radius:6px; border:1px solid #cbd5e1; margin:6px 0 8px; background:#ffffff;"></div>
+        <p style="font-size: 11px; color: #94a3b8; margin: -4px 0 12px;">
             ※グラデーションにしたい場合は
             <a href="https://front-end-tools.com/generateGradient/" target="_blank" rel="noopener noreferrer">グラデーションジェネレーター</a>
-            で色・角度を作成し、出力された <code>linear-gradient(...)</code> のコードをそのままこの欄に貼り付けてください。（グラデーション指定時、左の色見本は反映されません）
+            で色・角度を作成し、出力された <code>linear-gradient(...)</code> のコードをそのままこの欄に貼り付けてください。上のバーに単色・グラデーションどちらも実際の色味がそのまま表示されます。
         </p>
         <div class="form-row"><label>文字色</label>
             <div class="color-picker-group">
