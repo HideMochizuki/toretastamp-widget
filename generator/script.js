@@ -3825,10 +3825,18 @@ if (text.includes('↔️')) {
     $notice.hide();
 }
 });
+if (carouselImages.length === 0) {
+    // スライド対象のお知らせが無いページ（ログイン画面など）では、
+    // 高さ確保用の空枠だけが残って余白になるのを防ぐため非表示にする
+    $('.header-slider-wrap, .header-dots-wrap').hide();
+    return;
+}
+$('.header-slider-wrap').show();
 if (carouselImages.length === 1) {
     $('.header-dots-wrap').hide();
+} else {
+    $('.header-dots-wrap').show();
 }
-if (carouselImages.length === 0) return;
 const $wrap = $('.header-slider-wrap');
 const $slider = $('.header-slider');
 $wrap.css('height', 'auto');
