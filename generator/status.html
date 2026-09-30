@@ -1458,6 +1458,7 @@ function updatePreview() {
         const name = row.querySelector('.rank-name').value;
         const className = row.dataset.className;
         const maxVal = row.querySelector('.rank-max').value;
+        const minVal = row.querySelector('.rank-min').value || 0;
         const design = rankDesignSettings[row.id] || { bg: '#ffffff', color: '#000000', filter: 'none', border: '#FFFFFF' };
         
         let cleanBg = design.bg;
@@ -1478,7 +1479,7 @@ function updatePreview() {
                             <dt><span class="ticket_list_due" style="font-size:10px;">有効期限：2026年02月01日</span></dt>
                         </dl>
                         <dl class="ticket_list_bottom stamp">
-                            <dt class="stampicon"><b><span></span></b> 0${maxDisplay} 獲得</dt>
+                            <dt class="stampicon"><b><span></span></b> ${minVal}${maxDisplay} 獲得</dt>
                         </dl>
                     </a>
                 </div>

@@ -1248,6 +1248,7 @@ const syncPairs = [
     ['cfg-st-card-bg', 'cfg-st-card-bg-val'],
     ['cfg-st-border-c', 'cfg-st-border-c-val'],
     ['cfg-st-txt-c', 'cfg-st-txt-c-val'],
+    ['cfg-st-shop-c', 'cfg-st-shop-c-val'],
     ['cfg-st-due-txt-c', 'cfg-st-due-txt-c-val'],
     ['cfg-st-label-bg', 'cfg-st-label-bg-val'],
     ['cfg-st-icon-border', 'cfg-st-icon-border-val'],
@@ -2148,6 +2149,7 @@ function applyCurrentDesignToMock() {
         const stColor = getV('cfg-st-border-c-val');
         const borderOn = document.getElementById('cfg-st-border-on')?.checked;
         const stTxtColor = getV('cfg-st-txt-c-val');
+        const stShopColor = getV('cfg-st-shop-c-val');
         const stDueTxtColor = getV('cfg-st-due-txt-c-val');
         const stIconChoice = document.getElementById('cfg-st-icon-choice')?.value;
         const stIconFilter = stIconChoice === 'black' ? 'brightness(0)' : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
@@ -2194,6 +2196,7 @@ function applyCurrentDesignToMock() {
             .mock-screen .stampicon { color: ${stTxtColor} !important; }
             .mock-screen .stampicon > b { border: 2px solid ${getV('cfg-st-icon-border-val')} !important; }
             .mock-screen .stampicon > b > span { filter: ${stIconFilter} !important; }
+            .mock-screen .stamp_shop { color: ${stShopColor} !important; }
         `;
     }
 
@@ -2958,6 +2961,7 @@ function getStampPageCSS() {
     const stCardBg = getV('cfg-st-card-bg-val').toUpperCase();
     const stBorderC = getV('cfg-st-border-c-val').toUpperCase();
     const stTxtColor = getV('cfg-st-txt-c-val').toUpperCase();
+    const stShopColor = getV('cfg-st-shop-c-val').toUpperCase();
     const stDueTxtColor = getV('cfg-st-due-txt-c-val').toUpperCase();
     const stLabelBg = getV('cfg-st-label-bg-val').toUpperCase();
     const stIconBorder = getV('cfg-st-icon-border-val').toUpperCase();
@@ -2984,6 +2988,7 @@ function getStampPageCSS() {
         (stDueBorderC === '#000000' || stDueBorderC === '') &&
         (stWatermarkUrl === '' || stWatermarkUrl.includes('TCNteaCYUPectHdLS0JD.png')) &&
         (stTxtColor === '#000000' || stTxtColor === '') &&
+        (stShopColor === '#000000' || stShopColor === '') &&
         (stDueTxtColor === '#000000' || stDueTxtColor === '') &&
         (stLabelBg === '#F9D5BD' || stLabelBg === '' || stLabelBg === '#000000') && // #000000も念のため追加
         (stLabelRadius === '5px' || stLabelRadius === '5' || stLabelRadius === '') &&
@@ -3058,6 +3063,7 @@ body.stamp_history .ticket_list_due {
 body.stamp_history .stampicon { color: ${stTxtColor} !important; }
 body.stamp_history .stampicon > b { border: 2px solid ${stIconBorder} !important; }
 body.stamp_history .stampicon > b > span { filter: ${stIconFilter} !important; }
+body.stamp_history .stamp_shop { color: ${stShopColor} !important; }
 `;
 }
 
@@ -3333,6 +3339,14 @@ ${prefix}.ticket_tab_btn {
 ${prefix}.ticket_tab_btn.active {
     color: #333; border-bottom: 7px solid ${tabActiveColor} !important;
     margin-top: 0; padding: 0 0 0px 0; font-weight: 600;
+}
+${prefix}#js-no-ticket-msg {
+    text-align: center; padding: 30px 0 60px; color: #898989; font-weight: 300;
+    display: flex; flex-direction: column; align-items: center; gap: 0; font-size: 14px;
+}
+${prefix}#js-no-ticket-msg::before {
+    font-family: "Font Awesome 6 Free"; font-weight: 900; content: "\\f145";
+    display: block; font-size: 25px; color: #333333;
 }
 `;
         if (!isExport) {
@@ -4088,6 +4102,16 @@ if (!$('body').hasClass('coupon')) return;
 
 $('.ticket_sort_select').hide();
 $('.login_note').hide(); // プラットフォーム標準の「チケットがありません」表示（タブ非対応）を、独自タブのメッセージに一本化するため隠す
+
+// 「チケットがありません」アイコン用にFont Awesome 6を読み込む（サイト標準搭載分はアイコンが一部欠けているため）
+// ※CSSの<style>欄に直接<link>タグを貼るとCSS解析が壊れるので、必ずJSでheadに追加すること
+if (!document.querySelector('link[data-generator-fa6]')) {
+    const faLink = document.createElement('link');
+    faLink.rel = 'stylesheet';
+    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    faLink.setAttribute('data-generator-fa6', '1');
+    document.head.appendChild(faLink);
+}
 
 const tabMenu = \`
 <div class="ticket_tab_menu">
