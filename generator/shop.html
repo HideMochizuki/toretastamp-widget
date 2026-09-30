@@ -1088,6 +1088,16 @@ function generateOutputCode() {
     // 配布用JavaScriptの組み立て（省略なし）
     const jsCode = `<script>
 $(document).ready(function () {
+// 住所・電話番号アイコン（fa-solid）用にFont Awesome 6を読み込む
+// ※CSSの<style>欄に直接<link>タグを貼るとCSS解析が壊れるので、必ずJSでheadに追加すること
+if (!document.querySelector('link[data-generator-fa6]')) {
+    const faLink = document.createElement('link');
+    faLink.rel = 'stylesheet';
+    faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    faLink.setAttribute('data-generator-fa6', '1');
+    document.head.appendChild(faLink);
+}
+
 // ===============================
 // ✅ スクリプト実行スイッチ
 // ===============================

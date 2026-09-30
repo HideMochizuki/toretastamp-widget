@@ -4732,7 +4732,7 @@ ${prefix} .notice_list > a > dl > dt {
         css += `
 /* パターンB：カード風 */
 ${prefix} .notice_set { margin: 10px 20px 20px !important; box-shadow: none !important; background: transparent !important; }
-${prefix} .notice_list { border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important; margin-bottom: 20px !important; background: #fff !important; transition: transform 0.2s ease, box-shadow 0.2s ease !important; border: none !important; opacity: 1 !important; visibility: visible !important; }
+${prefix} .notice_list { border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important; margin-bottom: 20px !important; background: #fff !important; transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease !important; border: none !important; opacity: 0 !important; visibility: hidden !important; }
 ${prefix} .notice_list:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 14px rgba(0,0,0,0.15) !important; }
 ${prefix} .notice_list > a { display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important; text-decoration: none !important; color: inherit !important; padding: 0 !important; }
 ${prefix} .notice_list p { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 170px !important; overflow: hidden !important; display: block !important; position: relative !important; background: #f2f2f2 !important; }
@@ -4752,13 +4752,18 @@ ${prefix} .notice_list {
     border: none !important; 
     margin-bottom: 10px !important; 
     padding: 0 !important;
-    opacity: 1 !important;        /* ★確実に表示させる */
-    visibility: visible !important; /* ★確実に表示させる */
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease !important;
 }
-${prefix} .notice_list > a { 
-    display: flex !important; 
-    align-items: center !important; 
-    padding: 5px 0 5px 12px !important; 
+${prefix} .notice_list.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+${prefix} .notice_list > a {
+    display: flex !important;
+    align-items: center !important;
+    padding: 5px 0 5px 12px !important;
     text-decoration: none !important;
 }
 ${prefix} .notice_list p { 
