@@ -783,8 +783,8 @@ body.change .titleh3 { position: relative; margin: 0 0 10px 0; }
     content: ''; width: 0.75em; height: 0.75em; border: 0.15em solid currentColor; border-left: 0; border-bottom: 0;
     transform: rotate(45deg); transform-origin: top right; position: absolute; top: 50%; right: -0.2em; box-sizing: border-box;
 }
-.stamp_card.expired .stamp_card_delete_btn + a,
-.stamp_card.expired:has(.stamp_card_delete_btn) { display:none !important; }
+.stamp_set.${lastRank.className} .stamp_card.expired .stamp_card_delete_btn + a,
+.stamp_set.${lastRank.className} .stamp_card.expired:has(.stamp_card_delete_btn) { display:none !important; }
 #stamp-list > .stamp_set hr { display:none; }
 .stamp_set.${lastRank.className} .stamp_paging { display: none; }
 .stamp_detail { display: none; }

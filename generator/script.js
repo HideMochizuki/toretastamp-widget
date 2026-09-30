@@ -2997,10 +2997,20 @@ function getStampPageCSS() {
         wmShape === 'landscape'
     );
 
-    if (isDefault) return "";
+    // 期限切れスタンプ帳に「期限切れ」の斜めスタンプ画像を出す（カスタマイズの有無に関わらず常に出力）
+    const expiredStampCss = `
+#stamp-list > .stamp_set > .stamp_card.expired::after {
+    content: "" !important; width: 145px !important; height: 45px !important; opacity: 1 !important;
+    background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/gU8FxpZK49GiTMVZmjrZ.png") !important;
+    background-position: center center !important; background-size: contain !important; background-repeat: no-repeat !important;
+    position: absolute !important; bottom: 55px !important; right: 10px !important; z-index: 99 !important; transform: rotate(353deg) !important;
+}
+`;
+
+    if (isDefault) return expiredStampCss;
 
     // 4. 一つでも変更がある場合はCSSを組み立てる
-    const stIconFilter = stIconChoice === 'black' 
+    const stIconFilter = stIconChoice === 'black'
         ? 'brightness(0)' 
         : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
 
@@ -3036,6 +3046,7 @@ body.stamp .stamp_set { box-shadow: 0 0 5px 0px #adadadb5; border-radius: 17px; 
 body.stamp .stampicon { color: ${stTxtColor} !important; }
 body.stamp .stampicon > b { border: 2px solid ${stIconBorder} !important; }
 body.stamp .stampicon > b > span { filter: ${stIconFilter} !important; }
+#stamp-list .stamp_card .stamp_card_delete_btn { z-index: 5 !important; }
 
 /* ====== スタンプ履歴ページ（.stamp_setがカード本体。.stamp_card は無い） ====== */
 body.stamp_history .stamp_set {
@@ -3064,7 +3075,7 @@ body.stamp_history .stampicon { color: ${stTxtColor} !important; }
 body.stamp_history .stampicon > b { border: 2px solid ${stIconBorder} !important; }
 body.stamp_history .stampicon > b > span { filter: ${stIconFilter} !important; }
 body.stamp_history .stamp_shop { color: ${stShopColor} !important; }
-`;
+` + expiredStampCss;
 }
 
 // 5. フッター固定メニューリストの配列を取得する関数
@@ -3169,7 +3180,17 @@ function getStampDetailsCSS(isExport = false) {
         dueBorderOn === false && noteSize === '15px' && noteTxtColor === '#000000' && noteLineC === '#717171'
     );
 
-    if (isDefault) return "";
+    // 期限切れスタンプ帳に「期限切れ」の斜めスタンプ画像を出す（カスタマイズの有無に関わらず常に出力）
+    const expiredStampCss = `
+${prefix}.stamp_set.expired::before {
+    content: "" !important; width: 145px !important; height: 45px !important;
+    background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/gU8FxpZK49GiTMVZmjrZ.png") !important;
+    background-position: center center !important; background-size: contain !important; background-repeat: no-repeat !important;
+    position: absolute !important; top: 20px !important; right: 10px !important; z-index: 110 !important; transform: rotate(4deg) !important;
+}
+`;
+
+    if (isDefault) return expiredStampCss;
 
     const borderCSS = stdBorderOn ? `${stdBorderW} solid ${stdBorderC}` : 'none';
     const dueBorderCSS = dueBorderOn ? `${dueBorderW} solid ${dueBorderC}` : 'none';
@@ -3182,7 +3203,7 @@ ${prefix}.stamp_set { border-radius: ${stdRadius} !important; background-color: 
 ${prefix}.stamp_title { color: ${titleColor} !important; font-size: ${titleSize} !important; }
 ${prefix}.stamp_due { background-color: ${dueBg} !important; border-radius: ${dueRadius} !important; color: ${dueTxt} !important; border: ${dueBorderCSS} !important; display: inline-block; }
 ${prefix}.stamp_note { font-size: ${noteSize} !important; color: ${noteTxtColor} !important; border-bottom: 1px dashed ${noteLineC} !important; }
-`;
+` + expiredStampCss;
 }
 
 // 8. チケット一覧ページのCSSを生成する関数
@@ -3625,7 +3646,7 @@ if (hasOfficial) {
     // チェックが入っており、かつURLが入っている時だけCSSを生成
     if (watermarkOn && watermarkUrl !== "") {
         cardWatermarkCSS = `
-#stamp-list > .stamp_set > .stamp_card::after {
+#stamp-list > .stamp_set > .stamp_card:not(.expired)::after {
 content: "";
 position: absolute;
 bottom: 10px;
@@ -3636,6 +3657,10 @@ background-image: url('${watermarkUrl}');
 background-size: contain;
 background-repeat: no-repeat;
 pointer-events: none;
+opacity: 0;
+}
+#stamp-list > .stamp_set > .stamp_card.wm-checked:not(.expired)::after {
+opacity: 1;
 }
 `;
     }
@@ -3958,6 +3983,25 @@ if (carouselImages.length >= 2) {
 }
 }
 buildSlider();
+
+// 有効期限が切れたスタンプ帳に expired クラスを付与する（期限切れ表示・削除ボタンの判定に使われる）
+(function () {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    $('.stamp_card').each(function () {
+        const dueDateText = $(this).find('.ticket_list_due').text().trim();
+        const dateMatch = dueDateText.match(/(\\d{4})年(\\d{1,2})月(\\d{1,2})日/);
+        if (dateMatch) {
+            const dueDate = new Date(dateMatch[1], dateMatch[2] - 1, dateMatch[3]);
+            if (dueDate < today) {
+                $(this).addClass('expired');
+            }
+        }
+        // 期限切れ判定が済んでから透かしロゴを表示する（判定前に一瞬ロゴが見えてしまうのを防ぐ）
+        $(this).addClass('wm-checked');
+    });
+})();
+
 $('.notice_list dt').each(function () {
     const text = $(this).text().trim();
     const $dl = $(this).closest('dl');
