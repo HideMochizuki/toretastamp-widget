@@ -2333,6 +2333,24 @@ function applyCurrentDesignToMock() {
     // チケット詳細ページCSS
     if (mock.dataset.currentScreen === 'ticket_detail' && typeof getTicketDetailPageCSS === 'function') {
         finalCSS += getTicketDetailPageCSS(false);
+
+        const tdBtnPattern = document.querySelector('input[name="ticket-detail-btn-pattern"]:checked')?.value || 'A';
+        // スクロールする.mock-screenではなく、スマホ枠自体（.phone-mock）に固定することで
+        // 実機のposition:fixedと同じ「画面下部に常に見える」挙動をプレビューでも再現する
+        const $phoneMock = mock.closest('.phone-mock') || mock;
+        // パターンBで一度.phone-mock直下に移動済みの場合でも見つけられるよう、.mock-screenではなく.phone-mock全体から探す
+        const $ticketBtnAnchor = $phoneMock.querySelector('a.page_button.orange');
+        const $ticketBtn = $ticketBtnAnchor ? $ticketBtnAnchor.closest('.stamp_button') : null;
+        if ($ticketBtn) {
+            const $ticketSet = mock.querySelector('.ticket_set');
+            if (tdBtnPattern === 'B') {
+                $ticketBtn.classList.add('fixed-coupon-button');
+                if ($ticketBtn.parentElement !== $phoneMock) $phoneMock.appendChild($ticketBtn);
+            } else {
+                $ticketBtn.classList.remove('fixed-coupon-button');
+                if ($ticketSet && $ticketBtn.parentElement !== $ticketSet) $ticketSet.appendChild($ticketBtn);
+            }
+        }
     }
     // マイページCSS
     if (mock.dataset.currentScreen === 'user' && typeof getUserPageCSS === 'function') {
@@ -2376,7 +2394,8 @@ function applyCurrentDesignToMock() {
     }
 
     // ② オレンジボタン (.page_button.orange)
-    const orgBtns = mock.querySelectorAll('.page_button.orange');
+    // ※ページ下部固定ボタン（.phone-mock直下に移動済み）も拾えるよう、mockではなくphoneContainerから検索する
+    const orgBtns = phoneContainer.querySelectorAll('.page_button.orange');
     if (orgBtns.length > 0) {
         const orgBg = getV('cfg-pgbtn-org-bg-val');
         const orgTxt = getV('cfg-pgbtn-org-txt-val');
@@ -3003,7 +3022,7 @@ function getStampPageCSS() {
     content: "" !important; width: 145px !important; height: 45px !important; opacity: 1 !important;
     background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/gU8FxpZK49GiTMVZmjrZ.png") !important;
     background-position: center center !important; background-size: contain !important; background-repeat: no-repeat !important;
-    position: absolute !important; bottom: 55px !important; right: 10px !important; z-index: 99 !important; transform: rotate(353deg) !important;
+    position: absolute !important; bottom: 55px !important; right: 10px !important; z-index: 5 !important; transform: rotate(353deg) !important;
 }
 `;
 
@@ -3186,7 +3205,7 @@ ${prefix}.stamp_set.expired::before {
     content: "" !important; width: 145px !important; height: 45px !important;
     background-image: url("https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/gU8FxpZK49GiTMVZmjrZ.png") !important;
     background-position: center center !important; background-size: contain !important; background-repeat: no-repeat !important;
-    position: absolute !important; top: 20px !important; right: 10px !important; z-index: 110 !important; transform: rotate(4deg) !important;
+    position: absolute !important; top: 20px !important; right: 10px !important; z-index: 5 !important; transform: rotate(4deg) !important;
 }
 `;
 
@@ -3422,8 +3441,54 @@ function getTicketDetailPageCSS(isExport = false) {
         (dueBg === '' || dueBg.toUpperCase().startsWith('#EB843A'))
     );
 
+    // ボタン表示パターンB（ページ下部固定型）用のCSS。選択時は常に出力する
+    const ticketDetailBtnPattern = document.querySelector('input[name="ticket-detail-btn-pattern"]:checked')?.value || 'A';
+    // フッター固定メニューが未設定（項目0個）なら、その分ボタンを下げて隙間を詰める
+    const hasFooterMenu = document.querySelectorAll('.menu-item:not(.sns-item)').length > 0;
+    const exportBottom = hasFooterMenu ? '90px' : '20px';
+    const previewBottom = hasFooterMenu ? '70px' : '15px';
+    // プレビューでも実機同様、スクロールに関係なく常に画面下部に固定表示する。
+    // .mock-screenではなくスマホ枠自体（.phone-mock）基準で固定することで、
+    // 実機のposition:fixedと同じ「画面下部に常に見える」挙動を再現する。
+    const btnPrefix = isExport ? '' : '.phone-mock ';
+    const fixedBtnCss = ticketDetailBtnPattern === 'B' ? `
+/* チケット詳細 ボタン表示パターンB（ページ下部固定型） */
+${btnPrefix}.fixed-coupon-button {
+    position: ${isExport ? 'fixed' : 'absolute'}; bottom: ${isExport ? exportBottom : previewBottom}; left: 50%; transform: translateX(-50%);
+    width: 90%; max-width: 500px; z-index: 999; margin: 0; padding: 0;
+}
+${btnPrefix}.fixed-coupon-button a {
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; font-weight: 700; box-sizing: border-box;
+    border-radius: 100px; transition: opacity 0.3s ease;
+    ${isExport ? 'font-size: 20px; height: 53px;' : 'font-size: 14px; height: 40px;'}
+}
+${btnPrefix}.fixed-coupon-button a:active { opacity: 0.7; }
+${btnPrefix}.fixed-coupon-button .page_button.disabled { background-color: #D4D4D4 !important; border: none !important; }
+${btnPrefix}.fixed-coupon-button .page_button.disabled span { color: #FFF !important; }
+${prefix}.ticket_set .stamp_button:not(.fixed-coupon-button) { display: none !important; }
+${btnPrefix}.fixed-coupon-button { display: block !important; }
+
+/* 利用確認アラート */
+${prefix}.ticket-use-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.45); display: none; justify-content: center; align-items: center; z-index: 9999;
+}
+${prefix}.ticket-use-modal {
+    width: 85%; max-width: 380px; background: #fff; border-radius: 18px; padding: 0;
+    text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,0.25); animation: modalFadeIn 0.25s ease-out;
+}
+${prefix}.ticket-use-message { font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 16px; padding: 20px 20px 10px; text-align: left; }
+${prefix}.ticket-use-message small { font-size: 12px; color: #777; }
+${prefix}.ticket-use-buttons { display: flex; border-top: 1px solid #e5e5e5; margin-top: 12px; }
+${prefix}.ticket-use-cancel, ${prefix}.ticket-use-ok { flex: 1; padding: 14px 0; font-size: 15px; border: none; background: none; cursor: pointer; }
+${prefix}.ticket-use-cancel { border-right: 1px solid #e5e5e5; color: #555; }
+${prefix}.ticket-use-ok { color: #333333; font-weight: bold; }
+@keyframes modalFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+` : '';
+
     // 3. 全て初期値のままなら何も出力しない
-    if (isDefault) return "";
+    if (isDefault) return fixedBtnCss;
 
     // 4. 変更がある場合のみCSSを組み立てる
     const borderCSS = borderOn ? `${borderW} solid ${borderC}` : 'none';
@@ -3460,7 +3525,7 @@ ${prefix}.ticket_img img {
     height: auto !important;
     border-radius: calc(${cardRadius} / 2);
 }
-`;
+` + fixedBtnCss;
 }
 
 // 10. マイページ用CSS生成関数
@@ -4252,6 +4317,99 @@ if (stampDetailPattern === 'B') {
     scriptInnerContent += TICKET_FROM_STAMP_SCRIPT + "\n";
 }
 
+// チケット詳細ページ ボタン表示パターンB（ページ下部固定型）
+const ticketDetailBtnPatternOut = document.querySelector('input[name="ticket-detail-btn-pattern"]:checked')?.value || 'A';
+if (ticketDetailBtnPatternOut === 'B') {
+    scriptInnerContent += `
+/* チケット詳細 利用確認モーダル */
+$(function () {
+    if (window.couponUseModalInitialized) return;
+    window.couponUseModalInitialized = true;
+
+    const initCouponUseModal = () => {
+        const modalHtml = \`
+        <div class="ticket-use-modal-overlay" style="display:none;">
+            <div class="ticket-use-modal">
+            <p class="ticket-use-message">
+                一度「利用する」を押すと元に戻せませんが本当にチケットを利用しますか？<br>
+                <small>※必ずスタッフにお見せください。</small>
+            </p>
+            <div class="ticket-use-buttons">
+                <button class="ticket-use-cancel">キャンセル</button>
+                <button class="ticket-use-ok">利用する</button>
+            </div>
+            </div>
+        </div>\`;
+        $('body').append(modalHtml);
+        // fadeIn()は非表示にする前のdisplay値を復元するため、ここで一度flexとして
+        // hide()しておくことで、以降のfadeIn()が中央寄せ(display:flex)で表示されるようにする
+        $('.ticket-use-modal-overlay').css('display', 'flex').hide();
+
+        // 既存（元々）のクリックイベントを確実に無効化するため、要素自体を複製して差し替える
+        // （jQueryのoff()やremoveAttr('onclick')では、ページ側が addEventListener で
+        //   直接バインドしている元々のアラート／確認ダイアログまでは消せないため）
+        var $oldBtn = $('#coupon_use');
+        if ($oldBtn.length) {
+            var $newBtn = $oldBtn.clone(false).removeAttr('onclick');
+            $oldBtn.replaceWith($newBtn);
+        }
+        $(document).off('click', '#coupon_use');
+        $(document).on('click', '#coupon_use', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $('.ticket-use-modal-overlay').fadeIn(200);
+        });
+        // documentへ直接バインドされた元々のクリックイベント対策として、
+        // キャプチャフェーズでも横取りして後続のハンドラに渡さないようにする
+        document.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('#coupon_use')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                $('.ticket-use-modal-overlay').fadeIn(200);
+            }
+        }, true);
+
+        $(document).on('click', '.ticket-use-cancel', function () {
+            $('.ticket-use-modal-overlay').fadeOut(200);
+        });
+        $(document).on('click', '.ticket-use-ok', function () {
+            $('#coupon_use').css('pointer-events', 'none');
+            $('.ticket-use-modal-overlay').fadeOut(150);
+            coupon_use_post();
+        });
+    };
+
+    if ($('#coupon_use').length > 0) {
+        initCouponUseModal();
+    } else {
+        const observer = new MutationObserver(() => {
+            if ($('#coupon_use').length > 0) {
+                observer.disconnect();
+                initCouponUseModal();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+});
+
+/* チケット詳細 ボタンをページ下部に固定表示 */
+$(document).ready(function () {
+    const $buttonWrap = $('.ticket_set .stamp_button');
+    if ($buttonWrap.length) {
+        $buttonWrap.addClass('fixed-coupon-button').appendTo('body');
+    }
+});
+
+/* チケット詳細 戻るボタン（bfcache）対策 */
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+`;
+}
+
 // 2. フッター または SNS があれば window.onload を追加
 if (footerJS || snsInsertJS) {
     scriptInnerContent += `
@@ -4500,13 +4658,14 @@ function loadFromLocal() {
         // (A) 各種入力項目の復元
         Object.keys(settings).forEach(key => {
             // ラジオボタンの復元
-            if (key === 'btn-pattern' || 
-                key === 'header-pattern' || 
-                key === 'cfg-mock-logo-align' || 
-                key === 'list-pattern' || 
-                key === 'notice-pattern' || 
-                key === 'sns-position' || 
-                key === 'ticket-pattern') {
+            if (key === 'btn-pattern' ||
+                key === 'header-pattern' ||
+                key === 'cfg-mock-logo-align' ||
+                key === 'list-pattern' ||
+                key === 'notice-pattern' ||
+                key === 'sns-position' ||
+                key === 'ticket-pattern' ||
+                key === 'ticket-detail-btn-pattern') {
                 
                 const val = settings[key];
                 const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
@@ -4647,14 +4806,15 @@ function loadFromLocal() {
     // (A) 通常入力の復元
     Object.keys(settings).forEach(key => {
         // ラジオボタンの復元（フッターパターン含む）
-        if (key === 'btn-pattern' || 
-            key === 'header-pattern' || 
-            key === 'cfg-mock-logo-align' || 
+        if (key === 'btn-pattern' ||
+            key === 'header-pattern' ||
+            key === 'cfg-mock-logo-align' ||
             key === 'list-pattern' ||
             key === 'notice-pattern' ||
             key === 'sns-position' ||
             key === 'ticket-pattern' ||
-            key === 'stamp-detail-pattern') {
+            key === 'stamp-detail-pattern' ||
+            key === 'ticket-detail-btn-pattern') {
             
             const val = settings[key];
             const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);

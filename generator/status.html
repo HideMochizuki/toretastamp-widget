@@ -659,7 +659,7 @@ function generateCode() {
     ranks.forEach(r => {
         const design = r.design;
         const bgStyle = getBgStyle(design);
-        cssOutput += `.status.${r.className} { background: ${design.bg || 'transparent'}; ${design.bgImg ? bgStyle : ''} padding-left: ${design.badgeImg ? '90px' : '15px'}; }\n`;
+        cssOutput += `.status.${r.className} { background: ${design.bg || 'transparent'}; ${design.bgImg ? bgStyle : ''} ${design.bgImg ? 'background-position: bottom;' : ''} padding-left: ${design.badgeImg ? '90px' : '15px'}; }\n`;
         if (design.badgeImg) {
             cssOutput += `.status.${r.className}:before { content: ""; width: 49px; height: 49px; background-image: url(${design.badgeImg}); background-position: center; background-size: contain; position: absolute; z-index: 0; top: 20px; left: 25px; }\n`;
         }

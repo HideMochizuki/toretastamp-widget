@@ -1049,7 +1049,18 @@
                 <h2 class="card-title">チケット詳細デザイン</h2>
                 <span class="badge ticket">チケット</span>
                 <div class="card full-width">
-                    
+
+                    <div class="card-sub-title">ボタン表示パターン選択</div>
+                    <div class="sub-config-box" style="margin-top: 0; margin-bottom: 30px;">
+                        <div class="form-row" style="margin-bottom: 0;">
+                            <label class="check-label"><input type="radio" name="ticket-detail-btn-pattern" value="A" checked onchange="updatePreview()"> パターンA (既存)</label>
+                            <label class="check-label"><input type="radio" name="ticket-detail-btn-pattern" value="B" onchange="updatePreview()"> パターンB (ページ下部固定型)</label>
+                        </div>
+                        <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 0;">
+                            パターンBは「利用する」ボタンを画面下部に固定表示し、押すと確認アラートを出してから実行します。
+                        </p>
+                    </div>
+
                     <div class="card-sub-title">カード全体設定 (.ticket_set)</div>
                     <div class="sub-config-box" style="margin-top: 0; margin-bottom: 30px;">
                         <div class="form-row">
