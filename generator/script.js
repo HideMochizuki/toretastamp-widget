@@ -2913,9 +2913,14 @@ function getHeaderCSS() {
 
         return `/* パターンB専用：ヘッダー＆スライダーCSS */
 body.top header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: ${headerBg} !important; z-index: 20; box-shadow: 1px 5px 5px 0 #0000001a; }
-header.top h1.top { margin: 0 auto !important; width: 100px !important; }
+/* ロゴの縮小（width:100px/height:50px）はTOPページのスライド用コンパクトヘッダーのみに適用する。
+   ここをbody.topで絞らないと、ログイン画面など他ページのロゴまで一緒に小さくなってしまう。
+   ログイン画面側はこのルールが効かなくなる分、実機側の標準スタイル（パターンAと同じ丸ロゴ）がそのまま出る。 */
+body.top header.top h1.top { margin: 0 auto !important; width: 100px !important; }
 header.top h1.top span { display: none !important; }
-header.top h1.top img { border-radius: unset; height: 50px; width: auto; }
+body.top header.top h1.top img { border-radius: unset; height: 50px; width: auto; }
+/* ログイン画面はフッター固定メニューが不要なため非表示にする */
+body.login_page #sp-fixed-menu { display: none !important; }
 
 /* ==================== スライダー外枠（食い込み重なり無し仕様） ====================== */
 .header-slider-wrap { position: relative; z-index: 3 !important; overflow: hidden; top: 0px; width: 100%; height: auto; aspect-ratio: ${sWidth} / ${sHeight}; }
@@ -3817,6 +3822,11 @@ if (listPattern === 'B') {
 .hamburger-btn.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
 .hamburger-btn.active span:nth-child(2) { opacity: 0; }
 .hamburger-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+
+/* ログイン画面はハンバーガーメニュー（フッターリストメニュー）が不要なため非表示にする */
+body.login_page .hamburger-btn,
+body.login_page .menu-sublist,
+body.login_page .menu-overlay { display: none !important; }
 
 /* ====== メニュー全体（右スライド＋スクロール可） ====== */
 .menu-sublist {
