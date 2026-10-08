@@ -4926,9 +4926,23 @@ function getNoticeCSS(isExport = false) {
     const size = document.getElementById('cfg-notice-size').value;
     const color = document.getElementById('cfg-notice-color-val').value.toUpperCase();
     const prefix = isExport ? 'body.top' : '.mock-screen';
+    const landingPrefix = isExport ? 'body.lp_flyer' : '.mock-screen';
+
+    // 記事ページ（lp_flyer）の読み込み時チラつき防止。「ℹ️」付きタイトルの一瞬の露出や
+    // 未整形コンテンツの一瞬の表示を防ぐため、常にCSSで最初に隠しておく（JS側はクラス付与/opacity操作で後から表示する）。
+    // パターン/サイズ/色が初期値のままでも必ず出力する（お知らせ設定が初期値の店舗でも記事ページは存在するため）。
+    const landingFoucCss = `
+/* 記事ページ（lp_flyer）：読み込み完了まで内容を隠してチラつきを防ぐ */
+${landingPrefix} .landing_set, ${landingPrefix} .landing_note { opacity: 0; transition: opacity 0.3s ease; }
+${landingPrefix} .landing_title { visibility: hidden; }
+.info-banner { background: #f8f9fa; border-bottom: 1px solid #ddd; text-align: center; padding: 10px 15px; margin: 0; }
+.info-banner a { color: #000; text-decoration: none; font-weight: 500; font-size: 12px; }
+.info-banner p { text-align: left; margin: 0; }
+.info-icon { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; font-weight: bold; border-radius: 50%; background: #000; color: #fff; margin-right: 6px; font-size: 13px; vertical-align: middle; }
+`;
 
     if (isExport && pattern === 'A' && size === '15' && color === '#222222') {
-        return "";
+        return landingFoucCss;
     }
 
     let css = `
@@ -4994,12 +5008,7 @@ ${prefix} .notice_list > a > dl > dt { border: none !important; font-weight: bol
 `;
     }
 
-    css += `
-.info-banner { background: #f8f9fa; border-bottom: 1px solid #ddd; text-align: center; padding: 10px 15px; margin: 0; }
-.info-banner a { color: #000; text-decoration: none; font-weight: 500; font-size: 12px; }
-.info-banner p { text-align: left; margin: 0; }
-.info-icon { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; font-weight: bold; border-radius: 50%; background: #000; color: #fff; margin-right: 6px; font-size: 13px; vertical-align: middle; }
-`;
+    css += landingFoucCss;
 
     return css;
 }
