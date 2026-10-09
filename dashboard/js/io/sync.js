@@ -15,6 +15,7 @@ window.Dashboard.Sync = (function () {
   const CONFIG_DIR = '_config';
   const CONFIG_FILE = 'tickets.json';
   const BUSINESS_HOURS_FILE = 'business-hours.json';
+  const TEST_MEMBERS_FILE = 'test-members.json';
   // aggregate.js の出力構造を変えたときはこれを上げる。古いバージョンのキャッシュは
   // 中身を信用せず、空として扱って全ファイルを再集計する(でないと新旧の構造が混ざって壊れる)。
   // ※ util.js の日時パース処理(ハイフン区切り対応)の不具合修正に伴い、修正前に空集計のまま
@@ -71,6 +72,24 @@ window.Dashboard.Sync = (function () {
     await FS.writeJsonFile(configDir, BUSINESS_HOURS_FILE, config);
   }
 
+  // 検証(テスト)で押下した会員IDの一覧。{ members: [{ memberId, note }] } の形。
+  // ここに登録した会員IDは、集計(アクセスログ・会員一覧とも)から丸ごと除外する。
+  async function loadTestMemberConfig(clientDirHandle) {
+    const configDir = await FS.getOrCreateSubdirectory(clientDirHandle, CONFIG_DIR);
+    return (await FS.readJsonFile(configDir, TEST_MEMBERS_FILE)) || { members: [] };
+  }
+
+  async function saveTestMemberConfig(clientDirHandle, config) {
+    const configDir = await FS.getOrCreateSubdirectory(clientDirHandle, CONFIG_DIR);
+    await FS.writeJsonFile(configDir, TEST_MEMBERS_FILE, config);
+  }
+
+  // 除外リストの中身を1つの文字列にして、前回集計時と比べるための目印にする。
+  // (除外リストを変えても、CSV自体は変わっていないので isFresh() だけでは再集計が走らないため)
+  function testMemberSignature(testMemberConfig) {
+    return (testMemberConfig.members || []).map(m => m.memberId).sort().join(',');
+  }
+
   // JSONを経由すると Date が文字列に化けるので、min/maxだけDateへ戻す。
   // (Date -> new Date(date) も、既にDateのインスタンスを渡すケースとして問題なく動く)
   function reviveAggregate(agg) {
@@ -91,6 +110,18 @@ window.Dashboard.Sync = (function () {
 
     const accessLogEntries = entries.filter(e => e.kind === 'file' && isAccessLogFile(e.name));
     const memberListEntries = entries.filter(e => e.kind === 'file' && isMemberListFile(e.name));
+
+    // テスト会員の除外リストが前回集計時から変わっていたら、CSV自体は変わっていなくても
+    // 全ファイルを再集計する(でないと除外前の集計がキャッシュに残り続けてしまう)。
+    const testMemberConfig = await loadTestMemberConfig(clientDirHandle);
+    const excludedMemberIds = new Set((testMemberConfig.members || []).map(m => m.memberId));
+    const sig = testMemberSignature(testMemberConfig);
+    if (cache.testMemberSignature !== sig) {
+      cache.accessLogFiles = {};
+      cache.memberListFiles = {};
+      cache.testMemberSignature = sig;
+      cacheChanged = true;
+    }
 
     // フォルダから削除・リネームされたファイルのキャッシュを残したままにすると、
     // 実体の無いファイルの集計がいつまでも合算され続けてしまう(二重集計の原因にもなる)ので、
@@ -125,7 +156,8 @@ window.Dashboard.Sync = (function () {
 
       const { text } = await FS.readFileText(entry.handle, 'shift_jis');
       const rows = Csv.toObjects(text);
-      const aggregate = Agg.aggregateAccessLogRows(rows);
+      const filteredRows = excludedMemberIds.size ? rows.filter(r => !excludedMemberIds.has(r['会員ID'])) : rows;
+      const aggregate = Agg.aggregateAccessLogRows(filteredRows);
 
       // 'all'(全期間を1ファイルでDLしたケース)は複数月にまたがるのが前提なので、
       // 月単位ファイル向けのこの整合性チェックは対象外にする。
@@ -153,10 +185,11 @@ window.Dashboard.Sync = (function () {
 
         const { text } = await FS.readFileText(entry.handle, 'shift_jis');
         const rows = Csv.toObjects(text);
+        const filteredRows = excludedMemberIds.size ? rows.filter(r => !excludedMemberIds.has(r['会員ID'])) : rows;
         cache.memberListFiles[entry.name] = {
           size: file.size,
           lastModified: file.lastModified,
-          summary: Agg.summarizeMemberList(rows),
+          summary: Agg.summarizeMemberList(filteredRows),
         };
         cacheChanged = true;
       }
@@ -191,6 +224,7 @@ window.Dashboard.Sync = (function () {
       ticketLedger,
       ticketConfig,
       businessHoursConfig,
+      testMemberConfig,
       memberSummary,
     };
   }
@@ -209,5 +243,6 @@ window.Dashboard.Sync = (function () {
     syncAllClients, syncClientFolder,
     loadTicketConfig, saveTicketConfig,
     loadBusinessHoursConfig, saveBusinessHoursConfig,
+    loadTestMemberConfig, saveTestMemberConfig,
   };
 })();

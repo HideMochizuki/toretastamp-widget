@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テスト会員設定 | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { max-width: 900px; padding: 30px; display: block; }
+  .step-buttons { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+  table.data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 15px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  table.data-table th { color: #334155; font-size: 0.82rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; }
+  .add-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px; }
+  .add-row input[type="text"] {
+    height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;
+  }
+  #add-member-id { width: 220px; }
+  #add-member-note { width: 220px; }
+  .remove-btn { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 0.9rem; }
+  .remove-btn:hover { text-decoration: underline; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
+    border: none; border-radius: 4px; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.primary { background: var(--primary-color); }
+  .action-btn.secondary { background: #475569; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item"><i class="fa fa-chart-line"></i> ホーム</a>
+      <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
+      <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
+      <a href="test-members.html" class="nav-item active"><i class="fa fa-user-slash"></i> テスト会員設定</a>
+      <a href="help.html" class="nav-item"><i class="fa fa-circle-question"></i> 使い方</a>
+    </nav>
+  </div>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">フォルダを読み込む</h2>
+    <div class="card">
+      <div class="card-sub-title">ログを読み込んだ上で、動作検証用に使った会員IDを登録します</div>
+      <div id="support-check"></div>
+      <div class="step-buttons">
+        <button class="action-btn primary" id="pick-btn">
+          <i class="fa fa-folder-open"></i> ① フォルダを選択
+        </button>
+        <button class="action-btn secondary" id="sync-btn" disabled>
+          <i class="fa fa-rotate"></i> ② 読み込み
+        </button>
+        <select id="client-select" style="display:none; height: 38px;"></select>
+      </div>
+      <div class="status-line" id="status">フォルダ未選択です。</div>
+    </div>
+  </div>
+
+  <div class="card-wrapper" id="test-members-card" style="display:none;">
+    <h2 class="card-title">テスト会員設定</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        スタンプの動作検証を行った会員ID（自分自身のLINEアカウントなど）を登録すると、
+        不正アクセス検証やスタンプ押下数などの集計から、その会員IDの実績を丸ごと除外します
+      </div>
+      <div class="warn">⚠️ 会員IDは、トレタスタンプの管理画面やご自身のアプリ画面でご確認いただけます（LINE IDではなく会員IDをご登録ください）。</div>
+
+      <div class="add-row">
+        <input type="text" id="add-member-id" placeholder="会員ID">
+        <input type="text" id="add-member-note" placeholder="メモ（任意・例：検証担当の名前）">
+        <button class="action-btn secondary" id="add-member-btn"><i class="fa fa-plus"></i> 追加</button>
+      </div>
+
+      <table class="data-table" id="test-members-table"></table>
+
+      <button class="action-btn primary" id="save-btn" style="margin-top: 20px;">
+        <i class="fa fa-save"></i> 保存
+      </button>
+      <span class="status-line" id="save-status"></span>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/effect.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/business-hours.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/sync.js"></script>
+<script src="js/ui.js"></script>
+<script>
+let rootHandle = null;
+let clients = [];
+let currentClient = null;
+let members = []; // 編集中の一覧(保存ボタンを押すまでファイルには書き込まない)
+
+const statusEl = document.getElementById('status');
+const syncBtn = document.getElementById('sync-btn');
+const clientSelect = document.getElementById('client-select');
+const testMembersCard = document.getElementById('test-members-card');
+const tableEl = document.getElementById('test-members-table');
+const saveStatusEl = document.getElementById('save-status');
+
+if (!Dashboard.FS.isSupported()) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザはFile System Access APIに対応していません。Chrome/Edgeで開いてください。</div>';
+}
+
+async function doSync() {
+  statusEl.textContent = '読み込み中...';
+  try {
+    clients = await Dashboard.Sync.syncAllClients(rootHandle);
+    statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
+    if (!clients.length) {
+      testMembersCard.style.display = 'none';
+      return;
+    }
+    clientSelect.style.display = '';
+    clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
+    selectClient(0);
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+}
+
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  try {
+    rootHandle = await Dashboard.FS.pickRootFolder();
+    statusEl.textContent = `選択中のフォルダ: 「${rootHandle.name}」`;
+    syncBtn.disabled = false;
+    await doSync();
+  } catch (e) {
+    statusEl.textContent = 'フォルダ選択がキャンセルされたか、エラーが発生しました: ' + e.message;
+  }
+});
+
+syncBtn.addEventListener('click', doSync);
+
+clientSelect.addEventListener('change', () => selectClient(Number(clientSelect.value)));
+
+(async () => {
+  if (!Dashboard.FS.isSupported()) return;
+  const saved = await Dashboard.FS.getSavedHandle();
+  if (!saved) return;
+
+  rootHandle = saved;
+  syncBtn.disabled = false;
+
+  if (await Dashboard.FS.hasPermission(saved)) {
+    statusEl.textContent = `前回のフォルダ「${saved.name}」を自動復元しました`;
+    await doSync();
+  } else {
+    statusEl.innerHTML = `前回のフォルダ「${escapeHtml(saved.name)}」の権限が切れています。`
+      + `<button id="resume-btn" class="action-btn secondary" style="height:28px; padding:0 12px; margin-left:8px;">許可して読み込む</button>`;
+    document.getElementById('resume-btn').addEventListener('click', async () => {
+      const granted = await Dashboard.FS.requestPermissionForHandle(saved);
+      if (granted) { await doSync(); }
+      else { statusEl.textContent = '許可されませんでした。①から選び直してください。'; }
+    });
+  }
+})();
+
+function selectClient(index) {
+  currentClient = clients[index];
+  members = (currentClient.testMemberConfig && currentClient.testMemberConfig.members) ? [...currentClient.testMemberConfig.members] : [];
+  testMembersCard.style.display = '';
+  saveStatusEl.textContent = '';
+  renderTable();
+}
+
+function renderTable() {
+  if (!members.length) {
+    tableEl.innerHTML = '<tr><td>登録されているテスト会員はいません</td></tr>';
+    return;
+  }
+  tableEl.innerHTML = `
+    <tr><th>会員ID</th><th>メモ</th><th></th></tr>
+    ${members.map((m, i) => `<tr>
+      <td>${escapeHtml(m.memberId)}</td>
+      <td>${escapeHtml(m.note || '')}</td>
+      <td><button type="button" class="remove-btn" data-index="${i}"><i class="fa fa-trash"></i> 削除</button></td>
+    </tr>`).join('')}`;
+
+  tableEl.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      members.splice(Number(btn.dataset.index), 1);
+      renderTable();
+    });
+  });
+}
+
+document.getElementById('add-member-btn').addEventListener('click', () => {
+  const idInput = document.getElementById('add-member-id');
+  const noteInput = document.getElementById('add-member-note');
+  const memberId = idInput.value.trim();
+  if (!memberId) return;
+  if (members.some(m => m.memberId === memberId)) {
+    saveStatusEl.textContent = 'すでに登録されている会員IDです。';
+    return;
+  }
+  members.push({ memberId, note: noteInput.value.trim() });
+  idInput.value = '';
+  noteInput.value = '';
+  saveStatusEl.textContent = '';
+  renderTable();
+});
+
+document.getElementById('save-btn').addEventListener('click', async () => {
+  saveStatusEl.textContent = '保存中...';
+  try {
+    await Dashboard.Sync.saveTestMemberConfig(currentClient.dirHandle, { members });
+    currentClient.testMemberConfig = { members };
+    saveStatusEl.textContent = '保存しました（' + new Date().toLocaleTimeString() + '）。ホーム画面で「②読み込み」を押すと、この内容が集計に反映されます。';
+  } catch (e) {
+    saveStatusEl.textContent = 'エラー: ' + e.message;
+  }
+});
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>
