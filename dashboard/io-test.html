@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IO層テスト | 解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  body { overflow: auto; }
+  .main-wrapper { margin: 0 auto; max-width: 960px; padding: 30px; display: block; }
+  .step-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .client-block { border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-top: 20px; }
+  .client-block h3 { margin: 0 0 10px; color: #1e293b; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 10px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">解析ダッシュボード ― IO層テスト</div>
+</header>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">フォルダを選んで同期する</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        ①で「ルートフォルダ」（クライアント別サブフォルダを束ねる親フォルダ）を選び、②で同期・集計を実行します。
+      </div>
+      <div id="support-check"></div>
+      <div class="step-buttons">
+        <button class="btn btn-generate" id="pick-btn" style="width: auto; padding: 10px 24px;">
+          <i class="fa fa-folder-open"></i> ① フォルダを選択
+        </button>
+        <button class="btn" id="sync-btn" style="width: auto; padding: 10px 24px; background:#475569; color:#fff;" disabled>
+          <i class="fa fa-rotate"></i> ② 同期して集計
+        </button>
+      </div>
+      <div class="status-line" id="status">フォルダ未選択です。</div>
+      <div id="results"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/effect.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/sync.js"></script>
+<script>
+let rootHandle = null;
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const syncBtn = document.getElementById('sync-btn');
+
+if (!Dashboard.FS.isSupported()) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザはFile System Access APIに対応していません。Chrome/Edgeで開いてください。</div>';
+}
+
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  try {
+    rootHandle = await Dashboard.FS.pickRootFolder();
+    statusEl.textContent = `選択中のフォルダ: 「${rootHandle.name}」`;
+    syncBtn.disabled = false;
+  } catch (e) {
+    statusEl.textContent = 'フォルダ選択がキャンセルされたか、エラーが発生しました: ' + e.message;
+  }
+});
+
+syncBtn.addEventListener('click', async () => {
+  statusEl.textContent = '同期中...';
+  resultsEl.innerHTML = '';
+  try {
+    const results = await Dashboard.Sync.syncAllClients(rootHandle);
+    statusEl.textContent = `同期完了（${results.length}クライアント）`;
+    renderResults(results);
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+});
+
+function renderResults(results) {
+  resultsEl.innerHTML = results.map(r => {
+    const warnHtml = r.warnings.map(w => `<div class="warn">⚠️ ${escapeHtml(w)}</div>`).join('');
+    const eventRows = Object.entries(Dashboard.Aggregate.queryCounts(r.merged.byDay, {}))
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${v.toLocaleString()}</td></tr>`).join('');
+    const ms = r.memberSummary;
+    const memberHtml = ms ? `
+      <table>
+        <tr><th>会員数</th><td>${ms.total.toLocaleString()}</td></tr>
+        <tr><th>うちLINE会員</th><td>${ms.lineMembers.toLocaleString()}</td></tr>
+        <tr><th>退会者数</th><td>${ms.withdrawn.toLocaleString()}</td></tr>
+        <tr><th>在籍会員数</th><td>${ms.active.toLocaleString()}</td></tr>
+      </table>` : '<div class="warn">会員一覧が見つかりません</div>';
+
+    const effect = Dashboard.Effect.calcMessageEffect(r.merged.messagesSent, r.merged.attributedVisits, 7);
+    const effectHtml = effect.length ? `
+      <table>
+        <tr><th>件名</th><th>配信日時</th><th>配信数</th><th>7日以内スタンプ押下件数</th><th>反応率</th></tr>
+        ${effect.map(m => `<tr>
+          <td>${escapeHtml(m.subject)}</td>
+          <td>${m.sentAt.slice(0, 16).replace('T', ' ')}</td>
+          <td>${m.recipientCount.toLocaleString()}</td>
+          <td>${m.visitEventCount.toLocaleString()}</td>
+          <td>${m.reachRate !== null ? (m.reachRate * 100).toFixed(2) + '%' : '-'}</td>
+        </tr>`).join('')}
+      </table>` : '<div class="status-line">配信ログなし</div>';
+
+    const ticketValidity = Dashboard.Tickets.calcTicketValidity(r.ticketLedger, r.ticketConfig, new Date());
+
+    return `
+      <div class="client-block">
+        <h3><i class="fa fa-store"></i> ${escapeHtml(r.name)}</h3>
+        <div class="status-line">対象月: ${r.months.join(', ') || 'なし'}</div>
+        ${warnHtml}
+        <h4>会員情報</h4>
+        ${memberHtml}
+        <h4>イベント件数（全期間合算）</h4>
+        <table><tr><th>イベント</th><th>件数</th></tr>${eventRows}</table>
+        <h4>チケット有効性（マスター未登録: ${ticketValidity.unconfiguredCount}件）</h4>
+        <table>
+          <tr><th>有効</th><td>${ticketValidity.activeCount.toLocaleString()}</td></tr>
+          <tr><th>失効/使用済</th><td>${ticketValidity.inactiveCount.toLocaleString()}</td></tr>
+          <tr><th>未設定（計算対象外）</th><td>${ticketValidity.unconfiguredCount.toLocaleString()}</td></tr>
+        </table>
+        <h4>メッセージ効果検証（配信後7日以内のスタンプ押下、件数ベース）</h4>
+        ${effectHtml}
+      </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

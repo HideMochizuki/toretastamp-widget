@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>データ層テスト | 解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  body { overflow: auto; }
+  .main-wrapper { margin: 0 auto; max-width: 900px; padding: 30px; display: block; }
+  .test-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+  .test-item:last-child { border-bottom: none; }
+  .test-mark { width: 22px; flex-shrink: 0; text-align: center; font-weight: bold; }
+  .test-pass .test-mark { color: #16a34a; }
+  .test-fail .test-mark { color: #dc2626; }
+  .test-name { font-weight: bold; color: #1e293b; font-size: 0.9rem; }
+  .test-detail { font-size: 0.8rem; color: #64748b; margin-top: 4px; white-space: pre-wrap; }
+  #summary { font-size: 1rem; font-weight: bold; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">解析ダッシュボード ― データ層テスト</div>
+</header>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">集計ロジックの自己テスト</h2>
+    <div class="card">
+      <div class="card-sub-title">ダミーデータだけを使ってロジックを検証します（実際のログファイルは読み込みません）</div>
+      <button class="btn btn-generate" id="run-btn" style="width: auto; padding: 10px 24px;">
+        <i class="fa fa-play"></i> テスト実行
+      </button>
+      <div id="summary"></div>
+      <div id="results" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/effect.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/business-hours.js"></script>
+<script>
+const tests = [];
+function test(name, fn) { tests.push({ name, fn }); }
+
+function assertEqual(actual, expected, label) {
+  const a = JSON.stringify(actual);
+  const e = JSON.stringify(expected);
+  if (a !== e) throw new Error(`${label || '値が一致しません'}\n  期待値: ${e}\n  実際値: ${a}`);
+}
+
+function assertTrue(value, label) {
+  if (!value) throw new Error(label || '真であるべき値が偽でした');
+}
+
+// --- util ---
+test('util: parseMonthFromFileName で月単位/全期間のファイル名から年月キーを取り出せる', () => {
+  assertEqual(Dashboard.Util.parseMonthFromFileName('すべてのログ2026-10.csv'), '2026-10', '月単位(1桁月)');
+  assertEqual(Dashboard.Util.parseMonthFromFileName('すべてのログ2026-9.csv'), '2026-09', '月単位(0埋め)');
+  assertEqual(Dashboard.Util.parseMonthFromFileName('すべてのログ.csv'), 'all', '全期間1ファイルのときは特別なキーall');
+  assertEqual(Dashboard.Util.parseMonthFromFileName('ログ.csv'), null, '対応していない名前はnull');
+});
+
+test('util: parseDateTime はスラッシュ区切り・ハイフン区切りのどちらの日時も読める', () => {
+  assertEqual(Dashboard.Util.parseDateTime('2026/10/9 17:39').toISOString(), new Date(2026, 9, 9, 17, 39, 0).toISOString(), 'スラッシュ区切り(秒なし)');
+  assertEqual(Dashboard.Util.parseDateTime('2026-10-09 17:39:38').toISOString(), new Date(2026, 9, 9, 17, 39, 38).toISOString(), 'ハイフン区切り(秒あり、0埋め)');
+  assertEqual(Dashboard.Util.parseDateTime('2026-9-1').toISOString(), new Date(2026, 8, 1, 0, 0, 0).toISOString(), 'ハイフン区切り・時刻なし');
+});
+
+// --- csv-parser ---
+test('CSV: カンマを含む引用フィールドを正しく分割できる', () => {
+  const text = '日時,件名\n2026/10/1,"コーヒー, 1杯無料"\n';
+  const objs = Dashboard.Csv.toObjects(text);
+  assertEqual(objs.length, 1, '行数');
+  assertEqual(objs[0]['件名'], 'コーヒー, 1杯無料', '引用フィールドの中身');
+});
+
+test('CSV: 空行・末尾改行を無視できる', () => {
+  const text = 'a,b\n1,2\n\n3,4\n';
+  const objs = Dashboard.Csv.toObjects(text);
+  assertEqual(objs.length, 2, '行数');
+});
+
+// --- aggregate: aggregateAccessLogRows ---
+function fixtureRows() {
+  const base = {
+    '事業者番号': '26', '事業者名': '株式会社テスト', 'ブランド番号': '36', 'ブランド名': 'テストブランド',
+    'エリア番号': '', 'エリア名': '', '店舗番号': '100', '店舗名': 'テスト店',
+    'スタンプページ番号': '1', 'スタンプページ名称': 'ドリンクカード', '初回スタンプ利用フラグ': '',
+    'チケット番号': '', 'チケット名称': '', '会員ID': '', 'メールアドレス': '', 'LINE ID': '',
+    '件名': '', '通常配信ID': '', 'リッチメッセージID': '', 'ポイント': '', 'パスコード': '',
+  };
+  return [
+    { ...base, '日時': '2026/10/1 10:00', 'イベント': 'スタンプ押下', '会員ID': 'member-A' },
+    { ...base, '日時': '2026/10/1 11:00', 'イベント': 'スタンプ押下', '会員ID': 'member-B' },
+    { ...base, '日時': '2026/10/2 09:00', 'イベント': 'トップページ表示', '会員ID': 'member-A' },
+    { ...base, '日時': '2026/10/3 09:00', 'イベント': 'チケット発行', 'チケット番号': 'T1', 'チケット名称': '無料券', '会員ID': 'member-A' },
+    { ...base, '日時': '2026/10/4 09:00', 'イベント': 'チケット利用', 'チケット番号': 'T1', '会員ID': 'member-A' },
+  ];
+}
+
+test('aggregate: イベント件数・ブランド別・店舗別・スタンプページ別の集計が合う', () => {
+  const agg = Dashboard.Aggregate.aggregateAccessLogRows(fixtureRows());
+  assertEqual(agg.byDay['2026-10-01'].total['スタンプ押下'], 2, '日別・総件数');
+  assertEqual(agg.byDay['2026-10-01'].byBrand['テストブランド']['スタンプ押下'], 2, 'ブランド別');
+  assertEqual(agg.byDay['2026-10-01'].byStore['100:テスト店']['スタンプ押下'], 2, '店舗別');
+  assertEqual(agg.byDay['2026-10-01'].byStampPage['ドリンクカード']['スタンプ押下'], 2, 'スタンプページ別');
+  assertEqual(agg.byDay['2026-10-01'].byStoreStampPage['100:テスト店']['ドリンクカード']['スタンプ押下'], 2, '店舗×スタンプページ別');
+});
+
+test('aggregate: queryByStampPage が店舗で絞り込める', () => {
+  const agg = Dashboard.Aggregate.aggregateAccessLogRows(fixtureRows());
+  const all = Dashboard.Aggregate.queryByStampPage(agg.byDay, {});
+  assertEqual(all['ドリンクカード']['スタンプ押下'], 2, '全店舗合算');
+  const byStore = Dashboard.Aggregate.queryByStampPage(agg.byDay, { storeKey: '100:テスト店' });
+  assertEqual(byStore['ドリンクカード']['スタンプ押下'], 2, '店舗で絞っても同じ店なので変わらない');
+  const noStore = Dashboard.Aggregate.queryByStampPage(agg.byDay, { storeKey: '999:別の店' });
+  assertEqual(Object.keys(noStore).length, 0, '該当しない店舗を指定すると空になる');
+});
+
+test('aggregate: チケット発行にはstoreKeyが付く', () => {
+  const agg = Dashboard.Aggregate.aggregateAccessLogRows(fixtureRows());
+  assertEqual(agg.ticketIssued[0].storeKey, '100:テスト店', '発行イベントの店舗情報');
+});
+
+test('aggregate: チケット発行は同じ会員・同じ分のスタンプ押下からスタンプページを推定する', () => {
+  const base = {
+    '事業者番号': '1', '事業者名': 'テスト', 'ブランド番号': '1', 'ブランド名': 'テストブランド',
+    'エリア番号': '', 'エリア名': '', '店舗番号': '100', '店舗名': 'テスト店',
+    'スタンプページ番号': '', 'スタンプページ名称': '', '初回スタンプ利用フラグ': '',
+    'チケット番号': '', 'チケット名称': '', '会員ID': '', 'メールアドレス': '', 'LINE ID': '',
+    '件名': '', '通常配信ID': '', 'リッチメッセージID': '', 'ポイント': '', 'パスコード': '',
+  };
+  const rows = [
+    { ...base, '日時': '2026/10/7 23:24', 'イベント': 'スタンプ押下', '会員ID': 'm1', 'スタンプページ番号': '1', 'スタンプページ名称': 'ドリンクカード' },
+    { ...base, '日時': '2026/10/7 23:24', 'イベント': 'チケット発行', '会員ID': 'm1', 'チケット番号': 'T1', 'チケット名称': 'プレゼント' },
+    // 時刻がズレているので推定が効かないはずのケース
+    { ...base, '日時': '2026/10/8 10:00', 'イベント': 'チケット発行', '会員ID': 'm2', 'チケット番号': 'T2', 'チケット名称': '別の券' },
+  ];
+  const agg = Dashboard.Aggregate.aggregateAccessLogRows(rows);
+  assertEqual(agg.byDay['2026-10-07'].byStampPage['ドリンクカード']['チケット発行'], 1, '同じ分のスタンプ押下から推定されたチケット発行');
+  assertEqual(Object.keys(agg.byDay['2026-10-08'].byStampPage).length, 0, '紐づく押下が無い日は推定されない');
+});
+
+test('aggregate: queryCounts で期間・店舗を絞り込める', () => {
+  const agg = Dashboard.Aggregate.aggregateAccessLogRows(fixtureRows());
+  const all = Dashboard.Aggregate.queryCounts(agg.byDay, {});
+  assertEqual(all['スタンプ押下'], 2, '全期間合算');
+  const oneDay = Dashboard.Aggregate.queryCounts(agg.byDay, { from: new Date(2026, 9, 1), to: new Date(2026, 9, 1) });
+  assertEqual(oneDay['スタンプ押下'], 2, '10/1だけに絞る');
+  const noMatch = Dashboard.Aggregate.queryCounts(agg.byDay, { from: new Date(2026, 9, 2), to: new Date(2026, 9, 2) });
+  assertEqual(noMatch['スタンプ押下'], undefined, '10/2にはスタンプ押下がない');
+  const byStore = Dashboard.Aggregate.queryCounts(agg.byDay, { storeKey: '100:テスト店' });
+  assertEqual(byStore['スタンプ押下'], 2, '店舗で絞る');
+});
+
+test('aggregate: チケット発行/利用イベントが台帳行として残る', () => {
+  const agg = Dashboard.Aggregate.aggregateAccessLogRows(fixtureRows());
+  assertEqual(agg.ticketIssued.length, 1, '発行件数');
+  assertEqual(agg.ticketUsed.length, 1, '利用件数');
+  assertEqual(agg.ticketIssued[0].ticketNo, 'T1', '発行チケット番号');
+});
+
+test('aggregate: mergeMonthlyAggregates で複数月の件数が合算される', () => {
+  const aggOct = Dashboard.Aggregate.aggregateAccessLogRows(fixtureRows());
+  const aggNovRows = [{
+    '事業者番号': '26', '事業者名': '株式会社テスト', 'ブランド番号': '36', 'ブランド名': 'テストブランド',
+    'エリア番号': '', 'エリア名': '', '店舗番号': '100', '店舗名': 'テスト店',
+    'スタンプページ番号': '1', 'スタンプページ名称': 'ドリンクカード', '初回スタンプ利用フラグ': '',
+    'チケット番号': '', 'チケット名称': '', '会員ID': 'member-C', 'メールアドレス': '', 'LINE ID': '',
+    '件名': '', '通常配信ID': '', 'リッチメッセージID': '', 'ポイント': '', 'パスコード': '',
+    '日時': '2026/11/1 10:00', 'イベント': 'スタンプ押下',
+  }];
+  const aggNov = Dashboard.Aggregate.aggregateAccessLogRows(aggNovRows);
+  const merged = Dashboard.Aggregate.mergeMonthlyAggregates([aggOct, aggNov]);
+  const all = Dashboard.Aggregate.queryCounts(merged.byDay, {});
+  assertEqual(all['スタンプ押下'], 3, '合算後の総スタンプ押下数');
+});
+
+test('aggregate: 月をまたいだ発行/利用もticketLedgerでFIFOマッチングできる', () => {
+  const issuedMonth1 = Dashboard.Aggregate.aggregateAccessLogRows([
+    { ...fixtureRows()[0], '日時': '2026/10/3 09:00', 'イベント': 'チケット発行', 'チケット番号': 'T2', 'チケット名称': '翌月利用券', '会員ID': 'member-X' },
+  ]);
+  const usedMonth2 = Dashboard.Aggregate.aggregateAccessLogRows([
+    { ...fixtureRows()[0], '日時': '2026/11/5 09:00', 'イベント': 'チケット利用', 'チケット番号': 'T2', '会員ID': 'member-X' },
+  ]);
+  const merged = Dashboard.Aggregate.mergeMonthlyAggregates([issuedMonth1, usedMonth2]);
+  const ledger = Dashboard.Aggregate.buildTicketLedger(merged.ticketIssued, merged.ticketUsed);
+  assertEqual(ledger.length, 1, '台帳件数');
+  assertTrue(ledger[0].usedAt !== null, '月をまたいでも利用日時が埋まる');
+});
+
+test('aggregate: summarizeMemberList で会員数・退会者数・LINE会員数が出る', () => {
+  const rows = [
+    { '会員ID': 'm1', 'LINE ID': 'U1', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'テスト店', '登録日時': '2026/10/1 10:00' },
+    { '会員ID': 'm2', 'LINE ID': '', '退会': '1', '初回登録店舗番号': '100', '初回登録店舗名': 'テスト店', '登録日時': '2026/10/2 10:00' },
+  ];
+  const summary = Dashboard.Aggregate.summarizeMemberList(rows);
+  assertEqual(summary.total, 2, '総会員数');
+  assertEqual(summary.withdrawn, 1, '退会者数');
+  assertEqual(summary.active, 1, '在籍会員数');
+  assertEqual(summary.lineMembers, 1, 'LINE会員数');
+  assertEqual(summary.members['m1'].lineId, 'U1', '会員ID→LINE IDの対応表');
+  assertEqual(summary.members['m1'].registeredAt, new Date(2026, 9, 1, 10, 0).toISOString(), '会員ID→登録日時の対応表');
+  assertEqual(summary.members['m2'].withdrawn, true, '会員ID→退会フラグの対応表');
+});
+
+test('aggregate: countRegistrationsByPeriod で日/月/年×店舗を絞り込める', () => {
+  const rows = [
+    { '会員ID': 'm1', 'LINE ID': 'U1', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/1 10:00' },
+    { '会員ID': 'm2', 'LINE ID': 'U2', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/5 10:00' },
+    { '会員ID': 'm3', 'LINE ID': 'U3', '退会': '0', '初回登録店舗番号': '200', '初回登録店舗名': 'B店', '登録日時': '2026/9/1 10:00' },
+  ];
+  const summary = Dashboard.Aggregate.summarizeMemberList(rows);
+
+  const byMonth = Dashboard.Aggregate.countRegistrationsByPeriod(summary.members, 'month');
+  assertEqual(byMonth['2026-10'], 2, '全店舗・月別(10月は2人)');
+  assertEqual(byMonth['2026-09'], 1, '全店舗・月別(9月は1人)');
+
+  const byMonthStoreA = Dashboard.Aggregate.countRegistrationsByPeriod(summary.members, 'month', '100:A店');
+  assertEqual(byMonthStoreA['2026-10'], 2, 'A店だけに絞ると10月2人');
+  assertEqual(byMonthStoreA['2026-09'], undefined, 'A店には9月の登録者はいない');
+
+  const byDay = Dashboard.Aggregate.countRegistrationsByPeriod(summary.members, 'day', '100:A店');
+  assertEqual(byDay['2026-10-01'], 1, '日別・A店(10/1)');
+  assertEqual(byDay['2026-10-05'], 1, '日別・A店(10/5)');
+});
+
+test('aggregate: countRegistrationsByStoreAndMonth で店舗×月の登録数を1回でまとめられる', () => {
+  const rows = [
+    { '会員ID': 'm1', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/1 10:00' },
+    { '会員ID': 'm2', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/5 10:00' },
+    { '会員ID': 'm3', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/9/1 10:00' },
+    { '会員ID': 'm4', '退会': '0', '初回登録店舗番号': '200', '初回登録店舗名': 'B店', '登録日時': '2026/10/1 10:00' },
+  ];
+  const summary = Dashboard.Aggregate.summarizeMemberList(rows);
+
+  const byStoreMonth = Dashboard.Aggregate.countRegistrationsByStoreAndMonth(summary.members);
+  assertEqual(byStoreMonth['100:A店']['2026-10'], 2, 'A店の10月登録数');
+  assertEqual(byStoreMonth['100:A店']['2026-09'], 1, 'A店の9月登録数');
+  assertEqual(byStoreMonth['200:B店']['2026-10'], 1, 'B店の10月登録数');
+  assertEqual(byStoreMonth['200:B店']['2026-09'], undefined, 'B店には9月の登録者はいない');
+});
+
+test('aggregate: findLapsedRegulars で常連だったが最近来ていない会員を抽出できる', () => {
+  const asOf = new Date(2026, 9, 1); // 2026-10-01基準
+  const stampPushes = [
+    // regular-lapsed: 来店5回、最終来店が60日前 → 常連だが離脱予兆
+    { memberId: 'regular-lapsed', at: new Date(2026, 7, 2).toISOString() },
+    { memberId: 'regular-lapsed', at: new Date(2026, 7, 5).toISOString() },
+    { memberId: 'regular-lapsed', at: new Date(2026, 7, 10).toISOString() },
+    { memberId: 'regular-lapsed', at: new Date(2026, 7, 15).toISOString() },
+    { memberId: 'regular-lapsed', at: new Date(2026, 7, 3).toISOString() },
+    // regular-active: 来店5回だが最近(5日前)も来ている → 離脱予兆ではない
+    { memberId: 'regular-active', at: new Date(2026, 7, 2).toISOString() },
+    { memberId: 'regular-active', at: new Date(2026, 7, 5).toISOString() },
+    { memberId: 'regular-active', at: new Date(2026, 7, 10).toISOString() },
+    { memberId: 'regular-active', at: new Date(2026, 7, 15).toISOString() },
+    { memberId: 'regular-active', at: new Date(2026, 8, 26).toISOString() },
+    // one-timer: 来店1回だけで60日前 → 常連ではないので対象外
+    { memberId: 'one-timer', at: new Date(2026, 7, 2).toISOString() },
+  ];
+
+  const result = Dashboard.Aggregate.findLapsedRegulars(stampPushes, 3, 30, asOf);
+  assertEqual(result.length, 1, '離脱予兆として抽出されるのは1人だけ');
+  assertEqual(result[0].memberId, 'regular-lapsed', '抽出されるのはregular-lapsed');
+  assertEqual(result[0].pushCount, 5, '来店回数が引き継がれる');
+  assertEqual(result[0].daysSinceLastVisit, 47, '最終来店日(8/15)からasOf(10/1)までの経過日数');
+});
+
+test('aggregate: summarizeMemberList は初回登録日時を優先し、無ければ登録日時で代用する', () => {
+  const rows = [
+    { '会員ID': 'm1', '退会': '0', '登録日時': '2026/10/1 10:00', '初回登録日時': '2022/12/24 05:01' },
+    { '会員ID': 'm2', '退会': '0', '登録日時': '2026/10/2 10:00' },
+  ];
+  const summary = Dashboard.Aggregate.summarizeMemberList(rows);
+  assertEqual(summary.members['m1'].firstRegisteredAt, new Date(2022, 11, 24, 5, 1).toISOString(), '初回登録日時がある場合はそちらを使う');
+  assertEqual(summary.members['m2'].firstRegisteredAt, summary.members['m2'].registeredAt, '初回登録日時が無い場合は登録日時で代用');
+});
+
+test('aggregate: mergeMemberSummaries で会員一覧を複数ファイルに分割していても束ねられる', () => {
+  const file1 = Dashboard.Aggregate.summarizeMemberList([
+    { '会員ID': 'm1', 'LINE ID': 'U1', '退会': '0', '初回登録店舗番号': '1', '初回登録店舗名': 'A店', '登録日時': '2026/10/1 10:00' },
+    { '会員ID': 'm2', 'LINE ID': '', '退会': '1', '初回登録店舗番号': '1', '初回登録店舗名': 'A店', '登録日時': '2026/10/2 10:00' },
+  ]);
+  const file2 = Dashboard.Aggregate.summarizeMemberList([
+    { '会員ID': 'm3', 'LINE ID': 'U3', '退会': '0', '初回登録店舗番号': '2', '初回登録店舗名': 'B店', '登録日時': '2026/10/3 10:00' },
+  ]);
+
+  const merged = Dashboard.Aggregate.mergeMemberSummaries([file1, file2]);
+  assertEqual(merged.total, 3, '複数ファイル分を合わせた総会員数');
+  assertEqual(merged.withdrawn, 1, '退会者数も合算される');
+  assertEqual(merged.lineMembers, 2, 'LINE会員数も合算される');
+  assertEqual(merged.members['m1'].storeKey, '1:A店', 'ファイル1の会員情報も引き継がれる');
+  assertEqual(merged.members['m3'].storeKey, '2:B店', 'ファイル2の会員情報も引き継がれる');
+  assertEqual(merged.byStore['1:A店'].total, 2, '店舗別の集計もファイルをまたいで合算される');
+  assertEqual(merged.byStore['2:B店'].total, 1, '店舗別の集計(ファイル2側)');
+});
+
+test('aggregate: calcAgeGroup で生年月(YYYY-MM)から年代を計算できる', () => {
+  const asOf = new Date(2026, 9, 1); // 2026-10-01基準
+  assertEqual(Dashboard.Aggregate.calcAgeGroup('2015-04', asOf), '10代以下', '11歳は10代以下');
+  assertEqual(Dashboard.Aggregate.calcAgeGroup('1999-01', asOf), '20代', '27歳は20代');
+  assertEqual(Dashboard.Aggregate.calcAgeGroup('1989-01', asOf), '30代', '37歳は30代');
+  assertEqual(Dashboard.Aggregate.calcAgeGroup('1950-01', asOf), '70代以上', '76歳は70代以上');
+  assertEqual(Dashboard.Aggregate.calcAgeGroup('不明', asOf), null, '形式が違う場合はnull');
+});
+
+test('aggregate: summarizeMemberAttributes で会員プロフィール(都道府県/性別/年代/流入経路)を集計できる', () => {
+  const asOf = new Date(2026, 9, 1);
+  const rows = [
+    { '会員ID': 'm1', '退会': '0', '都道府県': '東京都', '性別': '男性', '生年月': '1989-01', '何を見て知りましたか': '知人から' },
+    { '会員ID': 'm2', '退会': '0', '都道府県': '東京都', '性別': '女性', '生年月': '1999-01', '何を見て知りましたか': 'SNS' },
+    // プロフィール未入力の会員(事業者によっては一部取得できていない)
+    { '会員ID': 'm3', '退会': '0' },
+  ];
+  const summary = Dashboard.Aggregate.summarizeMemberList(rows);
+  const attrs = Dashboard.Aggregate.summarizeMemberAttributes(summary.members, asOf);
+
+  assertEqual(attrs.totalWithPrefecture, 2, '都道府県が取得できている人数');
+  assertEqual(attrs.byPrefecture['東京都'], 2, '東京都の人数');
+  assertEqual(attrs.totalWithGender, 2, '性別が取得できている人数');
+  assertEqual(attrs.byGender['男性'], 1, '男性の人数');
+  assertEqual(attrs.byGender['女性'], 1, '女性の人数');
+  assertEqual(attrs.totalWithAge, 2, '年代が計算できている人数');
+  assertEqual(attrs.byAgeGroup['30代'], 1, '30代の人数');
+  assertEqual(attrs.byAgeGroup['20代'], 1, '20代の人数');
+  assertEqual(attrs.totalWithReferral, 2, '流入経路が取得できている人数');
+  assertEqual(attrs.byReferralSource['SNS'], 1, 'SNS経由の人数');
+});
+
+test('aggregate: calcMonthlyPushByCohort は初回来店月(=初めてスタンプを押した月)を基準に新規/既存を判定できる', () => {
+  const stampPushes = [
+    // member-a: 9月が初回来店月 → 9月は新規
+    { memberId: 'member-a', at: new Date(2026, 8, 5).toISOString(), storeKey: 'A' },
+    { memberId: 'member-a', at: new Date(2026, 8, 20).toISOString(), storeKey: 'A' },
+    // member-b: 7月が初回来店月。9月にも来店 → 9月は既存
+    { memberId: 'member-b', at: new Date(2026, 6, 1).toISOString(), storeKey: 'A' },
+    { memberId: 'member-b', at: new Date(2026, 8, 10).toISOString(), storeKey: 'A' },
+    // member-c: 初回来店はB店(8月)。9月はA店で来店。
+    // 「来店回数はブランド全体でカウント」する定義のため、店舗Aだけで絞り込んでも
+    // 初回来店月の判定(=8月)は変わらず、9月は既存として数えられる。
+    { memberId: 'member-c', at: new Date(2026, 7, 1).toISOString(), storeKey: 'B' },
+    { memberId: 'member-c', at: new Date(2026, 8, 15).toISOString(), storeKey: 'A' },
+  ];
+
+  const result = Dashboard.Aggregate.calcMonthlyPushByCohort(stampPushes, 'A');
+  assertEqual(result.byMonth['2026-07'].newPushCount, 1, '7月: member-bの初回来店(新規)');
+  assertEqual(result.byMonth['2026-08'], undefined, '店舗Aで絞り込むとmember-cの8月(店舗B)の来店は出てこない');
+  assertEqual(result.byMonth['2026-09'].newPushCount, 2, '9月の新規押下数(member-aの2回)');
+  assertEqual(result.byMonth['2026-09'].newUniqueCount, 1, '9月の新規ユニーク人数(member-a)');
+  assertEqual(result.byMonth['2026-09'].existingPushCount, 2, '9月の既存押下数(member-b, member-cがそれぞれ1回)');
+  assertEqual(result.byMonth['2026-09'].existingUniqueCount, 2, '9月の既存ユニーク人数(初回来店が9月より前のmember-bとmember-c)');
+
+  const resultAllStores = Dashboard.Aggregate.calcMonthlyPushByCohort(stampPushes, null);
+  assertEqual(resultAllStores.byMonth['2026-08'].newPushCount, 1, '全店舗で見るとmember-cの8月の来店(新規)も出てくる');
+});
+
+test('aggregate: calcRegisteredVsActualStore で登録店舗と実利用店舗(押下が一番多い店舗)を比較できる', () => {
+  const members = {
+    'm1': { lineId: 'U1', storeKey: 'A' },
+    'm2': { lineId: 'U2', storeKey: 'A' },
+    'm3': { lineId: 'U3', storeKey: 'B' },
+  };
+  const stampPushes = [
+    // m1: 登録はA店だが、実際はB店で一番多く押下 → 店舗をまたいでいる
+    { memberId: 'm1', storeKey: 'B' }, { memberId: 'm1', storeKey: 'B' }, { memberId: 'm1', storeKey: 'A' },
+    // m2: 登録・実利用ともにA店 → 一致
+    { memberId: 'm2', storeKey: 'A' }, { memberId: 'm2', storeKey: 'A' },
+    // m4: 会員一覧に無いID → 突合できず対象外(unmatchedCountへ)
+    { memberId: 'm4', storeKey: 'A' },
+    // m3: スタンプ押下の記録が無いので対象外(集計に出てこない)
+  ];
+
+  const result = Dashboard.Aggregate.calcRegisteredVsActualStore(stampPushes, members);
+  assertEqual(result.members['m1'].registeredStoreKey, 'A', 'm1の登録店舗');
+  assertEqual(result.members['m1'].actualStoreKey, 'B', 'm1の実利用店舗(最多)');
+  assertEqual(result.members['m1'].actualPushCount, 2, 'm1の実利用店舗での押下数');
+  assertEqual(result.members['m1'].isSame, false, 'm1は登録店舗と実利用店舗が違う');
+  assertEqual(result.members['m2'].isSame, true, 'm2は登録店舗と実利用店舗が同じ');
+  assertEqual(result.members['m3'], undefined, 'm3は押下記録が無いので対象外');
+
+  assertEqual(result.byRegisteredStore['A'].total, 2, 'A店登録・押下実績ありの会員数');
+  assertEqual(result.byRegisteredStore['A'].same, 1, 'A店登録のうち同じ店舗で利用');
+  assertEqual(result.byRegisteredStore['A'].different, 1, 'A店登録のうち他店舗で利用');
+  assertEqual(result.matchedCount, 2, '会員一覧と突合できた会員数');
+  assertEqual(result.unmatchedCount, 1, '会員一覧と突合できなかった会員数');
+});
+
+test('tickets: listExpiringSoon で期限間近のチケットだけ抽出できる', () => {
+  const now = new Date(2026, 9, 10);
+  const ledger = [
+    { ticketNo: 'T1', ticketName: 'A', memberId: 'm1', issuedAt: new Date(2026, 9, 5).toISOString(), usedAt: null },
+    { ticketNo: 'T1', ticketName: 'A', memberId: 'm2', issuedAt: new Date(2026, 8, 1).toISOString(), usedAt: null },
+    { ticketNo: 'T1', ticketName: 'A', memberId: 'm3', issuedAt: new Date(2026, 9, 9).toISOString(), usedAt: new Date(2026, 9, 9).toISOString() },
+  ];
+  const masterConfig = { 'T1': { category: 'days_from_issue', value: 7 } };
+  const expiring = Dashboard.Tickets.listExpiringSoon(ledger, masterConfig, 3, now);
+  assertEqual(expiring.length, 1, 'm1(10/5発行,7日後=10/12失効,残り2日)だけが該当。m2は既に失効、m3は使用済み');
+  assertEqual(expiring[0].memberId, 'm1', '該当会員');
+  assertEqual(expiring[0].daysRemaining, 2, '残り日数');
+});
+
+test('effect: calcPageViewToVisitFunnel で表示→来店の人数ベース転換率が出る', () => {
+  const pageViews = [
+    { memberId: 'm1', at: '2026-10-01T10:00:00.000Z' },
+    { memberId: 'm1', at: '2026-10-02T10:00:00.000Z' },
+    { memberId: 'm2', at: '2026-10-01T10:00:00.000Z' },
+    { memberId: 'm3', at: '2026-10-01T10:00:00.000Z' },
+  ];
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-03T10:00:00.000Z' },
+    { memberId: 'm2', at: '2026-10-20T10:00:00.000Z' },
+  ];
+  const result = Dashboard.Effect.calcPageViewToVisitFunnel(pageViews, stampPushes, 7);
+  assertEqual(result.viewerCount, 3, 'ユニーク表示者数(m1/m2/m3)');
+  assertEqual(result.convertedCount, 1, 'm1のみ7日以内に来店(m2は19日後なので対象外、m3は来店なし)');
+});
+
+// --- tickets ---
+test('tickets: 発効日からX日カテゴリーの有効/無効判定', () => {
+  const config = { 'T1': { category: 'days_from_issue', value: 3 } };
+  const ticket = { ticketNo: 'T1', issuedAt: '2026-10-01T00:00:00.000Z', usedAt: null };
+  assertTrue(Dashboard.Tickets.isActive(ticket, config['T1'], new Date(2026, 9, 3)) === true, '3日目はまだ有効');
+  assertTrue(Dashboard.Tickets.isActive(ticket, config['T1'], new Date(2026, 9, 5)) === false, '5日目は失効');
+});
+
+test('tickets: 発効日当日のみカテゴリー', () => {
+  const config = { category: 'issue_day_only' };
+  // issuedAt は実コードと同じ経路(ローカル日時 → toISOString)で作る。'Z'付きUTC文字列を直書きすると
+  // タイムゾーンによって日付がずれてテストが壊れるため避ける。
+  const ticket = { issuedAt: new Date(2026, 9, 1, 23, 0, 0).toISOString(), usedAt: null };
+  assertTrue(Dashboard.Tickets.isActive(ticket, config, new Date(2026, 9, 1, 23, 30)) === true, '発行当日は有効');
+  assertTrue(Dashboard.Tickets.isActive(ticket, config, new Date(2026, 9, 2, 0, 1)) === false, '翌日は無効');
+});
+
+test('tickets: 利用済みチケットは常に無効', () => {
+  const config = { category: 'none' };
+  // issuedAt/usedAtはローカル日時→toISOStringの経路で作る(直書きのUTC文字列は時差でズレるため)。
+  // asOfは発行・利用のどちらよりも後の日付にする(利用前の時点を無効判定しないことは別テストで確認済み)。
+  const ticket = {
+    issuedAt: new Date(2026, 9, 1).toISOString(),
+    usedAt: new Date(2026, 9, 2).toISOString(),
+  };
+  assertTrue(Dashboard.Tickets.isActive(ticket, config, new Date(2026, 9, 3)) === false, '利用済みなら無効期限なしでも無効');
+});
+
+test('tickets: 基準日より後に発行されたチケットはundefined(まだ存在しない)扱い', () => {
+  const config = { category: 'none' };
+  const ticket = { issuedAt: new Date(2026, 9, 5).toISOString(), usedAt: null };
+  assertTrue(Dashboard.Tickets.isActive(ticket, config, new Date(2026, 9, 1)) === undefined, '発行前の日付ではまだ存在しない');
+  assertTrue(Dashboard.Tickets.isActive(ticket, config, new Date(2026, 9, 5)) === true, '発行日当日からは有効');
+});
+
+test('tickets: マスター未登録のチケットは除外(null)扱い', () => {
+  const ticket = { issuedAt: new Date(2026, 9, 1).toISOString(), usedAt: null };
+  assertTrue(Dashboard.Tickets.isActive(ticket, undefined, new Date(2026, 9, 2)) === null, '未設定はnull');
+});
+
+test('tickets: calcTicketValidity の集計で有効/無効/未設定の内訳が出る', () => {
+  const ledger = [
+    { ticketNo: 'T1', ticketName: 'A', issuedAt: '2026-10-01T00:00:00.000Z', usedAt: null },
+    { ticketNo: 'T1', ticketName: 'A', issuedAt: '2026-09-01T00:00:00.000Z', usedAt: null },
+    { ticketNo: 'T2', ticketName: 'B', issuedAt: '2026-10-01T00:00:00.000Z', usedAt: null },
+  ];
+  const masterConfig = { 'T1': { category: 'days_from_issue', value: 3 } };
+  const result = Dashboard.Tickets.calcTicketValidity(ledger, masterConfig, new Date(2026, 9, 2));
+  assertEqual(result.activeCount, 1, '有効件数(T1の新しい方のみ)');
+  assertEqual(result.inactiveCount, 1, '失効件数(T1の古い方)');
+  assertEqual(result.unconfiguredCount, 1, '未設定件数(T2)');
+  assertEqual(result.unconfiguredTicketNos, ['T2'], '未設定チケット番号一覧');
+  assertEqual(result.byTicketNo['T1'].issued, 2, 'T1の発行数(店舗別ではなくチケット番号別)');
+});
+
+test('tickets: calcTicketValidity で発行数と利用数が区別して出る', () => {
+  const ledger = [
+    { ticketNo: 'T1', ticketName: 'A', issuedAt: new Date(2026, 9, 1).toISOString(), usedAt: new Date(2026, 9, 2).toISOString() },
+    { ticketNo: 'T1', ticketName: 'A', issuedAt: new Date(2026, 9, 1).toISOString(), usedAt: null },
+  ];
+  const masterConfig = { 'T1': { category: 'none' } };
+  const result = Dashboard.Tickets.calcTicketValidity(ledger, masterConfig, new Date(2026, 9, 5));
+  assertEqual(result.byTicketNo['T1'].issued, 2, '発行数は利用済み/未使用を問わず2件');
+  assertEqual(result.byTicketNo['T1'].used, 1, '利用数は1件(使われていない方は含まない)');
+  assertEqual(result.byTicketNo['T1'].active, 1, '有効(未使用)');
+  assertEqual(result.byTicketNo['T1'].inactive, 1, '失効/使用済み(使用した方)');
+});
+
+// --- business-hours ---
+test('businessHours: 営業時間内/時間外/定休日/未設定を判定できる', () => {
+  const config = {
+    '100:A店': {
+      mon: { open: '10:00', close: '20:00', closed: false },
+      tue: { closed: true },
+    },
+  };
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T10:30:00', config['100:A店']), false, '月曜 10:30(営業時間内。2026-10-05は月曜)');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T21:00:00', config['100:A店']), true, '月曜 21:00(営業時間外)');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-06T12:00:00', config['100:A店']), true, '火曜は定休日指定なので常に時間外');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-07T12:00:00', config['100:A店']), null, '水曜は未設定なのでnull(判定不能)');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T10:30:00', undefined), null, '店舗自体が未設定ならnull');
+});
+
+test('businessHours: findOutOfHoursPushes で時間外の押下だけ抽出し、未設定店舗は別集計する', () => {
+  const config = {
+    '100:A店': { mon: { open: '10:00', close: '20:00', closed: false } },
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T10:30:00', storeKey: '100:A店' },
+    { memberId: 'm2', at: '2026-10-05T23:30:00', storeKey: '100:A店' },
+    { memberId: 'm3', at: '2026-10-05T10:30:00', storeKey: '999:未設定店' },
+  ];
+  const { results, unconfiguredStores } = Dashboard.BusinessHours.findOutOfHoursPushes(stampPushes, config);
+  assertEqual(results.length, 1, '時間外は1件(m2)');
+  assertEqual(results[0].memberId, 'm2', '該当会員');
+  assertEqual(unconfiguredStores, ['999:未設定店'], '未設定店舗の一覧');
+});
+
+// --- effect ---
+test('effect: 配信後N日以内のタグ付きスタンプ押下だけを反応としてカウントする', () => {
+  const messagesSent = { 'MSG1': { id: 'MSG1', subject: 'テスト配信', sentAt: '2026-10-01T11:00:00.000Z', recipientCount: 100 } };
+  const attributedVisits = [
+    { messageId: 'MSG1', event: 'スタンプ押下', at: '2026-10-02T11:00:00.000Z' },
+    { messageId: 'MSG1', event: 'スタンプ押下', at: '2026-10-10T11:00:00.000Z' },
+    { messageId: 'MSG1', event: 'LINEログイン', at: '2026-10-02T11:00:00.000Z' },
+  ];
+  const result = Dashboard.Effect.calcMessageEffect(messagesSent, attributedVisits, 7);
+  assertEqual(result[0].visitEventCount, 1, '7日以内のスタンプ押下のみカウント(10日後は除外、LINEログインは対象外)');
+  assertEqual(result[0].reachRate, 0.01, '反応率 = 1/100');
+});
+
+// --- compare ---
+test('compare: 選択期間と同じ日数の直前期間を算出できる', () => {
+  const range = Dashboard.Compare.defaultComparisonRange(new Date(2026, 9, 1), new Date(2026, 9, 7));
+  assertEqual(Dashboard.Util.toDayKey(range.from), '2026-09-24', '比較開始日');
+  assertEqual(Dashboard.Util.toDayKey(range.to), '2026-09-30', '比較終了日');
+});
+
+function renderResults(results) {
+  const el = document.getElementById('results');
+  el.innerHTML = '';
+  results.forEach(r => {
+    const div = document.createElement('div');
+    div.className = `test-item ${r.pass ? 'test-pass' : 'test-fail'}`;
+    div.innerHTML = `
+      <div class="test-mark">${r.pass ? '✓' : '✗'}</div>
+      <div>
+        <div class="test-name">${r.name}</div>
+        ${r.pass ? '' : `<div class="test-detail">${r.detail}</div>`}
+      </div>`;
+    el.appendChild(div);
+  });
+  const passCount = results.filter(r => r.pass).length;
+  document.getElementById('summary').textContent = `${passCount} / ${results.length} 件 成功`;
+  document.getElementById('summary').style.color = passCount === results.length ? '#16a34a' : '#dc2626';
+}
+
+document.getElementById('run-btn').addEventListener('click', () => {
+  const results = tests.map(t => {
+    try {
+      t.fn();
+      return { name: t.name, pass: true };
+    } catch (e) {
+      return { name: t.name, pass: false, detail: e.message };
+    }
+  });
+  renderResults(results);
+});
+</script>
+</body>
+</html>

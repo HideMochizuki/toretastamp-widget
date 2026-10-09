@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使い方 | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { flex-direction: column; max-width: 900px; margin: 0 auto; width: 100%; padding: 30px; }
+  table.data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 12px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  table.data-table th { color: #334155; font-size: 0.82rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; }
+  .folder-tree {
+    background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 16px 20px;
+    font-family: "SFMono-Regular", Consolas, Menlo, monospace; font-size: 0.82rem; line-height: 1.6;
+    overflow-x: auto; white-space: pre; margin-top: 12px;
+  }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 0.88em; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item"><i class="fa fa-chart-line"></i> ホーム</a>
+      <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
+      <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
+      <a href="help.html" class="nav-item active"><i class="fa fa-circle-question"></i> 使い方</a>
+    </nav>
+  </div>
+
+<main class="main-wrapper">
+
+  <div class="card-wrapper">
+    <h2 class="card-title">ログファイルの置き方</h2>
+    <div class="card">
+      <div class="card-sub-title">「①フォルダを選択」で選ぶフォルダの中は、クライアント（ブランド）ごとにサブフォルダを分けて、その中にログファイルを置きます</div>
+
+      <div class="folder-tree">トレタスタンプ解析/            ← これを「①フォルダを選択」で選ぶ
+├── クライアントA/
+│   ├── すべてのログ2026-07.csv
+│   ├── すべてのログ2026-08.csv
+│   ├── すべてのログ2026-09.csv
+│   ├── すべてのログ2026-10.csv
+│   └── 会員一覧.csv
+└── クライアントB/
+    ├── すべてのログ.csv        ← 個店向け：全期間を1ファイルでDL
+    └── 会員一覧.csv</div>
+
+      <h3 style="margin-top: 24px; font-size: 0.95rem;">アクセスログ（すべてのログ）</h3>
+      <div class="card-sub-title" style="margin-bottom: 0;">管理画面からダウンロードしたまま、<strong>ファイル名を変えずに</strong>置いてください</div>
+      <table class="data-table">
+        <tr><th>置き方</th><th>ファイル名の例</th><th>向いているクライアント</th></tr>
+        <tr><td>月単位でDL</td><td><code>すべてのログ2026-10.csv</code></td><td>会員数が多く、ログが膨大なクライアント</td></tr>
+        <tr><td>全期間を1ファイルでDL</td><td><code>すべてのログ.csv</code>（年月の数字なし）</td><td>会員数がまだ少ない個店など、1回のDLで足りるクライアント</td></tr>
+      </table>
+      <div class="warn">⚠️ この2つを同じフォルダに両方置かないでください。期間が重なっていると件数が二重に集計されます（両方検出すると画面に警告が出ます）。</div>
+
+      <h3 style="margin-top: 24px; font-size: 0.95rem;">会員一覧</h3>
+      <table class="data-table">
+        <tr><th>置き方</th><th>ファイル名の例</th></tr>
+        <tr><td>1ファイルで足りる場合</td><td><code>会員一覧.csv</code></td></tr>
+        <tr><td>会員数が多く、1ファイルでは重い場合</td><td><code>会員一覧.csv</code> + <code>会員一覧2.csv</code> + <code>会員一覧3.csv</code> ...</td></tr>
+      </table>
+      <div class="card-sub-title" style="margin-bottom: 0; margin-top: 10px;">
+        「<strong>会員一覧</strong>」で始まる名前のCSVは、何ファイルあっても自動的に全部まとめて読み込みます。
+        数字の付け方に厳密なルールはなく、「会員一覧」で始まっていればファイル名は自由です
+        （同じ会員IDが複数ファイルに重複して入っていても、二重にはカウントされません）。
+      </div>
+
+      <h3 style="margin-top: 24px; font-size: 0.95rem;">ファイルを入れ替えるとき</h3>
+      <ul style="font-size: 0.85rem; color: #334155; line-height: 1.8; padding-left: 20px;">
+        <li><strong>同じファイル名のまま中身だけ新しいものに差し替える</strong> → 「②読み込み」を押すだけで、自動的に変更を検知して再集計されます</li>
+        <li><strong>ファイルを削除する/ファイル名を変える</strong> → 次に「②読み込み」した時点で、フォルダに実在しないファイルの古いキャッシュは自動的に片付きます（手動で何かする必要はありません）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-wrapper">
+    <h2 class="card-title">サーバーに公開する場合の注意点</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        結論：サーバーに上げても、ファイルの読み込み方法は変わりません。ファイルはこれからも常にご自身のパソコンの中のフォルダから読み込みます
+        （サーバーにCSVをアップロードする必要は無いですし、そもそもできません）。
+      </div>
+      <p style="font-size: 0.85rem; color: #334155; line-height: 1.8;">
+        サーバーに上げるのは「ダッシュボードのプログラム（HTML/JS）」だけです。ファイルの中身を読む「①フォルダを選択」の仕組みは、
+        プログラムがどこに置いてあっても、実行しているブラウザが動いている、そのパソコン自身のフォルダを開くという挙動です。
+      </p>
+
+      <table class="data-table">
+        <tr><th>ルール</th><th>理由</th></tr>
+        <tr>
+          <td>HTTPSで公開する（またはlocalhostのまま）</td>
+          <td>フォルダを読む仕組みは「安全な通信（HTTPS）」の上でしか動きません。社内に古いhttpだけのサーバーがあると、そこでは動きません</td>
+        </tr>
+        <tr>
+          <td>対応ブラウザはChrome/Edgeのみ</td>
+          <td>今までと同じ制約です。SafariやFirefoxでは「①フォルダを選択」自体が使えません</td>
+        </tr>
+        <tr>
+          <td>フォルダの選択は、サーバーのURLが変わると1回だけ選び直しが必要</td>
+          <td>「前回のフォルダを自動復元」は、ブラウザが「このURLでは、このフォルダを見ていいよ」と覚える仕組みなので、URLが変わると記憶は引き継がれません</td>
+        </tr>
+        <tr>
+          <td><code>dashboard</code>フォルダと<code>generator</code>フォルダを、今の位置関係のまま一緒にアップロードする</td>
+          <td>見た目（CSS）を<code>generator</code>フォルダから読み込んでいるので、<code>dashboard</code>だけ単独でアップロードすると見た目が崩れます</td>
+        </tr>
+        <tr>
+          <td>複数人で同じURLを見ても、データは共有されない</td>
+          <td>見る人それぞれが、自分のパソコンの中のフォルダを自分で選ぶ必要があります（Aさんがフォルダを選んでも、Bさんには引き継がれません）</td>
+        </tr>
+      </table>
+      <div class="warn">⚠️ 一番大事なポイント：サーバーに上げても個人情報を含むCSVがどこかにアップロードされるわけではありません。見る人それぞれの手元のパソコンの中だけで完結する仕組みは変わりません。</div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script src="js/ui.js"></script>
+</body>
+</html>

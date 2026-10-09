@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>営業時間設定 | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { max-width: 900px; padding: 30px; display: block; }
+  .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
+    border: none; border-radius: 4px; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.primary { background: var(--primary-color); }
+  .action-btn.secondary { background: #475569; }
+  .inline-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .inline-controls label { font-size: 0.75rem; font-weight: bold; color: #475569; }
+  select, input[type="time"] { font-size: 0.85rem; height: 38px; }
+  table.hours-table { border-collapse: collapse; width: auto; font-size: 0.85rem; margin-top: 15px; }
+  table.hours-table th, table.hours-table td { text-align: left; padding: 10px 20px 10px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  table.hours-table th { color: #475569; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.hours-table tr:hover { background: #f8fafc; }
+  table.hours-table td.day-cell { font-weight: bold; color: #1e293b; }
+  table.hours-table input[type="time"] {
+    height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;
+  }
+  table.hours-table input[type="time"]:disabled { background: #f8fafc; color: #cbd5e1; }
+  table.hours-table .hours-range { display: flex; align-items: center; gap: 10px; }
+  table.hours-table .hours-sep { color: #94a3b8; }
+  table.hours-table .closed-check-wrap {
+    display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: 0.8rem; cursor: pointer;
+  }
+  table.hours-table .closed-check-wrap input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--primary-color); cursor: pointer;
+  }
+  .quick-btns { display: flex; gap: 6px; }
+  .quick-btn {
+    padding: 5px 12px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px;
+    background: #fff; cursor: pointer; color: #475569;
+  }
+  .quick-btn:hover { background: #f1f5f9; }
+  .store-status-list { font-size: 0.8rem; color: #64748b; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item"><i class="fa fa-chart-line"></i> ホーム</a>
+      <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
+      <a href="business-hours.html" class="nav-item active"><i class="fa fa-clock"></i> 営業時間設定</a>
+      <a href="help.html" class="nav-item"><i class="fa fa-circle-question"></i> 使い方</a>
+    </nav>
+  </div>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">フォルダを読み込む</h2>
+    <div class="card">
+      <div class="card-sub-title">ログを読み込んだ上で、店舗ごとの営業時間を登録します（不正アクセス検証に使います）</div>
+      <div id="support-check"></div>
+      <div class="inline-controls">
+        <button class="action-btn primary" id="pick-btn"><i class="fa fa-folder-open"></i> ① フォルダを選択</button>
+        <button class="action-btn secondary" id="sync-btn" disabled><i class="fa fa-rotate"></i> ② 読み込み</button>
+        <select id="client-select" style="display:none;"></select>
+      </div>
+      <div class="status-line" id="status">フォルダ未選択です。</div>
+    </div>
+  </div>
+
+  <div class="card-wrapper" id="bulk-card" style="display:none;">
+    <h2 class="card-title">全店舗に一括適用</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        ここで標準の営業時間を決めて「全店舗に適用」を押すと、<strong>全店舗が一旦この内容で上書き</strong>されます。
+        そのあと、下の「店舗ごとの営業時間」で違う店舗だけ個別に直してください。
+        ⚠️ 既に個別設定した店舗も上書きされるので、一括適用は基本的に最初の1回だけにするのがおすすめです。
+      </div>
+      <div class="inline-controls">
+        <span class="quick-btns">
+          <button type="button" class="quick-btn" id="bulk-copy-to-weekdays-btn">月→火〜金に一括コピー</button>
+          <button type="button" class="quick-btn" id="bulk-copy-to-all-btn">月→全曜日に一括コピー</button>
+        </span>
+      </div>
+      <table class="hours-table" id="bulk-hours-table"></table>
+      <button class="action-btn primary" id="bulk-apply-btn" style="margin-top: 16px;"><i class="fa fa-layer-group"></i> 全店舗に適用して保存</button>
+      <span class="status-line" id="bulk-status"></span>
+    </div>
+  </div>
+
+  <div class="card-wrapper" id="hours-card" style="display:none;">
+    <h2 class="card-title">店舗ごとの営業時間</h2>
+    <div class="card">
+      <div class="card-sub-title">曜日ごとに開始・終了時刻を登録します。「定休日」にチェックした曜日は終日「時間外」扱いになります。</div>
+      <div class="inline-controls">
+        <label>店舗</label>
+        <select id="store-select"></select>
+      </div>
+      <div class="inline-controls">
+        <span class="quick-btns">
+          <button type="button" class="quick-btn" id="copy-to-weekdays-btn">月→火〜金に一括コピー</button>
+          <button type="button" class="quick-btn" id="copy-to-all-btn">月→全曜日に一括コピー</button>
+        </span>
+      </div>
+      <table class="hours-table" id="hours-table"></table>
+      <button class="action-btn primary" id="save-hours-btn" style="margin-top: 16px;"><i class="fa fa-save"></i> この店舗を保存</button>
+      <span class="status-line" id="save-status"></span>
+      <div class="store-status-list" id="store-status-list"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/effect.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/business-hours.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/sync.js"></script>
+<script src="js/ui.js"></script>
+<script>
+const DAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+let rootHandle = null;
+let clients = [];
+let currentClient = null;
+
+const statusEl = document.getElementById('status');
+const syncBtn = document.getElementById('sync-btn');
+const clientSelect = document.getElementById('client-select');
+const hoursCard = document.getElementById('hours-card');
+const storeSelect = document.getElementById('store-select');
+const hoursTable = document.getElementById('hours-table');
+const saveStatusEl = document.getElementById('save-status');
+const storeStatusListEl = document.getElementById('store-status-list');
+
+if (!Dashboard.FS.isSupported()) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザはFile System Access APIに対応していません。Chrome/Edgeで開いてください。</div>';
+}
+
+async function doSync() {
+  statusEl.textContent = '読み込み中...';
+  try {
+    clients = await Dashboard.Sync.syncAllClients(rootHandle);
+    statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
+    if (!clients.length) { hoursCard.style.display = 'none'; return; }
+    clientSelect.style.display = '';
+    clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
+    selectClient(0);
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+}
+
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  try {
+    rootHandle = await Dashboard.FS.pickRootFolder();
+    statusEl.textContent = `選択中のフォルダ: 「${rootHandle.name}」`;
+    syncBtn.disabled = false;
+    await doSync();
+  } catch (e) {
+    statusEl.textContent = 'フォルダ選択がキャンセルされたか、エラーが発生しました: ' + e.message;
+  }
+});
+
+syncBtn.addEventListener('click', doSync);
+
+clientSelect.addEventListener('change', () => selectClient(Number(clientSelect.value)));
+
+(async () => {
+  if (!Dashboard.FS.isSupported()) return;
+  const saved = await Dashboard.FS.getSavedHandle();
+  if (!saved) return;
+
+  rootHandle = saved;
+  syncBtn.disabled = false;
+
+  if (await Dashboard.FS.hasPermission(saved)) {
+    statusEl.textContent = `前回のフォルダ「${saved.name}」を自動復元しました`;
+    await doSync();
+  } else {
+    statusEl.innerHTML = `前回のフォルダ「${escapeHtml(saved.name)}」の権限が切れています。`
+      + `<button id="resume-btn" class="action-btn secondary" style="height:28px; padding:0 12px; margin-left:8px;">許可して読み込む</button>`;
+    document.getElementById('resume-btn').addEventListener('click', async () => {
+      const granted = await Dashboard.FS.requestPermissionForHandle(saved);
+      if (granted) { await doSync(); }
+      else { statusEl.textContent = '許可されませんでした。①から選び直してください。'; }
+    });
+  }
+})();
+storeSelect.addEventListener('change', renderHoursTable);
+
+function selectClient(index) {
+  currentClient = clients[index];
+  const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
+  storeSelect.innerHTML = stores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+  document.getElementById('bulk-card').style.display = '';
+  hoursCard.style.display = '';
+  renderTable(document.getElementById('bulk-hours-table'), {});
+  renderHoursTable();
+  renderStoreStatusList();
+}
+
+// tableEl: 曜日テーブルのDOM。config: {mon:{open,close,closed}, ...}（空なら既定値10:00-20:00で埋める）
+function renderTable(tableEl, config) {
+  tableEl.innerHTML = `
+    <tr><th>曜日</th><th>定休日</th><th>営業時間</th></tr>
+    ${DAY_ORDER.map(day => {
+      const d = config[day] || { open: '10:00', close: '20:00', closed: false };
+      return `<tr data-day="${day}">
+        <td class="day-cell">${Dashboard.BusinessHours.DAY_LABELS[day]}</td>
+        <td><label class="closed-check-wrap"><input type="checkbox" class="closed-check" ${d.closed ? 'checked' : ''}> 定休日</label></td>
+        <td>
+          <div class="hours-range">
+            <input type="time" class="open-input" value="${d.open || '10:00'}" ${d.closed ? 'disabled' : ''}>
+            <span class="hours-sep">〜</span>
+            <input type="time" class="close-input" value="${d.close || '20:00'}" ${d.closed ? 'disabled' : ''}>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}`;
+
+  tableEl.querySelectorAll('.closed-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const tr = cb.closest('tr');
+      tr.querySelector('.open-input').disabled = cb.checked;
+      tr.querySelector('.close-input').disabled = cb.checked;
+    });
+  });
+}
+
+function renderHoursTable() {
+  const storeKey = storeSelect.value;
+  renderTable(hoursTable, currentClient.businessHoursConfig[storeKey] || {});
+}
+
+function readTableState(tableEl) {
+  const state = {};
+  tableEl.querySelectorAll('tr[data-day]').forEach(tr => {
+    const day = tr.dataset.day;
+    state[day] = {
+      closed: tr.querySelector('.closed-check').checked,
+      open: tr.querySelector('.open-input').value,
+      close: tr.querySelector('.close-input').value,
+    };
+  });
+  return state;
+}
+
+function applyStateToTable(tableEl, state) {
+  tableEl.querySelectorAll('tr[data-day]').forEach(tr => {
+    const day = tr.dataset.day;
+    const d = state[day];
+    tr.querySelector('.closed-check').checked = d.closed;
+    tr.querySelector('.open-input').value = d.open;
+    tr.querySelector('.open-input').disabled = d.closed;
+    tr.querySelector('.close-input').value = d.close;
+    tr.querySelector('.close-input').disabled = d.closed;
+  });
+}
+
+function wireCopyButtons(tableEl, weekdaysBtnId, allBtnId) {
+  document.getElementById(weekdaysBtnId).addEventListener('click', () => {
+    const state = readTableState(tableEl);
+    ['tue', 'wed', 'thu', 'fri'].forEach(day => { state[day] = { ...state.mon }; });
+    applyStateToTable(tableEl, state);
+  });
+  document.getElementById(allBtnId).addEventListener('click', () => {
+    const state = readTableState(tableEl);
+    DAY_ORDER.forEach(day => { state[day] = { ...state.mon }; });
+    applyStateToTable(tableEl, state);
+  });
+}
+
+wireCopyButtons(hoursTable, 'copy-to-weekdays-btn', 'copy-to-all-btn');
+wireCopyButtons(document.getElementById('bulk-hours-table'), 'bulk-copy-to-weekdays-btn', 'bulk-copy-to-all-btn');
+
+document.getElementById('save-hours-btn').addEventListener('click', async () => {
+  const storeKey = storeSelect.value;
+  currentClient.businessHoursConfig[storeKey] = readTableState(hoursTable);
+  saveStatusEl.textContent = '保存中...';
+  try {
+    await Dashboard.Sync.saveBusinessHoursConfig(currentClient.dirHandle, currentClient.businessHoursConfig);
+    saveStatusEl.textContent = '保存しました（' + new Date().toLocaleTimeString() + '）';
+    renderStoreStatusList();
+  } catch (e) {
+    saveStatusEl.textContent = 'エラー: ' + e.message;
+  }
+});
+
+document.getElementById('bulk-apply-btn').addEventListener('click', async () => {
+  const bulkStatusEl = document.getElementById('bulk-status');
+  const template = readTableState(document.getElementById('bulk-hours-table'));
+  const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
+
+  for (const storeKey of stores) {
+    currentClient.businessHoursConfig[storeKey] = JSON.parse(JSON.stringify(template));
+  }
+
+  bulkStatusEl.textContent = '保存中...';
+  try {
+    await Dashboard.Sync.saveBusinessHoursConfig(currentClient.dirHandle, currentClient.businessHoursConfig);
+    bulkStatusEl.textContent = `${stores.length}店舗すべてに適用・保存しました（${new Date().toLocaleTimeString()}）`;
+    renderHoursTable();
+    renderStoreStatusList();
+  } catch (e) {
+    bulkStatusEl.textContent = 'エラー: ' + e.message;
+  }
+});
+
+function renderStoreStatusList() {
+  const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
+  const configured = stores.filter(s => currentClient.businessHoursConfig[s]).length;
+  storeStatusListEl.textContent = `${stores.length}店舗中 ${configured}店舗 設定済み`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

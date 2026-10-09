@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホーム | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { flex-direction: column; max-width: 1200px; margin: 0 auto; width: 100%; }
+  .filter-groups { display: flex; flex-wrap: wrap; align-items: stretch; gap: 24px; }
+  .filter-group-block { display: flex; flex-direction: column; gap: 10px; }
+  .filter-group-title {
+    font-size: 0.68rem; font-weight: bold; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .filter-divider { width: 1px; background: #e2e8f0; align-self: stretch; }
+  .filter-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px; }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; min-height: 60px; justify-content: flex-end; }
+  .filter-group label { font-size: 0.75rem; font-weight: bold; color: #475569; height: 14px; }
+  .filter-group select, .filter-group input[type="date"], .effect-window-input {
+    height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;
+  }
+  select#client-select, select#store-select { width: 180px; }
+  .range-pair { display: flex; align-items: center; gap: 8px; height: 38px; }
+  .range-pair input[type="date"] { width: 140px; }
+  .range-sep { font-size: 0.8rem; color: #94a3b8; }
+  .effect-window-input {
+    width: 64px; text-align: center; background: #fff;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .effect-window-input:focus {
+    outline: none; border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(138, 206, 54, 0.18);
+  }
+  .option-sep { font-size: 0.72rem; color: #94a3b8; }
+  .compare-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; height: 14px; }
+  .filter-apply-btn { margin-left: auto; align-self: flex-end; }
+  .inline-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .inline-controls label { font-size: 0.75rem; font-weight: bold; color: #475569; }
+  .quick-btns { display: flex; gap: 6px; }
+  .quick-btn {
+    padding: 5px 12px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px;
+    background: #fff; cursor: pointer; color: #475569;
+  }
+  .quick-btn:hover { background: #f1f5f9; }
+  .quick-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+  .tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
+  .tile { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 20px; min-width: 160px; flex: 1; }
+  .tile .tile-label { font-size: 0.75rem; color: #64748b; }
+  .tile .tile-num { font-size: 1.6rem; font-weight: bold; color: #1e293b; margin-top: 4px; }
+  .tile .tile-delta { font-size: 0.78rem; margin-top: 4px; }
+  .tile .tile-delta.up { color: #16a34a; }
+  .tile .tile-delta.down { color: #dc2626; }
+  .tile .tile-delta.flat { color: #94a3b8; }
+  .tile.accent { background: #f0fdf4; border-color: #bbf7d0; }
+  table.data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 12px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+  table.data-table th { color: #334155; font-size: 0.82rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; }
+  table.data-table th.sortable-th { cursor: pointer; user-select: none; white-space: nowrap; }
+  table.data-table th.sortable-th:hover { color: #1e293b; }
+  table.data-table th.sortable-th.active { color: var(--primary-color); }
+  .cell-delta { font-size: 0.72rem; }
+  .cell-delta.up { color: #16a34a; }
+  .cell-delta.down { color: #dc2626; }
+  .cell-delta.flat { color: #94a3b8; }
+  /* 会員登録された店舗の当月/先月比較だけは、日本の株価チャートでよく使う配色(上昇=赤/下落=青)にしている。
+     上の cell-delta (上昇=緑/下落=赤)とは別の配色なので、表によって基準が違う点に注意。 */
+  .month-trend-up { color: #dc2626; font-size: 0.8rem; }
+  .month-trend-down { color: #2563eb; font-size: 0.8rem; }
+  .chart-empty { color: #94a3b8; font-size: 0.85rem; padding: 40px 0; text-align: center; }
+  .scope-tag {
+    display: inline-block; font-size: 0.65rem; font-weight: normal; padding: 2px 9px;
+    border-radius: 10px; margin-left: 10px; vertical-align: middle;
+  }
+  .scope-tag.linked { background: #ecfdf5; color: #16a34a; }
+  .scope-tag.fixed { background: #f1f5f9; color: #64748b; }
+  .scope-tag.own { background: #eff6ff; color: #2563eb; }
+  .card-title-text { display: inline-flex; align-items: center; flex-wrap: wrap; }
+  .status-line { font-size: 0.82rem; color: #64748b; margin-top: 8px; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
+    border: none; border-radius: 4px; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.primary { background: var(--primary-color); }
+  .action-btn.secondary { background: #475569; }
+  .action-btn.dark { background: #1e293b; }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+  #print-summary {
+    background: #f0fdf4; border: 2px solid var(--primary-color);
+    border-radius: 20px; padding: 20px 26px; margin-bottom: 4px;
+  }
+  .print-summary-title { font-size: 1.4rem; font-weight: bold; color: #1e293b; display: flex; align-items: center; gap: 10px; }
+  .print-summary-title i { color: var(--primary-color); font-size: 1.3rem; }
+  .print-summary-detail { font-size: 0.85rem; color: #64748b; margin-top: 8px; margin-left: 2px; }
+  .print-summary-detail .muted { color: #94a3b8; }
+  @media print {
+    .no-print { display: none !important; }
+    .sidebar { display: none !important; }
+    header.generator { display: none !important; }
+    .main-wrapper { max-width: none; padding: 0; }
+    /* generator/style.css はSPA表示用に html/body/.app-container/.main-wrapper へ
+       overflow:hidden + 固定高さの内部スクロールを設定している。印刷時にそのままだと
+       画面に見えている範囲しかPDF化されないため、印刷時だけ高さ制限を解除する。 */
+    html, body { height: auto !important; overflow: visible !important; }
+    .app-container { display: block !important; height: auto !important; overflow: visible !important; }
+    .main-wrapper { height: auto !important; overflow: visible !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="generator no-print">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar no-print" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item active">
+        <i class="fa fa-chart-line"></i> ホーム
+      </a>
+      <a href="tickets.html" class="nav-item">
+        <i class="fa fa-ticket"></i> チケット設定
+      </a>
+      <a href="business-hours.html" class="nav-item">
+        <i class="fa fa-clock"></i> 営業時間設定
+      </a>
+      <a href="help.html" class="nav-item">
+        <i class="fa fa-circle-question"></i> 使い方
+      </a>
+    </nav>
+  </div>
+
+  <main class="main-wrapper" style="padding: 30px;">
+
+    <div class="card-wrapper no-print">
+      <h2 class="card-title">データ読み込み</h2>
+      <div class="card">
+        <div id="support-check"></div>
+        <div class="card-sub-title" style="font-weight: normal; font-size: 0.82rem; color: #64748b; border-bottom: none; margin-bottom: 14px; padding-bottom: 0;">
+          ファイルの置き方：アクセスログは「すべてのログ2026-10.csv」（月単位）または「すべてのログ.csv」（全期間1ファイル、個店向け）。
+          会員一覧は「会員一覧.csv」、人数が多く分割する場合は「会員一覧2.csv」のように「会員一覧」で始まる名前を追加すればOK
+          （詳しくは<a href="help.html">「使い方」ページ</a>参照）。
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap: wrap;">
+          <button class="action-btn primary" id="pick-btn">
+            <i class="fa fa-folder-open"></i> ① フォルダを選択
+          </button>
+          <button class="action-btn secondary" id="sync-btn" disabled>
+            <i class="fa fa-rotate"></i> ② 読み込み
+          </button>
+          <button class="action-btn dark" id="print-btn" disabled>
+            <i class="fa fa-print"></i> PDFとして保存
+          </button>
+        </div>
+        <div class="status-line" id="status">フォルダ未選択です。</div>
+      </div>
+    </div>
+
+    <div class="card-wrapper no-print" id="filter-card-wrapper" style="display:none;">
+      <h2 class="card-title">絞り込み</h2>
+      <div class="card">
+        <div class="filter-groups">
+          <div class="filter-group-block">
+            <div class="filter-group-title">① 対象</div>
+            <div class="filter-row">
+              <div class="filter-group">
+                <label>クライアント</label>
+                <select id="client-select"></select>
+              </div>
+              <div class="filter-group">
+                <label>店舗</label>
+                <select id="store-select"><option value="">全店舗</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <div class="filter-group-block">
+            <div class="filter-group-title">② 期間・比較</div>
+            <div class="filter-row">
+              <div class="filter-group">
+                <label>期間</label>
+                <div class="range-pair">
+                  <input type="date" id="period-from">
+                  <span class="range-sep">〜</span>
+                  <input type="date" id="period-to">
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="compare-toggle"><input type="checkbox" id="compare-toggle"> 比較する</label>
+                <div class="range-pair" id="compare-range" style="display:none;">
+                  <input type="date" id="compare-from">
+                  <span class="range-sep">〜</span>
+                  <input type="date" id="compare-to">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-divider"></div>
+
+          <button class="action-btn primary filter-apply-btn" id="apply-btn">
+            <i class="fa fa-check"></i> ③ 適用
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="report-area" style="display:none;">
+      <div id="print-summary"></div>
+      <div id="warnings"></div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title">主要指標</h2>
+        <div class="card">
+          <div class="card-sub-title">※ 会員数・退会者数は<strong>常に全体</strong>／それ以外は<span class="scope-tag linked" style="margin-left:0;">🔗連動</span>（チケット利用数のみ店舗を選んでも全店舗合計）／アクティブユーザー数＝選択期間内に<strong>スタンプを押した</strong>ユニーク会員数</div>
+          <div class="tile-row" id="tile-row"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">会員登録者数の推移<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
+        <div class="card">
+          <div class="inline-controls no-print">
+            <label>単位</label>
+            <div class="quick-btns" id="reg-granularity-btns">
+              <button type="button" class="quick-btn" data-granularity="day">日</button>
+              <button type="button" class="quick-btn active" data-granularity="month">月</button>
+              <button type="button" class="quick-btn" data-granularity="year">年</button>
+            </div>
+            <label>店舗（初回登録店舗）</label>
+            <select id="reg-store-select"><option value="">全店舗</option></select>
+          </div>
+          <div id="registration-chart"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">会員属性サマリー<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">会員一覧に都道府県・性別・生年月・流入経路などのプロフィール項目が入っている場合に表示します（事業者によっては取得していない項目もあります）</div>
+          <div class="status-line" id="member-attrs-status"></div>
+          <div id="member-attrs-sections"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">期間ごとの推移<span class="scope-tag linked">🔗連動</span></span></h2>
+        <div class="card">
+          <div class="inline-controls no-print">
+            <label>指標</label>
+            <select id="trend-metric-select">
+              <option value="スタンプ押下">スタンプ押下</option>
+              <option value="チケット発行">チケット発行</option>
+              <option value="チケット利用">チケット利用</option>
+              <option value="LINEログイン">LINEログイン</option>
+            </select>
+          </div>
+          <div class="status-line" id="trend-note"></div>
+          <div id="trend-chart"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">スタンプ帳ごとの押下数<span class="scope-tag linked">🔗連動</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">※ チケット発行は、同じ会員・同じ分のスタンプ押下から推定しています（ログに直接記録なし、4ヶ月分の実データで99.9〜100%一致を確認済み）。チケット利用・LINEログインはこの推定も効かないため含まれません（全体合計は主要指標を参照）</div>
+          <table class="data-table" id="stamp-page-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">スタンプ押下数の推移（全体/スタンプ帳別）<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">スタンプ帳の種類が多い場合は、押下数が多い上位5種類＋その他で表示します</div>
+          <div class="inline-controls no-print">
+            <label>単位</label>
+            <div class="quick-btns" id="stamp-trend-granularity-btns">
+              <button type="button" class="quick-btn active" data-granularity="day">日次</button>
+              <button type="button" class="quick-btn" data-granularity="month">月次</button>
+            </div>
+            <label>店舗</label>
+            <select id="stamp-trend-store-select"><option value="">全店舗</option></select>
+            <label>表示</label>
+            <select id="stamp-trend-page-select"><option value="">全体＋内訳（折れ線）</option></select>
+          </div>
+          <div class="inline-controls no-print" id="stamp-trend-days-row">
+            <label>期間</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="stamp-trend-days" data-value="30">30日</button>
+              <button type="button" class="quick-btn active" data-input="stamp-trend-days" data-value="60">60日</button>
+              <button type="button" class="quick-btn" data-input="stamp-trend-days" data-value="90">90日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="stamp-trend-days" value="60" min="1" class="effect-window-input">
+            <span class="range-sep">日前から</span>
+          </div>
+          <div class="status-line" id="stamp-trend-note"></div>
+          <div id="stamp-trend-chart"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">店舗別内訳<span class="scope-tag linked">🔗連動</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">※ チケット利用はログに店舗・スタンプページの情報が無いため、この内訳には含まれません（全体合計は主要指標を参照）</div>
+          <table class="data-table" id="store-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">会員登録された店舗<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
+        <div class="card"><table class="data-table" id="member-store-table"></table></div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">登録店舗と実利用店舗のギャップ<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">会員ごとに「スタンプ押下が一番多い店舗」を実利用店舗とみなし、初回登録した店舗と比較します（例：A店で登録したが、実際はB店でよく利用している、など）</div>
+          <div class="status-line" id="store-gap-status"></div>
+          <table class="data-table" id="store-gap-table"></table>
+
+          <div class="card-sub-title" style="margin-top: 20px;">他店舗で利用している会員の詳細（LINE ID抽出）</div>
+          <div class="inline-controls no-print">
+            <label>登録店舗</label>
+            <select id="store-gap-detail-select"><option value="">全店舗</option></select>
+            <button class="action-btn primary" id="store-gap-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+          </div>
+          <table class="data-table" id="store-gap-detail-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">1人あたり平均スタンプ押下数（新規/既存）<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">月ごとに、その月が初回来店月（＝初めてスタンプを押した月）の会員（新規）とそれ以前から来店している会員（既存）を分けて、1人あたりのスタンプ押下数を集計します（トレタCS部の顧客向けレポートと同じ定義）</div>
+          <div class="inline-controls no-print">
+            <label>店舗</label>
+            <select id="cohort-store-select"><option value="">全店舗</option></select>
+          </div>
+          <div class="status-line" id="cohort-status"></div>
+          <div id="cohort-chart"></div>
+          <table class="data-table" id="cohort-table" style="margin-top: 16px;"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">チケット有効性（現在時点）<span class="scope-tag fixed">📌固定（常に「今」の状態）</span></span></h2>
+        <div class="card">
+          <div class="tile-row" id="ticket-tile-row"></div>
+          <table class="data-table" id="ticket-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">チケットの推移<span class="scope-tag linked">🔗連動</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">発行・利用は選択期間内の件数、有効・失効はその日時点でのスナップショットです</div>
+          <div id="ticket-trend-chart"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">チケット有効期限が近い会員（LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">「有効」なチケットのうち、指定日数以内に失効するものを抽出します</div>
+          <div class="inline-controls">
+            <label>残り日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="expiry-days" data-value="7">7日</button>
+              <button type="button" class="quick-btn" data-input="expiry-days" data-value="14">14日</button>
+              <button type="button" class="quick-btn" data-input="expiry-days" data-value="30">30日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="expiry-days" value="7" min="1" class="effect-window-input">
+            <span class="range-sep">日以内</span>
+            <button class="action-btn secondary" id="expiry-extract-btn"><i class="fa fa-search"></i> 抽出</button>
+            <button class="action-btn primary" id="expiry-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+          </div>
+          <div class="status-line" id="expiry-status"></div>
+          <table class="data-table" id="expiry-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">離脱予兆（休眠しそうな常連客の抽出／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">以前は頻繁に来店していたのに、最近来店していない会員を抽出します（来店回数・最終来店日はブランド全体でカウント）</div>
+          <div class="inline-controls">
+            <label>対象とする来店回数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="lapsed-min-visits" data-value="3">3回以上</button>
+              <button type="button" class="quick-btn active" data-input="lapsed-min-visits" data-value="5">5回以上</button>
+              <button type="button" class="quick-btn" data-input="lapsed-min-visits" data-value="10">10回以上</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="lapsed-min-visits" value="5" min="1" class="effect-window-input">
+          </div>
+          <div class="inline-controls">
+            <label>未来店日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="lapsed-days" data-value="30">30日</button>
+              <button type="button" class="quick-btn active" data-input="lapsed-days" data-value="60">60日</button>
+              <button type="button" class="quick-btn" data-input="lapsed-days" data-value="90">90日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="lapsed-days" value="60" min="1" class="effect-window-input">
+            <span class="range-sep">日以上来店なし</span>
+            <button class="action-btn secondary" id="lapsed-extract-btn"><i class="fa fa-search"></i> 抽出</button>
+            <button class="action-btn primary" id="lapsed-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+          </div>
+          <div class="status-line" id="lapsed-status"></div>
+          <table class="data-table" id="lapsed-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">不正アクセス検証（営業時間外のスタンプ押下）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">「営業時間設定」で登録した店舗ごとの営業時間と照らして、時間外のスタンプ押下を検出します</div>
+          <div class="inline-controls">
+            <button class="action-btn secondary" id="suspicious-extract-btn"><i class="fa fa-search"></i> 検証する</button>
+            <button class="action-btn primary" id="suspicious-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+          </div>
+          <div class="status-line" id="suspicious-status"></div>
+          <div class="tile-row" id="suspicious-tile-row"></div>
+          <table class="data-table" id="suspicious-store-table"></table>
+          <table class="data-table" id="suspicious-member-table" style="margin-top: 16px;"></table>
+          <table class="data-table" id="suspicious-table" style="margin-top: 16px;"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">スタンプページ閲覧 → 来店（スタンプ押下）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">スタンプページを表示した会員のうち、何人が指定日数以内にスタンプを押しに来たか（人数ベース）</div>
+          <div class="inline-controls no-print">
+            <label>判定日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="funnel-window" data-value="3">3日</button>
+              <button type="button" class="quick-btn" data-input="funnel-window" data-value="5">5日</button>
+              <button type="button" class="quick-btn" data-input="funnel-window" data-value="7">7日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="funnel-window" value="5" min="1" class="effect-window-input">
+            <span class="range-sep">日以内</span>
+          </div>
+          <div class="tile-row" id="funnel-tile-row"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">メッセージ効果検証<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="inline-controls no-print">
+            <label>判定日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="effect-window" data-value="7">7日</button>
+              <button type="button" class="quick-btn" data-input="effect-window" data-value="14">14日</button>
+              <button type="button" class="quick-btn" data-input="effect-window" data-value="30">30日</button>
+              <button type="button" class="quick-btn" data-input="effect-window" data-value="90">90日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="effect-window" value="7" min="1" class="effect-window-input">
+            <span class="range-sep">日以内</span>
+          </div>
+          <table class="data-table" id="effect-table"></table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/effect.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/business-hours.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/sync.js"></script>
+<script src="js/ui.js"></script>
+<script>
+let rootHandle = null;
+let clients = [];
+let currentClient = null;
+
+const statusEl = document.getElementById('status');
+const syncBtn = document.getElementById('sync-btn');
+const printBtn = document.getElementById('print-btn');
+const filterCardWrapper = document.getElementById('filter-card-wrapper');
+const reportArea = document.getElementById('report-area');
+const clientSelect = document.getElementById('client-select');
+const storeSelect = document.getElementById('store-select');
+const periodFrom = document.getElementById('period-from');
+const periodTo = document.getElementById('period-to');
+const compareToggle = document.getElementById('compare-toggle');
+const compareRange = document.getElementById('compare-range');
+const compareFrom = document.getElementById('compare-from');
+const compareTo = document.getElementById('compare-to');
+const effectWindowInput = document.getElementById('effect-window');
+const funnelWindowInput = document.getElementById('funnel-window');
+const expiryDaysInput = document.getElementById('expiry-days');
+const expiryCsvBtn = document.getElementById('expiry-csv-btn');
+let lastExpiringTickets = [];
+let lastStoreGapResult = null;
+let lastStoreGapDifferent = [];
+
+// プリセットボタン(quick-btn)と自由入力欄(effect-window-input)が見た目で紛らわしいため、
+// 現在値に一致するプリセットだけ active にして「今どちらを使っているか」を分かりやすくする。
+function wireQuickButtonGroup(inputId) {
+  const input = document.getElementById(inputId);
+  const btns = document.querySelectorAll(`.quick-btn[data-input="${inputId}"]`);
+  const syncActive = () => btns.forEach(b => b.classList.toggle('active', b.dataset.value === String(input.value)));
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      input.value = btn.dataset.value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+  input.addEventListener('input', syncActive);
+  syncActive();
+}
+['expiry-days', 'funnel-window', 'effect-window', 'stamp-trend-days', 'lapsed-min-visits', 'lapsed-days'].forEach(wireQuickButtonGroup);
+
+funnelWindowInput.addEventListener('input', () => { if (currentClient) renderFunnel(); });
+effectWindowInput.addEventListener('input', () => { if (currentClient) renderEffectTable(); });
+document.getElementById('stamp-trend-days').addEventListener('input', () => { if (currentClient) renderStampTrendChart(); });
+
+const trendMetricSelect = document.getElementById('trend-metric-select');
+trendMetricSelect.addEventListener('change', () => { if (currentClient) renderTrendChart(); });
+
+let registrationGranularity = 'month';
+document.querySelectorAll('#reg-granularity-btns .quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#reg-granularity-btns .quick-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    registrationGranularity = btn.dataset.granularity;
+    if (currentClient) renderRegistrationChart();
+  });
+});
+
+const regStoreSelect = document.getElementById('reg-store-select');
+regStoreSelect.addEventListener('change', () => { if (currentClient) renderRegistrationChart(); });
+
+let stampTrendGranularity = 'day';
+const stampTrendDaysRow = document.getElementById('stamp-trend-days-row');
+document.querySelectorAll('#stamp-trend-granularity-btns .quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#stamp-trend-granularity-btns .quick-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    stampTrendGranularity = btn.dataset.granularity;
+    stampTrendDaysRow.style.display = stampTrendGranularity === 'day' ? '' : 'none';
+    if (currentClient) renderStampTrendChart();
+  });
+});
+
+const stampTrendStoreSelect = document.getElementById('stamp-trend-store-select');
+stampTrendStoreSelect.addEventListener('change', () => { if (currentClient) renderStampTrendChart(); });
+
+const stampTrendPageSelect = document.getElementById('stamp-trend-page-select');
+stampTrendPageSelect.addEventListener('change', () => { if (currentClient) renderStampTrendChart(); });
+
+const cohortStoreSelect = document.getElementById('cohort-store-select');
+cohortStoreSelect.addEventListener('change', () => { if (currentClient) renderCohortChart(); });
+
+const storeGapDetailSelect = document.getElementById('store-gap-detail-select');
+storeGapDetailSelect.addEventListener('change', renderStoreGapDetail);
+document.getElementById('store-gap-csv-btn').addEventListener('click', () => {
+  if (!lastStoreGapDifferent.length) return;
+  downloadCsv(
+    `登録店舗と実利用店舗のギャップ_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['会員ID', 'LINE ID', '登録店舗', '実利用店舗', '実利用店舗での押下数'],
+    lastStoreGapDifferent.map(m => [
+      m.memberId, m.lineId || '',
+      m.registeredStoreKey.split(':').slice(1).join(':') || m.registeredStoreKey,
+      m.actualStoreKey.split(':').slice(1).join(':') || m.actualStoreKey,
+      m.actualPushCount,
+    ])
+  );
+});
+
+if (!Dashboard.FS.isSupported()) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザはFile System Access APIに対応していません。Chrome/Edgeで開いてください。</div>';
+}
+
+async function doSync() {
+  statusEl.textContent = '読み込み中...';
+  try {
+    clients = await Dashboard.Sync.syncAllClients(rootHandle);
+    statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
+    if (!clients.length) { filterCardWrapper.style.display = 'none'; reportArea.style.display = 'none'; return; }
+
+    clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
+    filterCardWrapper.style.display = '';
+    printBtn.disabled = false;
+    selectClient(0);
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+}
+
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  try {
+    rootHandle = await Dashboard.FS.pickRootFolder();
+    statusEl.textContent = `選択中のフォルダ: 「${rootHandle.name}」`;
+    syncBtn.disabled = false;
+    await doSync();
+  } catch (e) {
+    statusEl.textContent = 'フォルダ選択がキャンセルされたか、エラーが発生しました: ' + e.message;
+  }
+});
+
+syncBtn.addEventListener('click', doSync);
+
+clientSelect.addEventListener('change', () => selectClient(Number(clientSelect.value)));
+compareToggle.addEventListener('change', () => {
+  compareRange.style.display = compareToggle.checked ? '' : 'none';
+  if (compareToggle.checked && !compareFrom.value) fillDefaultCompareRange();
+});
+document.getElementById('apply-btn').addEventListener('click', renderReport);
+printBtn.addEventListener('click', () => window.print());
+
+// 前回選んだフォルダをIndexedDBから自動復元する。権限が生きていればクリック不要で即読み込み、
+// 切れていた場合だけ「許可して読み込む」の1クリックを挟む(requestPermissionはユーザー操作が要るため)。
+(async () => {
+  if (!Dashboard.FS.isSupported()) return;
+  const saved = await Dashboard.FS.getSavedHandle();
+  if (!saved) return;
+
+  rootHandle = saved;
+  syncBtn.disabled = false;
+
+  if (await Dashboard.FS.hasPermission(saved)) {
+    statusEl.textContent = `前回のフォルダ「${saved.name}」を自動復元しました`;
+    await doSync();
+  } else {
+    statusEl.innerHTML = `前回のフォルダ「${escapeHtml(saved.name)}」の権限が切れています。`
+      + `<button id="resume-btn" class="action-btn secondary" style="height:28px; padding:0 12px; margin-left:8px;">許可して読み込む</button>`;
+    document.getElementById('resume-btn').addEventListener('click', async () => {
+      const granted = await Dashboard.FS.requestPermissionForHandle(saved);
+      if (granted) { await doSync(); }
+      else { statusEl.textContent = '許可されませんでした。①から選び直してください。'; }
+    });
+  }
+})();
+
+function selectClient(index) {
+  currentClient = clients[index];
+
+  const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
+  storeSelect.innerHTML = '<option value="">全店舗</option>' +
+    stores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+  cohortStoreSelect.innerHTML = '<option value="">全店舗</option>' +
+    stores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+  stampTrendStoreSelect.innerHTML = '<option value="">全店舗</option>' +
+    stores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+
+  // 会員登録者数の推移は「初回登録店舗」で絞るので、アクセスログの店舗一覧とは別に
+  // 会員一覧側から実際に登録実績のある店舗だけを拾う。
+  const ms = currentClient.memberSummary;
+  const regStores = ms ? Array.from(new Set(Object.values(ms.members).map(m => m.storeKey))).sort() : [];
+  regStoreSelect.innerHTML = '<option value="">全店舗</option>' +
+    regStores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+
+  const { min, to } = getAvailableRange();
+  periodFrom.value = toInputDate(min);
+  periodTo.value = toInputDate(to);
+  fillDefaultCompareRange();
+
+  reportArea.style.display = '';
+  renderReport();
+}
+
+function getAvailableRange() {
+  const days = Object.keys(currentClient.merged.byDay).sort();
+  if (!days.length) return { min: new Date(), to: new Date() };
+  const [y1, m1, d1] = days[0].split('-').map(Number);
+  const [y2, m2, d2] = days[days.length - 1].split('-').map(Number);
+  return { min: new Date(y1, m1 - 1, d1), to: new Date(y2, m2 - 1, d2) };
+}
+
+function toInputDate(date) {
+  return `${date.getFullYear()}-${Dashboard.Util.pad2(date.getMonth() + 1)}-${Dashboard.Util.pad2(date.getDate())}`;
+}
+
+function fillDefaultCompareRange() {
+  if (!periodFrom.value || !periodTo.value) return;
+  const range = Dashboard.Compare.defaultComparisonRange(new Date(periodFrom.value), new Date(periodTo.value));
+  compareFrom.value = toInputDate(range.from);
+  compareTo.value = toInputDate(range.to);
+}
+
+function renderReport() {
+  const from = periodFrom.value ? new Date(periodFrom.value) : null;
+  const to = periodTo.value ? new Date(periodTo.value) : null;
+  const storeKey = storeSelect.value || null;
+  const doCompare = compareToggle.checked;
+  const compFrom = doCompare && compareFrom.value ? new Date(compareFrom.value) : null;
+  const compTo = doCompare && compareTo.value ? new Date(compareTo.value) : null;
+
+  document.getElementById('warnings').innerHTML = currentClient.warnings
+    .map(w => `<div class="warn">⚠️ ${escapeHtml(w)}</div>`).join('');
+
+  const storeLabel = storeKey ? storeSelect.options[storeSelect.selectedIndex].text : '全店舗';
+  document.getElementById('print-summary').innerHTML = `
+    <div class="print-summary-title"><i class="fa fa-filter"></i>${escapeHtml(currentClient.name)}</div>
+    <div class="print-summary-detail">
+      期間: ${periodFrom.value} 〜 ${periodTo.value}　店舗: ${escapeHtml(storeLabel)}
+      ${doCompare ? `　比較期間: ${compareFrom.value} 〜 ${compareTo.value}` : ''}
+      <span class="muted">（↓「🔗連動」の付いたカードがこの条件で変わります。「📌固定」は常に全体を表示）</span>
+    </div>`;
+
+  const counts = Dashboard.Aggregate.queryCounts(currentClient.merged.byDay, { from, to, storeKey });
+  const compCounts = doCompare ? Dashboard.Aggregate.queryCounts(currentClient.merged.byDay, { from: compFrom, to: compTo, storeKey }) : null;
+
+  const loginCount = (counts['LINEログイン'] || 0) + (counts['マジックリンクログイン'] || 0);
+  const compLoginCount = compCounts ? (compCounts['LINEログイン'] || 0) + (compCounts['マジックリンクログイン'] || 0) : null;
+
+  // チケット発行ログには店舗番号が付くが、利用ログには付かない(ログ仕様)。
+  // そのため店舗を選んでいても、利用数だけは全店舗合計のままになる。
+  const matchesStore = t => !storeKey || t.storeKey === storeKey;
+  const ticketsIssuedInRange = currentClient.merged.ticketIssued.filter(t => inDateRange(new Date(t.issuedAt), from, to) && matchesStore(t)).length;
+  const ticketsUsedInRange = currentClient.merged.ticketUsed.filter(t => inDateRange(new Date(t.usedAt), from, to)).length;
+  const compTicketsIssued = doCompare ? currentClient.merged.ticketIssued.filter(t => inDateRange(new Date(t.issuedAt), compFrom, compTo) && matchesStore(t)).length : null;
+  const compTicketsUsed = doCompare ? currentClient.merged.ticketUsed.filter(t => inDateRange(new Date(t.usedAt), compFrom, compTo)).length : null;
+
+  const ms = currentClient.memberSummary;
+
+  const activeUserCount = countActiveUsers(currentClient.merged.stampPushes, from, to, storeKey);
+  const compActiveUserCount = doCompare ? countActiveUsers(currentClient.merged.stampPushes, compFrom, compTo, storeKey) : null;
+
+  const tiles = [
+    { label: '会員数（内LINE）', num: ms ? `${ms.total.toLocaleString()}（${ms.lineMembers.toLocaleString()}）` : '-' },
+    { label: '退会者数', num: ms ? ms.withdrawn.toLocaleString() : '-' },
+    { label: 'アクティブユーザー数', num: activeUserCount.toLocaleString(), comp: compActiveUserCount, accent: true },
+    { label: 'スタンプ押下数', num: (counts['スタンプ押下'] || 0).toLocaleString(), comp: compCounts ? (compCounts['スタンプ押下'] || 0) : null },
+    { label: 'チケット発行数', num: ticketsIssuedInRange.toLocaleString(), comp: compTicketsIssued },
+    { label: storeKey ? 'チケット利用数（全店舗合計）' : 'チケット利用数', num: ticketsUsedInRange.toLocaleString(), comp: compTicketsUsed },
+    { label: 'ログイン数', num: loginCount.toLocaleString(), comp: compLoginCount },
+  ];
+
+  document.getElementById('tile-row').innerHTML = tiles.map(renderTile).join('');
+
+  const stampPageCounts = Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from, to, storeKey });
+  const compStampPageCounts = doCompare ? Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from: compFrom, to: compTo, storeKey }) : null;
+  renderBreakdownTable('stamp-page-table', 'スタンプページ', stampPageCounts, null, null, compStampPageCounts, STAMP_PAGE_BREAKDOWN_COLUMNS);
+
+  const storeCounts = Dashboard.Aggregate.queryByStore(currentClient.merged.byDay, { from, to });
+  const compStoreCounts = doCompare ? Dashboard.Aggregate.queryByStore(currentClient.merged.byDay, { from: compFrom, to: compTo }) : null;
+  renderBreakdownTable('store-table', '店舗', storeCounts, s => s.split(':').slice(1).join(':') || s, storeKey, compStoreCounts, STORE_BREAKDOWN_COLUMNS);
+
+  renderMemberStoreTable();
+  renderStoreGapCard();
+  renderFunnel();
+  renderTrendChart();
+  renderRegistrationChart();
+  renderMemberAttributesCard();
+  renderStampTrendChart();
+  renderCohortChart();
+  renderTicketTrendChart();
+
+  const validity = Dashboard.Tickets.calcTicketValidity(currentClient.ticketLedger, currentClient.ticketConfig, new Date());
+  document.getElementById('ticket-tile-row').innerHTML = [
+    { label: '有効チケット（現在）', num: validity.activeCount, accent: true },
+    { label: '失効/使用済み', num: validity.inactiveCount },
+    { label: '未設定（計算対象外）', num: validity.unconfiguredCount },
+  ].map(renderTile).join('');
+
+  const ticketRows = Object.entries(validity.byTicketNo).sort((a, b) => (b[1].active) - (a[1].active));
+  document.getElementById('ticket-table').innerHTML = `
+    <tr><th>チケット名称</th><th>チケット番号</th><th>発行数</th><th>利用数</th><th>有効</th><th>失効/使用済み</th><th>未設定</th></tr>
+    ${ticketRows.map(([no, info]) => `<tr>
+      <td>${escapeHtml(info.name || '(名称未設定)')}</td><td>${escapeHtml(no)}</td>
+      <td>${info.issued.toLocaleString()}</td><td>${info.used.toLocaleString()}</td>
+      <td>${info.active.toLocaleString()}</td><td>${info.inactive.toLocaleString()}</td><td>${info.unconfigured.toLocaleString()}</td>
+    </tr>`).join('')}`;
+
+  renderEffectTable();
+}
+
+function inDateRange(date, from, to) {
+  if (from && date < from) return false;
+  if (to) {
+    const toEnd = new Date(to);
+    toEnd.setHours(23, 59, 59, 999);
+    if (date > toEnd) return false;
+  }
+  return true;
+}
+
+// アクティブユーザー数＝期間内にスタンプを押したユニーク会員数。
+// 会員一覧との突合が要らないので、アクセスログの会員ID短縮の影響も受けない。
+function countActiveUsers(pushes, from, to, storeKey) {
+  const members = new Set();
+  for (const p of pushes) {
+    if (storeKey && p.storeKey !== storeKey) continue;
+    if (!p.memberId) continue;
+    if (!inDateRange(new Date(p.at), from, to)) continue;
+    members.add(p.memberId);
+  }
+  return members.size;
+}
+
+function renderTile(t) {
+  let delta = '';
+  if (t.comp !== undefined && t.comp !== null) {
+    const curNum = typeof t.num === 'string' ? parseInt(t.num, 10) : t.num;
+    const diff = curNum - t.comp;
+    const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    const sign = diff > 0 ? '+' : '';
+    const pctLabel = t.comp !== 0 ? `${sign}${((diff / t.comp) * 100).toFixed(1)}%` : '新規';
+    delta = `<div class="tile-delta ${cls}">前期間比 ${sign}${diff.toLocaleString()}（${pctLabel}）</div>`;
+  }
+  return `<div class="tile ${t.accent ? 'accent' : ''}">
+    <div class="tile-label">${escapeHtml(t.label)}</div>
+    <div class="tile-num">${typeof t.num === 'number' ? t.num.toLocaleString() : t.num}</div>
+    ${delta}
+  </div>`;
+}
+
+// 「チケット利用」イベントはログ仕様上、店舗番号・スタンプページ名称のどちらも記録されないため
+// (4ヶ月分の実データで確認済み)、店舗別・スタンプページ別の内訳には出せない。全店舗合計は主要指標の
+// タイル側に出しているので、ここでは出さずに済ませる(常に0になる列を置いて誤解を招かないため)。
+// 店舗別内訳: チケット発行・LINEログインとも店舗番号が記録されているので出せる(確認済み)。
+const STORE_BREAKDOWN_COLUMNS = ['スタンプ押下', 'チケット発行', 'LINEログイン'];
+// スタンプ帳ごとの押下数: チケット発行は「同じ会員・同じ分のスタンプ押下」から推定して含める
+// (aggregate.js側で付与済み)。チケット利用・LINEログインはこの推定が効かない(相関17%程度)ため除外。
+const STAMP_PAGE_BREAKDOWN_COLUMNS = ['スタンプ押下', 'チケット発行'];
+const tableState = {};
+
+function renderBreakdownTable(elId, labelCol, data, formatKey, highlightKey, compData, columns) {
+  tableState[elId] = tableState[elId] || { col: 'スタンプ押下', dir: 'desc' };
+  tableState[elId].data = data;
+  tableState[elId].formatKey = formatKey;
+  tableState[elId].highlightKey = highlightKey;
+  tableState[elId].labelCol = labelCol;
+  tableState[elId].compData = compData || null;
+  tableState[elId].columns = columns || STORE_BREAKDOWN_COLUMNS;
+  renderSortedTable(elId);
+}
+
+function renderDeltaCell(current, compData, key, rowKey) {
+  const num = current[key] || 0;
+  if (!compData) return num.toLocaleString();
+  const compNum = (compData[rowKey] && compData[rowKey][key]) || 0;
+  const diff = num - compNum;
+  if (diff === 0 && compNum === 0) return `${num.toLocaleString()}`;
+  const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+  const sign = diff > 0 ? '+' : '';
+  const label = compNum !== 0
+    ? `${sign}${diff.toLocaleString()}, ${sign}${((diff / compNum) * 100).toFixed(0)}%`
+    : `${sign}${diff.toLocaleString()}（新規）`;
+  return `${num.toLocaleString()} <span class="cell-delta ${cls}">(${label})</span>`;
+}
+
+function renderSortedTable(elId) {
+  const state = tableState[elId];
+  const { data, formatKey, highlightKey, labelCol, col, dir, compData, columns } = state;
+
+  const rows = Object.entries(data).sort((a, b) => {
+    const av = col === '__label' ? (formatKey ? formatKey(a[0]) : a[0]) : (a[1][col] || 0);
+    const bv = col === '__label' ? (formatKey ? formatKey(b[0]) : b[0]) : (b[1][col] || 0);
+    if (col === '__label') return dir === 'asc' ? String(av).localeCompare(bv, 'ja') : String(bv).localeCompare(av, 'ja');
+    return dir === 'asc' ? av - bv : bv - av;
+  });
+
+  const el = document.getElementById(elId);
+  if (!rows.length) { el.innerHTML = '<tr><td>データなし</td></tr>'; return; }
+
+  function th(key, label) {
+    const active = key === col;
+    const arrow = active ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sortable-th${active ? ' active' : ''}" data-sort-key="${key}">${escapeHtml(label)}${arrow}</th>`;
+  }
+
+  el.innerHTML = `
+    <tr>${th('__label', labelCol)}${columns.map(c => th(c, c)).join('')}</tr>
+    ${rows.map(([key, counts]) => `<tr${key === highlightKey ? ' style="background:#f0fdf4; font-weight:bold;"' : ''}>
+      <td>${escapeHtml(formatKey ? formatKey(key) : key)}</td>
+      ${columns.map(c => `<td>${renderDeltaCell(counts, compData, c, key)}</td>`).join('')}
+    </tr>`).join('')}`;
+
+  el.querySelectorAll('th.sortable-th').forEach(thEl => {
+    thEl.addEventListener('click', () => {
+      const key = thEl.dataset.sortKey;
+      if (state.col === key) {
+        state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.col = key;
+        state.dir = key === '__label' ? 'asc' : 'desc';
+      }
+      renderSortedTable(elId);
+    });
+  });
+}
+
+function dailyMetricPoints(fromDate, toDate, metric, storeKey) {
+  const points = [];
+  const cursor = new Date(fromDate);
+  while (cursor <= toDate) {
+    const counts = Dashboard.Aggregate.queryCounts(currentClient.merged.byDay, { from: cursor, to: cursor, storeKey });
+    points.push({ label: `${cursor.getMonth() + 1}/${cursor.getDate()}`, value: counts[metric] || 0 });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return points;
+}
+
+function renderTrendChart() {
+  const el = document.getElementById('trend-chart');
+  const noteEl = document.getElementById('trend-note');
+  const metric = trendMetricSelect.value;
+  const from = periodFrom.value ? new Date(periodFrom.value) : null;
+  const to = periodTo.value ? new Date(periodTo.value) : null;
+  const storeKey = storeSelect.value || null;
+  if (!from || !to) { el.innerHTML = ''; noteEl.textContent = ''; return; }
+
+  const doCompare = compareToggle.checked;
+  const compFrom = doCompare && compareFrom.value ? new Date(compareFrom.value) : null;
+  const compTo = doCompare && compareTo.value ? new Date(compareTo.value) : null;
+
+  if (!doCompare || !compFrom || !compTo) {
+    noteEl.textContent = '';
+    Dashboard.Charts.renderLineChart(el, dailyMetricPoints(from, to, metric, storeKey));
+    return;
+  }
+
+  const mainPoints = dailyMetricPoints(from, to, metric, storeKey);
+  const compPoints = dailyMetricPoints(compFrom, compTo, metric, storeKey);
+  const n = Math.min(mainPoints.length, compPoints.length);
+
+  noteEl.textContent = mainPoints.length !== compPoints.length
+    ? `※ 選択期間（${mainPoints.length}日）と比較期間（${compPoints.length}日）の日数が異なるため、短い方（${n}日）に揃えて表示しています`
+    : '';
+
+  const currentSeries = mainPoints.slice(0, n).map((p, i) => ({ label: `${i + 1}日目(${p.label})`, value: p.value }));
+  const compareSeries = compPoints.slice(0, n).map((p, i) => ({ label: currentSeries[i].label, value: p.value }));
+
+  Dashboard.Charts.renderMultiLineChart(el, [
+    { label: '今回期間', color: '#2a78d6', points: currentSeries },
+    { label: '比較期間', color: '#eb6834', points: compareSeries },
+  ]);
+}
+
+function renderTicketTrendChart() {
+  const el = document.getElementById('ticket-trend-chart');
+  const from = periodFrom.value ? new Date(periodFrom.value) : null;
+  const to = periodTo.value ? new Date(periodTo.value) : null;
+  if (!from || !to) { el.innerHTML = ''; return; }
+
+  const storeKey = storeSelect.value || null;
+  const matchesStore = t => !storeKey || t.storeKey === storeKey;
+  // 「有効/失効」のスナップショットは、店舗で絞る場合は発行時の店舗で絞った台帳で計算する
+  // (利用イベントには店舗情報が無いため、厳密には「その店舗で発行された分」の有効性になる)。
+  const ledgerForValidity = storeKey
+    ? currentClient.ticketLedger.filter(t => t.storeKey === storeKey)
+    : currentClient.ticketLedger;
+
+  const issuedPoints = [], usedPoints = [], activePoints = [], inactivePoints = [];
+  const cursor = new Date(from);
+  while (cursor <= to) {
+    const label = `${cursor.getMonth() + 1}/${cursor.getDate()}`;
+    const dayEnd = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 23, 59, 59);
+
+    const issuedCount = currentClient.merged.ticketIssued
+      .filter(t => inDateRange(new Date(t.issuedAt), cursor, cursor) && matchesStore(t)).length;
+    const usedCount = currentClient.merged.ticketUsed
+      .filter(t => inDateRange(new Date(t.usedAt), cursor, cursor)).length;
+    const validity = Dashboard.Tickets.calcTicketValidity(ledgerForValidity, currentClient.ticketConfig, dayEnd);
+
+    issuedPoints.push({ label, value: issuedCount });
+    usedPoints.push({ label, value: usedCount });
+    activePoints.push({ label, value: validity.activeCount });
+    inactivePoints.push({ label, value: validity.inactiveCount });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  Dashboard.Charts.renderMultiLineChart(el, [
+    { label: 'チケット発行', color: '#2a78d6', points: issuedPoints },
+    { label: 'チケット利用', color: '#eb6834', points: usedPoints },
+    { label: '有効', color: '#1baf7a', points: activePoints },
+    { label: '失効', color: '#eda100', points: inactivePoints },
+  ]);
+}
+
+function renderRegistrationChart() {
+  const el = document.getElementById('registration-chart');
+  const ms = currentClient.memberSummary;
+  if (!ms) { el.innerHTML = ''; return; }
+  const storeKey = regStoreSelect.value || null;
+  const src = Dashboard.Aggregate.countRegistrationsByPeriod(ms.members, registrationGranularity, storeKey);
+  const points = Object.keys(src).sort().map(k => ({ label: String(k), value: src[k] }));
+  Dashboard.Charts.renderBarChart(el, points);
+}
+
+const MEMBER_ATTR_AGE_ORDER = ['10代以下', '20代', '30代', '40代', '50代', '60代', '70代以上'];
+
+function renderMemberAttributesCard() {
+  const statusEl = document.getElementById('member-attrs-status');
+  const sectionsEl = document.getElementById('member-attrs-sections');
+  const ms = currentClient.memberSummary;
+  if (!ms) { statusEl.textContent = ''; sectionsEl.innerHTML = ''; return; }
+
+  const attrs = Dashboard.Aggregate.summarizeMemberAttributes(ms.members, new Date());
+  const hasAnyAttr = attrs.totalWithPrefecture || attrs.totalWithGender || attrs.totalWithAge || attrs.totalWithReferral;
+
+  if (!hasAnyAttr) {
+    statusEl.textContent = 'このクライアントでは、会員プロフィール項目（都道府県・性別・生年月・流入経路）は取得されていないようです。';
+    sectionsEl.innerHTML = '';
+    return;
+  }
+  statusEl.textContent = '';
+
+  const sections = [];
+  if (attrs.totalWithGender) {
+    sections.push({
+      title: `性別（${attrs.totalWithGender.toLocaleString()}人）`,
+      id: 'member-attrs-gender',
+      points: Object.entries(attrs.byGender).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: k, value: v })),
+    });
+  }
+  if (attrs.totalWithAge) {
+    sections.push({
+      title: `年代（${attrs.totalWithAge.toLocaleString()}人）`,
+      id: 'member-attrs-age',
+      points: MEMBER_ATTR_AGE_ORDER.filter(g => attrs.byAgeGroup[g]).map(g => ({ label: g, value: attrs.byAgeGroup[g] })),
+    });
+  }
+  if (attrs.totalWithPrefecture) {
+    const all = Object.entries(attrs.byPrefecture).sort((a, b) => b[1] - a[1]);
+    sections.push({
+      title: `都道府県（${attrs.totalWithPrefecture.toLocaleString()}人${all.length > 10 ? '、上位10件' : ''}）`,
+      id: 'member-attrs-pref',
+      points: all.slice(0, 10).map(([k, v]) => ({ label: k, value: v })),
+    });
+  }
+  if (attrs.totalWithReferral) {
+    sections.push({
+      title: `何を見て知りましたか（${attrs.totalWithReferral.toLocaleString()}人）`,
+      id: 'member-attrs-referral',
+      points: Object.entries(attrs.byReferralSource).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: k, value: v })),
+    });
+  }
+
+  sectionsEl.innerHTML = sections.map(s => `
+    <div style="margin-top: 20px;">
+      <div style="font-size: 0.85rem; font-weight: bold; color: #334155; margin-bottom: 8px;">${escapeHtml(s.title)}</div>
+      <div id="${s.id}"></div>
+    </div>`).join('');
+
+  sections.forEach(s => Dashboard.Charts.renderBarChart(document.getElementById(s.id), s.points));
+}
+
+// スタンプ帳が多いクライアントでも凡例が読めるように、押下数が多い上位5種類だけ個別の線にして、
+// 残りは「その他」にまとめる(datavizスキルの「8系列超は分割/Otherへ畳む」の指針に沿う)。
+const STAMP_TREND_TOP_N = 5;
+const STAMP_TREND_PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#8b5cf6'];
+
+function renderStampTrendChart() {
+  const el = document.getElementById('stamp-trend-chart');
+  const noteEl = document.getElementById('stamp-trend-note');
+  const storeKey = stampTrendStoreSelect.value || null;
+
+  const allPageCounts = Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { storeKey });
+  const pageTotals = Object.entries(allPageCounts)
+    .map(([page, counts]) => [page, counts['スタンプ押下'] || 0])
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  // 「表示」セレクトの選択肢を、今の店舗絞り込みで実在するスタンプ帳に合わせて作り直す。
+  // 選択中の値がまだ存在していれば維持し、店舗を変えて無くなった場合だけ「全体＋内訳」に戻す。
+  const prevSelection = stampTrendPageSelect.value;
+  stampTrendPageSelect.innerHTML = '<option value="">全体＋内訳（折れ線）</option>' +
+    '<option value="__total__">全体合計（棒グラフ）</option>' +
+    pageTotals.map(([page]) => `<option value="${escapeHtml(page)}">${escapeHtml(page)}（棒グラフ）</option>`).join('');
+  const validValues = new Set(['', '__total__', ...pageTotals.map(([page]) => page)]);
+  stampTrendPageSelect.value = validValues.has(prevSelection) ? prevSelection : '';
+  const selectedPage = stampTrendPageSelect.value;
+
+  const ranges = [];
+  if (stampTrendGranularity === 'day') {
+    const days = Number(document.getElementById('stamp-trend-days').value) || 60;
+    const toEnd = new Date();
+    const cursor = Dashboard.Util.addDays(toEnd, -(days - 1));
+    while (cursor <= toEnd) {
+      ranges.push({ label: `${cursor.getMonth() + 1}/${cursor.getDate()}`, from: new Date(cursor), to: new Date(cursor) });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    noteEl.textContent = `直近${days}日間`;
+  } else {
+    const now = new Date();
+    for (let i = 12; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const label = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`;
+      ranges.push({ label, from: monthStart, to: monthEnd });
+    }
+    noteEl.textContent = '当月を含む直近13ヶ月';
+  }
+
+  // スタンプ帳を1つ(または「全体合計」)選んでいるときは、その1系列だけを棒グラフで出す
+  // (上長からの要望：特定のスタンプカードは棒グラフの方が増減を追いやすい)。
+  if (selectedPage) {
+    const points = ranges.map(r => {
+      if (selectedPage === '__total__') {
+        const total = Dashboard.Aggregate.queryCounts(currentClient.merged.byDay, { from: r.from, to: r.to, storeKey })['スタンプ押下'] || 0;
+        return { label: r.label, value: total };
+      }
+      const byPage = Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from: r.from, to: r.to, storeKey });
+      return { label: r.label, value: (byPage[selectedPage] && byPage[selectedPage]['スタンプ押下']) || 0 };
+    });
+    Dashboard.Charts.renderBarChart(el, points);
+    return;
+  }
+
+  // 全体＋内訳(折れ線): 押下数が多い上位5種類だけ個別の線にして、残りは「その他」にまとめる
+  const topPages = pageTotals.slice(0, STAMP_TREND_TOP_N).map(([page]) => page);
+  const hasOther = pageTotals.length > STAMP_TREND_TOP_N;
+
+  if (!topPages.length) { el.innerHTML = '<div class="chart-empty">データがありません</div>'; return; }
+
+  const points = ranges.map(r => {
+    const total = Dashboard.Aggregate.queryCounts(currentClient.merged.byDay, { from: r.from, to: r.to, storeKey })['スタンプ押下'] || 0;
+    const byPage = Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from: r.from, to: r.to, storeKey });
+    const perPage = topPages.map(page => (byPage[page] && byPage[page]['スタンプ押下']) || 0);
+    const otherCount = hasOther ? total - perPage.reduce((a, b) => a + b, 0) : 0;
+    return { label: r.label, total, perPage, otherCount };
+  });
+
+  const series = [
+    { label: '全体合計', color: '#1e293b', width: 3, points: points.map(p => ({ label: p.label, value: p.total })) },
+    ...topPages.map((page, i) => ({
+      label: page, color: STAMP_TREND_PALETTE[i % STAMP_TREND_PALETTE.length],
+      points: points.map(p => ({ label: p.label, value: p.perPage[i] })),
+    })),
+  ];
+  if (hasOther) {
+    series.push({ label: 'その他', color: '#94a3b8', points: points.map(p => ({ label: p.label, value: p.otherCount })) });
+  }
+
+  Dashboard.Charts.renderMultiLineChart(el, series);
+}
+
+function renderCohortChart() {
+  const el = document.getElementById('cohort-chart');
+  const tableEl = document.getElementById('cohort-table');
+  const statusEl = document.getElementById('cohort-status');
+
+  const storeKey = cohortStoreSelect.value || null;
+  const { byMonth } = Dashboard.Aggregate.calcMonthlyPushByCohort(currentClient.merged.stampPushes, storeKey);
+
+  statusEl.textContent = '※ 初回来店月の判定は会員一覧との突合が不要なので、会員IDの短縮問題の影響を受けません（月をまたいで同一人物と認識するには、アクセスログ内で会員IDが一貫している必要があります）';
+
+  const months = Object.keys(byMonth).sort();
+  if (!months.length) { el.innerHTML = '<div class="chart-empty">データがありません</div>'; tableEl.innerHTML = ''; return; }
+
+  Dashboard.Charts.renderMultiLineChart(el, [
+    { label: '新規(1人あたり平均)', color: '#2a78d6', points: months.map(m => ({ label: m, value: Math.round(byMonth[m].newAverage * 100) / 100 })) },
+    { label: '既存(1人あたり平均)', color: '#eb6834', points: months.map(m => ({ label: m, value: Math.round(byMonth[m].existingAverage * 100) / 100 })) },
+  ]);
+
+  tableEl.innerHTML = `
+    <tr><th>年月</th><th>新規_押下数</th><th>新規_顧客数</th><th>新規_平均</th><th>既存_押下数</th><th>既存_顧客数</th><th>既存_平均</th></tr>
+    ${months.map(m => { const b = byMonth[m]; return `<tr>
+      <td>${escapeHtml(m)}</td>
+      <td>${b.newPushCount.toLocaleString()}</td><td>${b.newUniqueCount.toLocaleString()}</td><td>${b.newAverage.toFixed(1)}</td>
+      <td>${b.existingPushCount.toLocaleString()}</td><td>${b.existingUniqueCount.toLocaleString()}</td><td>${b.existingAverage.toFixed(1)}</td>
+    </tr>`; }).join('')}`;
+}
+
+const memberStoreTableSort = { col: 'total', dir: 'desc' };
+
+function renderMemberStoreTable() {
+  const ms = currentClient.memberSummary;
+  const el = document.getElementById('member-store-table');
+  if (!ms || !Object.keys(ms.byStore).length) { el.innerHTML = '<tr><td>データなし</td></tr>'; return; }
+
+  const byStoreMonth = Dashboard.Aggregate.countRegistrationsByStoreAndMonth(ms.members);
+  const now = new Date();
+  const thisMonthKey = Dashboard.Util.toMonthKey(now);
+  const lastMonthKey = Dashboard.Util.toMonthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const rows = Object.entries(ms.byStore).map(([store, info]) => ({
+    store,
+    label: store.split(':').slice(1).join(':') || store,
+    total: info.total,
+    thisMonth: (byStoreMonth[store] && byStoreMonth[store][thisMonthKey]) || 0,
+    lastMonth: (byStoreMonth[store] && byStoreMonth[store][lastMonthKey]) || 0,
+    withdrawn: info.withdrawn,
+  }));
+
+  const { col, dir } = memberStoreTableSort;
+  rows.sort((a, b) => {
+    const av = col === 'label' ? a.label : a[col];
+    const bv = col === 'label' ? b.label : b[col];
+    if (col === 'label') return dir === 'asc' ? av.localeCompare(bv, 'ja') : bv.localeCompare(av, 'ja');
+    return dir === 'asc' ? av - bv : bv - av;
+  });
+
+  function th(key, label) {
+    const active = key === col;
+    const arrow = active ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sortable-th${active ? ' active' : ''}" data-sort-key="${key}">${escapeHtml(label)}${arrow}</th>`;
+  }
+
+  el.innerHTML = `
+    <tr>${th('label', '店舗')}${th('total', '登録会員数')}${th('thisMonth', '当月登録')}${th('lastMonth', '先月登録')}${th('withdrawn', '退会者数')}</tr>
+    ${rows.map(r => {
+      const trendIcon = r.thisMonth > r.lastMonth ? '<span class="month-trend-up">▲</span> '
+        : r.thisMonth < r.lastMonth ? '<span class="month-trend-down">▼</span> '
+        : '';
+      return `<tr>
+      <td>${escapeHtml(r.label)}</td>
+      <td>${r.total.toLocaleString()}</td>
+      <td>${trendIcon}${r.thisMonth.toLocaleString()}</td>
+      <td>${r.lastMonth.toLocaleString()}</td>
+      <td>${r.withdrawn.toLocaleString()}</td>
+    </tr>`;
+    }).join('')}`;
+
+  el.querySelectorAll('th.sortable-th').forEach(thEl => {
+    thEl.addEventListener('click', () => {
+      const key = thEl.dataset.sortKey;
+      if (memberStoreTableSort.col === key) {
+        memberStoreTableSort.dir = memberStoreTableSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        memberStoreTableSort.col = key;
+        memberStoreTableSort.dir = key === 'label' ? 'asc' : 'desc';
+      }
+      renderMemberStoreTable();
+    });
+  });
+}
+
+function renderStoreGapCard() {
+  const ms = currentClient.memberSummary;
+  const statusEl = document.getElementById('store-gap-status');
+  const tableEl = document.getElementById('store-gap-table');
+  if (!ms) {
+    statusEl.innerHTML = ''; tableEl.innerHTML = ''; storeGapDetailSelect.innerHTML = '<option value="">全店舗</option>';
+    lastStoreGapResult = null;
+    renderStoreGapDetail();
+    return;
+  }
+
+  lastStoreGapResult = Dashboard.Aggregate.calcRegisteredVsActualStore(currentClient.merged.stampPushes, ms.members);
+
+  const totalCount = lastStoreGapResult.matchedCount + lastStoreGapResult.unmatchedCount;
+  const matchRate = totalCount ? (lastStoreGapResult.matchedCount / totalCount * 100) : 0;
+  const rateLabel = `会員一覧と突合できた、スタンプ押下実績のある会員: ${lastStoreGapResult.matchedCount.toLocaleString()} / ${totalCount.toLocaleString()}人（${matchRate.toFixed(1)}%）`;
+  statusEl.innerHTML = matchRate < 50
+    ? `<div class="warn">⚠️ ${escapeHtml(rateLabel)}。突合率が低いため、以下の数値は参考値としてご覧ください（原因は調査中のアクセスログの会員ID短縮の可能性があります）。</div>`
+    : escapeHtml(rateLabel);
+
+  const rows = Object.entries(lastStoreGapResult.byRegisteredStore).sort((a, b) => b[1].total - a[1].total);
+  tableEl.innerHTML = rows.length ? `
+    <tr><th>登録店舗</th><th>登録会員数</th><th>同じ店舗で利用</th><th>他店舗で利用</th><th>他店舗利用率</th></tr>
+    ${rows.map(([store, info]) => `<tr>
+      <td>${escapeHtml(store.split(':').slice(1).join(':') || store)}</td>
+      <td>${info.total.toLocaleString()}</td>
+      <td>${info.same.toLocaleString()}</td>
+      <td>${info.different.toLocaleString()}</td>
+      <td>${(info.total ? (info.different / info.total * 100) : 0).toFixed(1)}%</td>
+    </tr>`).join('')}` : '<tr><td>データなし</td></tr>';
+
+  const registeredStores = Object.keys(lastStoreGapResult.byRegisteredStore).sort();
+  storeGapDetailSelect.innerHTML = '<option value="">全店舗</option>' +
+    registeredStores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+
+  renderStoreGapDetail();
+}
+
+function renderStoreGapDetail() {
+  const tableEl = document.getElementById('store-gap-detail-table');
+  const csvBtn = document.getElementById('store-gap-csv-btn');
+  if (!lastStoreGapResult) { tableEl.innerHTML = ''; csvBtn.disabled = true; return; }
+
+  const storeFilter = storeGapDetailSelect.value || null;
+
+  lastStoreGapDifferent = Object.entries(lastStoreGapResult.members)
+    .filter(([, info]) => !info.isSame)
+    .filter(([, info]) => !storeFilter || info.registeredStoreKey === storeFilter)
+    .map(([memberId, info]) => ({ memberId, ...info }))
+    .sort((a, b) => b.actualPushCount - a.actualPushCount);
+
+  if (!lastStoreGapDifferent.length) {
+    tableEl.innerHTML = '<tr><td>該当する会員はいません</td></tr>';
+    csvBtn.disabled = true;
+    return;
+  }
+
+  tableEl.innerHTML = `
+    <tr><th>会員ID</th><th>LINE ID</th><th>登録店舗</th><th>実利用店舗</th><th>実利用店舗での押下数</th></tr>
+    ${lastStoreGapDifferent.slice(0, 200).map(m => `<tr>
+      <td>${escapeHtml(m.memberId)}</td>
+      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${escapeHtml(m.registeredStoreKey.split(':').slice(1).join(':') || m.registeredStoreKey)}</td>
+      <td>${escapeHtml(m.actualStoreKey.split(':').slice(1).join(':') || m.actualStoreKey)}</td>
+      <td>${m.actualPushCount.toLocaleString()}</td>
+    </tr>`).join('')}
+    ${lastStoreGapDifferent.length > 200 ? `<tr><td colspan="5">他 ${lastStoreGapDifferent.length - 200}件（CSVダウンロードで全件確認できます）</td></tr>` : ''}`;
+  csvBtn.disabled = false;
+}
+
+function renderFunnel() {
+  const windowDays = Number(funnelWindowInput.value) || 5;
+  const result = Dashboard.Effect.calcPageViewToVisitFunnel(
+    currentClient.merged.pageViews, currentClient.merged.stampPushes, windowDays
+  );
+  document.getElementById('funnel-tile-row').innerHTML = [
+    { label: 'スタンプページ表示者数', num: result.viewerCount },
+    { label: `${windowDays}日以内に来店した人数`, num: result.convertedCount, accent: true },
+    { label: '転換率', num: result.rate !== null ? (result.rate * 100).toFixed(1) + '%' : '-' },
+  ].map(renderTile).join('');
+}
+
+function renderEffectTable() {
+  const windowDays = Number(effectWindowInput.value) || 7;
+  const effect = Dashboard.Effect.calcMessageEffect(currentClient.merged.messagesSent, currentClient.merged.attributedVisits, windowDays);
+  document.getElementById('effect-table').innerHTML = effect.length ? `
+    <tr><th>件名</th><th>配信日時</th><th>配信数</th><th>${windowDays}日以内スタンプ押下件数</th><th>反応率</th></tr>
+    ${effect.map(m => `<tr>
+      <td>${escapeHtml(m.subject)}</td>
+      <td>${formatLocalDateTime(m.sentAt)}</td>
+      <td>${m.recipientCount.toLocaleString()}</td>
+      <td>${m.visitEventCount.toLocaleString()}</td>
+      <td>${m.reachRate !== null ? (m.reachRate * 100).toFixed(2) + '%' : '-'}</td>
+    </tr>`).join('')}` : '<tr><td>配信ログなし</td></tr>';
+}
+
+function downloadCsv(filename, headers, rows) {
+  const esc = v => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.map(esc).join(','), ...rows.map(r => r.map(esc).join(','))];
+  const csv = String.fromCharCode(0xFEFF) + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('expiry-extract-btn').addEventListener('click', () => {
+  const thresholdDays = Number(expiryDaysInput.value) || 7;
+  const expiring = Dashboard.Tickets.listExpiringSoon(
+    currentClient.ticketLedger, currentClient.ticketConfig, thresholdDays, new Date()
+  );
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+
+  lastExpiringTickets = expiring.map(t => ({
+    ...t,
+    lineId: members[t.memberId] ? members[t.memberId].lineId : null,
+  }));
+
+  const statusEl = document.getElementById('expiry-status');
+  const el = document.getElementById('expiry-table');
+
+  if (!lastExpiringTickets.length) {
+    statusEl.textContent = `${thresholdDays}日以内に失効するチケットはありませんでした。`;
+    el.innerHTML = '';
+    expiryCsvBtn.disabled = true;
+    return;
+  }
+
+  statusEl.textContent = `${lastExpiringTickets.length}件 該当（うちLINE ID取得できたもの: ${lastExpiringTickets.filter(t => t.lineId).length}件）`;
+  el.innerHTML = `
+    <tr><th>チケット名称</th><th>会員ID</th><th>LINE ID</th><th>店舗</th><th>残り日数</th><th>失効日</th></tr>
+    ${lastExpiringTickets.map(t => `<tr>
+      <td>${escapeHtml(t.ticketName || '(名称未設定)')}</td>
+      <td>${escapeHtml(t.memberId || '-')}</td>
+      <td>${escapeHtml(t.lineId || '(不明)')}</td>
+      <td>${escapeHtml(t.storeKey ? t.storeKey.split(':').slice(1).join(':') : '-')}</td>
+      <td>${t.daysRemaining}</td>
+      <td>${formatLocalDate(t.expiryDate)}</td>
+    </tr>`).join('')}`;
+  expiryCsvBtn.disabled = false;
+});
+
+expiryCsvBtn.addEventListener('click', () => {
+  if (!lastExpiringTickets.length) return;
+  downloadCsv(
+    `チケット有効期限間近_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['チケット名称', '会員ID', 'LINE ID', '店舗', '残り日数', '失効日'],
+    lastExpiringTickets.map(t => [
+      t.ticketName || '', t.memberId || '', t.lineId || '',
+      t.storeKey ? t.storeKey.split(':').slice(1).join(':') : '', t.daysRemaining, formatLocalDate(t.expiryDate),
+    ])
+  );
+});
+
+const lapsedCsvBtn = document.getElementById('lapsed-csv-btn');
+let lastLapsedRegulars = [];
+
+document.getElementById('lapsed-extract-btn').addEventListener('click', () => {
+  const minVisits = Number(document.getElementById('lapsed-min-visits').value) || 5;
+  const thresholdDays = Number(document.getElementById('lapsed-days').value) || 60;
+  const lapsed = Dashboard.Aggregate.findLapsedRegulars(
+    currentClient.merged.stampPushes, minVisits, thresholdDays, new Date()
+  );
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+
+  lastLapsedRegulars = lapsed.map(m => ({
+    ...m,
+    lineId: members[m.memberId] ? members[m.memberId].lineId : null,
+  }));
+
+  const statusEl = document.getElementById('lapsed-status');
+  const el = document.getElementById('lapsed-table');
+
+  if (!lastLapsedRegulars.length) {
+    statusEl.textContent = `該当する会員はいませんでした（来店回数${minVisits}回以上、未来店${thresholdDays}日以上）。`;
+    el.innerHTML = '';
+    lapsedCsvBtn.disabled = true;
+    return;
+  }
+
+  statusEl.textContent = `${lastLapsedRegulars.length}件 該当（うちLINE ID取得できたもの: ${lastLapsedRegulars.filter(m => m.lineId).length}件）`;
+  el.innerHTML = `
+    <tr><th>会員ID</th><th>LINE ID</th><th>来店回数(累計)</th><th>最終来店日</th><th>未来店日数</th></tr>
+    ${lastLapsedRegulars.map(m => `<tr>
+      <td>${escapeHtml(m.memberId)}</td>
+      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${m.pushCount.toLocaleString()}</td>
+      <td>${formatLocalDate(m.lastPushAt)}</td>
+      <td>${m.daysSinceLastVisit.toLocaleString()}</td>
+    </tr>`).join('')}`;
+  lapsedCsvBtn.disabled = false;
+});
+
+lapsedCsvBtn.addEventListener('click', () => {
+  if (!lastLapsedRegulars.length) return;
+  downloadCsv(
+    `離脱予兆_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['会員ID', 'LINE ID', '来店回数(累計)', '最終来店日', '未来店日数'],
+    lastLapsedRegulars.map(m => [m.memberId, m.lineId || '', m.pushCount, formatLocalDate(m.lastPushAt), m.daysSinceLastVisit])
+  );
+});
+
+let lastSuspiciousPushes = [];
+const suspiciousCsvBtn = document.getElementById('suspicious-csv-btn');
+
+document.getElementById('suspicious-extract-btn').addEventListener('click', () => {
+  const { results, unconfiguredStores } = Dashboard.BusinessHours.findOutOfHoursPushes(
+    currentClient.merged.stampPushes, currentClient.businessHoursConfig
+  );
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+
+  lastSuspiciousPushes = results.map(p => ({
+    ...p,
+    lineId: members[p.memberId] ? members[p.memberId].lineId : null,
+  })).sort((a, b) => new Date(b.at) - new Date(a.at));
+
+  const statusEl = document.getElementById('suspicious-status');
+  const uniqueMembers = new Set(results.map(p => p.memberId)).size;
+
+  document.getElementById('suspicious-tile-row').innerHTML = [
+    { label: '時間外スタンプ押下件数', num: results.length, accent: results.length > 0 },
+    { label: '該当会員数（ユニーク）', num: uniqueMembers },
+    { label: '営業時間未設定の店舗数', num: unconfiguredStores.length },
+  ].map(renderTile).join('');
+
+  if (unconfiguredStores.length) {
+    statusEl.innerHTML = `⚠️ 以下の店舗は営業時間が未設定のため判定対象外です: ${unconfiguredStores.map(s => escapeHtml(s.split(':').slice(1).join(':') || s)).join('、')}`;
+  } else {
+    statusEl.textContent = '';
+  }
+
+  const byStore = {};
+  for (const p of results) {
+    byStore[p.storeKey] = (byStore[p.storeKey] || 0) + 1;
+  }
+  const storeRows = Object.entries(byStore).sort((a, b) => b[1] - a[1]);
+  document.getElementById('suspicious-store-table').innerHTML = storeRows.length ? `
+    <tr><th>店舗</th><th>時間外押下件数</th></tr>
+    ${storeRows.map(([store, n]) => `<tr>
+      <td>${escapeHtml(store.split(':').slice(1).join(':') || store)}</td><td>${n.toLocaleString()}</td>
+    </tr>`).join('')}` : '';
+
+  const byMember = {};
+  for (const p of results) {
+    byMember[p.memberId] = (byMember[p.memberId] || 0) + 1;
+  }
+  const memberRows = Object.entries(byMember).sort((a, b) => b[1] - a[1]);
+  const memberTableEl = document.getElementById('suspicious-member-table');
+  memberTableEl.innerHTML = memberRows.length ? `
+    <tr><th>会員ID</th><th>LINE ID</th><th>時間外押下件数</th></tr>
+    ${memberRows.slice(0, 50).map(([memberId, n]) => `<tr>
+      <td>${escapeHtml(memberId)}</td>
+      <td>${escapeHtml(members[memberId] ? (members[memberId].lineId || '(不明)') : '(不明)')}</td>
+      <td>${n.toLocaleString()}</td>
+    </tr>`).join('')}
+    ${memberRows.length > 50 ? `<tr><td colspan="3">他 ${memberRows.length - 50}件（CSVダウンロードで全件確認できます）</td></tr>` : ''}` : '';
+
+  const detailEl = document.getElementById('suspicious-table');
+  if (!lastSuspiciousPushes.length) {
+    detailEl.innerHTML = '';
+    suspiciousCsvBtn.disabled = true;
+    return;
+  }
+  detailEl.innerHTML = `
+    <tr><th>会員ID</th><th>LINE ID</th><th>店舗</th><th>日時</th></tr>
+    ${lastSuspiciousPushes.slice(0, 200).map(p => `<tr>
+      <td>${escapeHtml(p.memberId)}</td>
+      <td>${escapeHtml(p.lineId || '(不明)')}</td>
+      <td>${escapeHtml(p.storeKey.split(':').slice(1).join(':') || p.storeKey)}</td>
+      <td>${formatLocalDateTime(p.at)}</td>
+    </tr>`).join('')}
+    ${lastSuspiciousPushes.length > 200 ? `<tr><td colspan="4">他 ${lastSuspiciousPushes.length - 200}件（CSVダウンロードで全件確認できます）</td></tr>` : ''}`;
+  suspiciousCsvBtn.disabled = false;
+});
+
+suspiciousCsvBtn.addEventListener('click', () => {
+  if (!lastSuspiciousPushes.length) return;
+  downloadCsv(
+    `不正アクセス検証_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['会員ID', 'LINE ID', '店舗', '日時'],
+    lastSuspiciousPushes.map(p => [p.memberId, p.lineId || '', p.storeKey.split(':').slice(1).join(':') || p.storeKey, formatLocalDateTime(p.at)])
+  );
+});
+
+// 保存されているISO文字列はUTCなので、そのままsliceすると現地時刻とズレる。表示直前に必ずこれを通す。
+function formatLocalDateTime(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${Dashboard.Util.pad2(d.getMonth() + 1)}-${Dashboard.Util.pad2(d.getDate())} ${Dashboard.Util.pad2(d.getHours())}:${Dashboard.Util.pad2(d.getMinutes())}`;
+}
+
+function formatLocalDate(iso) {
+  return formatLocalDateTime(iso).slice(0, 10);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>
