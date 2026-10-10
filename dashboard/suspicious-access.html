@@ -49,6 +49,12 @@
   }
   .row-toggle-btn:hover { background: #f1f5f9; }
   .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+    border: 2px solid #cbd5e1; border-top-color: var(--primary-color); border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
   .not-supported { color: #dc2626; font-weight: bold; }
   .action-btn {
@@ -67,6 +73,7 @@
   <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
   <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
   <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+  <div class="top-loading-bar" id="top-loading-bar"></div>
 </header>
 
 <div class="app-container">
@@ -142,6 +149,7 @@ let currentClient = null;
 let lastSuspiciousPushes = [];
 
 const statusEl = document.getElementById('status');
+const topLoadingBar = document.getElementById('top-loading-bar');
 const syncBtn = document.getElementById('sync-btn');
 const clientSelect = document.getElementById('client-select');
 const suspiciousCard = document.getElementById('suspicious-card');
@@ -156,7 +164,8 @@ if (!Dashboard.FS.isSupported()) {
 }
 
 async function doSync() {
-  statusEl.textContent = '読み込み中...';
+  statusEl.innerHTML = '<span class="spinner"></span>読み込み中...';
+  topLoadingBar.classList.add('active');
   try {
     clients = await Dashboard.Sync.syncAllClients(rootHandle);
     statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
@@ -168,6 +177,8 @@ async function doSync() {
     selectClient(initialIndex);
   } catch (e) {
     statusEl.textContent = 'エラー: ' + e.message;
+  } finally {
+    topLoadingBar.classList.remove('active');
   }
 }
 
@@ -232,6 +243,15 @@ function inDateRange(date, from, to) {
 function selectClient(index) {
   currentClient = clients[index];
   Dashboard.Util.setLastClientName(currentClient.name);
+
+  // 「チケット設定」でデモ検証用など「レポートに含めない」にしたチケット種類は、
+  // ここでのチケット発行/利用の突き合わせからも除外する(でないとデモ用チケットの利用が
+  // 「確実性の高い不正」としてカウントされてしまう)。
+  currentClient.reportTicketLedger = currentClient.ticketLedger.filter(t => {
+    const c = currentClient.ticketConfig[t.ticketNo];
+    return !c || c.included !== false;
+  });
+
   suspiciousCard.style.display = '';
   lastSuspiciousPushes = [];
   document.getElementById('suspicious-tile-row').innerHTML = '';
@@ -272,7 +292,7 @@ document.getElementById('suspicious-extract-btn').addEventListener('click', () =
     pushesInRange, currentClient.businessHoursConfig
   );
   const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
-  const ticketLedger = currentClient.ticketLedger || [];
+  const ticketLedger = currentClient.reportTicketLedger || [];
 
   lastSuspiciousPushes = results.map(p => ({
     ...p,

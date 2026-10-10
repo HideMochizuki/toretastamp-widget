@@ -91,6 +91,12 @@
   .scope-tag.own { background: #eff6ff; color: #2563eb; }
   .card-title-text { display: inline-flex; align-items: center; flex-wrap: wrap; }
   .status-line { font-size: 0.82rem; color: #64748b; margin-top: 8px; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+    border: 2px solid #cbd5e1; border-top-color: var(--primary-color); border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .action-btn {
     display: inline-flex; align-items: center; gap: 8px;
     height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
@@ -130,6 +136,7 @@
   <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
   <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
   <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+  <div class="top-loading-bar" id="top-loading-bar"></div>
 </header>
 
 <div class="app-container">
@@ -501,6 +508,7 @@ let clients = [];
 let currentClient = null;
 
 const statusEl = document.getElementById('status');
+const topLoadingBar = document.getElementById('top-loading-bar');
 const syncBtn = document.getElementById('sync-btn');
 const printBtn = document.getElementById('print-btn');
 const filterCardWrapper = document.getElementById('filter-card-wrapper');
@@ -602,7 +610,8 @@ if (!Dashboard.FS.isSupported()) {
 }
 
 async function doSync() {
-  statusEl.textContent = '読み込み中...';
+  statusEl.innerHTML = '<span class="spinner"></span>読み込み中...';
+  topLoadingBar.classList.add('active');
   try {
     clients = await Dashboard.Sync.syncAllClients(rootHandle);
     statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
@@ -616,6 +625,8 @@ async function doSync() {
     selectClient(initialIndex);
   } catch (e) {
     statusEl.textContent = 'エラー: ' + e.message;
+  } finally {
+    topLoadingBar.classList.remove('active');
   }
 }
 
@@ -667,6 +678,19 @@ printBtn.addEventListener('click', () => window.print());
 function selectClient(index) {
   currentClient = clients[index];
   Dashboard.Util.setLastClientName(currentClient.name);
+
+  // 「チケット設定」でデモ検証用など「レポートに含めない」にしたチケット種類を、
+  // レポート側の集計(主要指標・チケット有効性・チケット推移・有効期限間近の抽出)から丸ごと除外する。
+  // チケット設定ページ自身のテーブルは、チェックを戻せるよう常に全種類を表示するため、
+  // currentClient.ticketLedger／merged.ticketIssued・ticketUsed 自体は変更せず、
+  // レポート専用の除外済みビューを別名で用意する。
+  const isTicketIncluded = ticketNo => {
+    const c = currentClient.ticketConfig[ticketNo];
+    return !c || c.included !== false;
+  };
+  currentClient.reportTicketIssued = currentClient.merged.ticketIssued.filter(t => isTicketIncluded(t.ticketNo));
+  currentClient.reportTicketUsed = currentClient.merged.ticketUsed.filter(t => isTicketIncluded(t.ticketNo));
+  currentClient.reportTicketLedger = currentClient.ticketLedger.filter(t => isTicketIncluded(t.ticketNo));
 
   const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
   storeSelect.innerHTML = '<option value="">全店舗</option>' +
@@ -740,10 +764,10 @@ function renderReport() {
   // チケット発行ログには店舗番号が付くが、利用ログには付かない(ログ仕様)。
   // そのため店舗を選んでいても、利用数だけは全店舗合計のままになる。
   const matchesStore = t => !storeKey || t.storeKey === storeKey;
-  const ticketsIssuedInRange = currentClient.merged.ticketIssued.filter(t => inDateRange(new Date(t.issuedAt), from, to) && matchesStore(t)).length;
-  const ticketsUsedInRange = currentClient.merged.ticketUsed.filter(t => inDateRange(new Date(t.usedAt), from, to)).length;
-  const compTicketsIssued = doCompare ? currentClient.merged.ticketIssued.filter(t => inDateRange(new Date(t.issuedAt), compFrom, compTo) && matchesStore(t)).length : null;
-  const compTicketsUsed = doCompare ? currentClient.merged.ticketUsed.filter(t => inDateRange(new Date(t.usedAt), compFrom, compTo)).length : null;
+  const ticketsIssuedInRange = currentClient.reportTicketIssued.filter(t => inDateRange(new Date(t.issuedAt), from, to) && matchesStore(t)).length;
+  const ticketsUsedInRange = currentClient.reportTicketUsed.filter(t => inDateRange(new Date(t.usedAt), from, to)).length;
+  const compTicketsIssued = doCompare ? currentClient.reportTicketIssued.filter(t => inDateRange(new Date(t.issuedAt), compFrom, compTo) && matchesStore(t)).length : null;
+  const compTicketsUsed = doCompare ? currentClient.reportTicketUsed.filter(t => inDateRange(new Date(t.usedAt), compFrom, compTo)).length : null;
 
   const ms = currentClient.memberSummary;
 
@@ -787,7 +811,7 @@ function renderReport() {
   renderCohortChart();
   renderTicketTrendChart();
 
-  const validity = Dashboard.Tickets.calcTicketValidity(currentClient.ticketLedger, currentClient.ticketConfig, new Date());
+  const validity = Dashboard.Tickets.calcTicketValidity(currentClient.reportTicketLedger, currentClient.ticketConfig, new Date());
   document.getElementById('ticket-tile-row').innerHTML = [
     { label: '有効チケット（現在）', num: validity.activeCount, accent: true,
       tooltip: '今この瞬間、まだ有効期限内で未使用のチケットの件数です（「チケット設定」で有効期限ルールを登録したチケットのみ判定できます）。' },
@@ -984,8 +1008,8 @@ function renderTicketTrendChart() {
   // 「有効/失効」のスナップショットは、店舗で絞る場合は発行時の店舗で絞った台帳で計算する
   // (利用イベントには店舗情報が無いため、厳密には「その店舗で発行された分」の有効性になる)。
   const ledgerForValidity = storeKey
-    ? currentClient.ticketLedger.filter(t => t.storeKey === storeKey)
-    : currentClient.ticketLedger;
+    ? currentClient.reportTicketLedger.filter(t => t.storeKey === storeKey)
+    : currentClient.reportTicketLedger;
 
   const issuedPoints = [], usedPoints = [], activePoints = [], inactivePoints = [];
   const cursor = new Date(from);
@@ -993,9 +1017,9 @@ function renderTicketTrendChart() {
     const label = `${cursor.getMonth() + 1}/${cursor.getDate()}`;
     const dayEnd = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 23, 59, 59);
 
-    const issuedCount = currentClient.merged.ticketIssued
+    const issuedCount = currentClient.reportTicketIssued
       .filter(t => inDateRange(new Date(t.issuedAt), cursor, cursor) && matchesStore(t)).length;
-    const usedCount = currentClient.merged.ticketUsed
+    const usedCount = currentClient.reportTicketUsed
       .filter(t => inDateRange(new Date(t.usedAt), cursor, cursor)).length;
     const validity = Dashboard.Tickets.calcTicketValidity(ledgerForValidity, currentClient.ticketConfig, dayEnd);
 
@@ -1392,7 +1416,7 @@ function downloadCsv(filename, headers, rows) {
 document.getElementById('expiry-extract-btn').addEventListener('click', () => {
   const thresholdDays = Number(expiryDaysInput.value) || 7;
   const expiring = Dashboard.Tickets.listExpiringSoon(
-    currentClient.ticketLedger, currentClient.ticketConfig, thresholdDays, new Date()
+    currentClient.reportTicketLedger, currentClient.ticketConfig, thresholdDays, new Date()
   );
   const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
 
