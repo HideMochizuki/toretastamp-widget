@@ -211,7 +211,7 @@ header.generator img { height: 30px; margin-right: 15px; }
 .card-wrapper {
     background: #fff; border-radius: 8px; border: 1px solid var(--border-color);
     padding: 25px; margin-bottom: 20px; width: 100%; display: inline-table;
-    position: relative;
+    position: relative; box-sizing: border-box;
 }
 .card { background: #fff; border-radius: 8px; border: 1px solid var(--border-color); padding: 25px; margin-top: 20px; margin-bottom: 25px; }
 .card-sub-title {
