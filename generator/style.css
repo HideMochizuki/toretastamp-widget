@@ -193,8 +193,25 @@ header.generator {
     height: 50px;
     flex-shrink: 0;
     z-index: 1000;
+    position: relative;
 }
 header.generator img { height: 30px; margin-right: 15px; }
+
+/* データ読み込み中にヘッダー下端へ出す、Googleアナリティクス風の横に流れるローディングバー */
+.top-loading-bar {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 3px;
+    overflow: hidden; display: none; z-index: 1001;
+}
+.top-loading-bar.active { display: block; }
+.top-loading-bar::after {
+    content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+    background: var(--primary-color);
+    animation: top-loading-bar-slide 1.1s ease-in-out infinite;
+}
+@keyframes top-loading-bar-slide {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
 .app-container { display: flex; flex: 1; overflow: hidden; }
 
 .nav-item i { margin-right: 10px; width: 20px; text-align: center; color: #6c757d; }
