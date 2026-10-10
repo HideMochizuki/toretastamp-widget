@@ -56,6 +56,9 @@
       <a href="test-members.html" class="nav-item">
         <i class="fa fa-user-slash"></i> テスト会員設定
       </a>
+      <a href="suspicious-access.html" class="nav-item">
+        <i class="fa fa-triangle-exclamation"></i> 不正アクセス検証
+      </a>
       <a href="help.html" class="nav-item">
         <i class="fa fa-circle-question"></i> 使い方
       </a>
@@ -143,7 +146,9 @@ async function doSync() {
     }
     clientSelect.style.display = '';
     clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
-    selectClient(0);
+    const initialIndex = Math.max(0, clients.findIndex(c => c.name === Dashboard.Util.getLastClientName()));
+    clientSelect.value = String(initialIndex);
+    selectClient(initialIndex);
   } catch (e) {
     statusEl.textContent = 'エラー: ' + e.message;
   }
@@ -188,6 +193,7 @@ clientSelect.addEventListener('change', () => selectClient(Number(clientSelect.v
 
 function selectClient(index) {
   currentClient = clients[index];
+  Dashboard.Util.setLastClientName(currentClient.name);
   ticketCard.style.display = '';
   renderWarnings();
   renderTicketTable();

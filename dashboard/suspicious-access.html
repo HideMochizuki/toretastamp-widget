@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不正アクセス検証 | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { flex-direction: column; max-width: 1100px; margin: 0 auto; width: 100%; padding: 30px; }
+  .inline-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .inline-controls label { font-size: 0.75rem; font-weight: bold; color: #475569; }
+  select, input[type="date"] {
+    height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;
+  }
+  select#store-select { width: 180px; }
+  .range-pair { display: flex; align-items: center; gap: 8px; height: 38px; }
+  .range-pair input[type="date"] { width: 140px; }
+  .range-sep { font-size: 0.8rem; color: #94a3b8; }
+  .tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
+  .tile { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 20px; min-width: 160px; flex: 1; }
+  .tile.accent { background: #fef2f2; border-color: #fecaca; }
+  .tile .tile-label { font-size: 0.75rem; color: #64748b; }
+  .tile .tile-num { font-size: 1.6rem; font-weight: bold; color: #1e293b; margin-top: 4px; }
+  .tile[data-tooltip] { position: relative; cursor: help; }
+  .tile[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute; bottom: 100%; left: 0; transform: translateY(-8px);
+    background: #1e293b; color: #fff; font-size: 0.75rem; font-weight: normal; line-height: 1.5;
+    padding: 8px 10px; border-radius: 6px; white-space: normal; width: 240px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18); z-index: 20;
+  }
+  .tile[data-tooltip]:hover::before {
+    content: ''; position: absolute; bottom: 100%; left: 16px; transform: translateY(-2px);
+    border: 5px solid transparent; border-top-color: #1e293b; z-index: 20;
+  }
+  table.data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 12px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+  table.data-table th { color: #334155; font-size: 0.82rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; }
+  table.data-table tr.member-parent-row td { font-weight: bold; background: #fafafa; border-top: 2px solid #e2e8f0; color: #1e293b; }
+  table.data-table tr.member-child-row td { color: #64748b; font-size: 0.82rem; }
+  table.data-table tr.member-child-row td.tree-prefix { white-space: nowrap; }
+  table.data-table tr.ticket-used-row td { color: #b91c1c; font-weight: bold; }
+  .row-toggle-btn {
+    width: 22px; height: 22px; line-height: 20px; padding: 0; text-align: center;
+    border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #475569;
+    font-size: 0.85rem; font-weight: bold; cursor: pointer;
+  }
+  .row-toggle-btn:hover { background: #f1f5f9; }
+  .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
+    border: none; border-radius: 4px; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.primary { background: var(--primary-color); }
+  .action-btn.secondary { background: #475569; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item"><i class="fa fa-chart-line"></i> ホーム</a>
+      <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
+      <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
+      <a href="test-members.html" class="nav-item"><i class="fa fa-user-slash"></i> テスト会員設定</a>
+      <a href="suspicious-access.html" class="nav-item active"><i class="fa fa-triangle-exclamation"></i> 不正アクセス検証</a>
+      <a href="help.html" class="nav-item"><i class="fa fa-circle-question"></i> 使い方</a>
+    </nav>
+  </div>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">フォルダを読み込む</h2>
+    <div class="card">
+      <div class="card-sub-title">ログを読み込んだ上で、営業時間外のスタンプ押下を検証します</div>
+      <div id="support-check"></div>
+      <div style="display:flex; gap:12px; flex-wrap: wrap;">
+        <button class="action-btn primary" id="pick-btn">
+          <i class="fa fa-folder-open"></i> ① フォルダを選択
+        </button>
+        <button class="action-btn secondary" id="sync-btn" disabled>
+          <i class="fa fa-rotate"></i> ② 読み込み
+        </button>
+        <select id="client-select" style="display:none;"></select>
+      </div>
+      <div class="status-line" id="status">フォルダ未選択です。</div>
+    </div>
+  </div>
+
+  <div class="card-wrapper" id="suspicious-card" style="display:none;">
+    <h2 class="card-title">不正アクセス検証（営業時間外のスタンプ押下）</h2>
+    <div class="card">
+      <div class="card-sub-title">「営業時間設定」で登録した店舗ごとの営業時間と照らして、時間外のスタンプ押下を検出します</div>
+      <div class="inline-controls">
+        <label>期間</label>
+        <div class="range-pair">
+          <input type="date" id="period-from">
+          <span class="range-sep">〜</span>
+          <input type="date" id="period-to">
+        </div>
+        <label>店舗</label>
+        <select id="store-select"><option value="">全店舗</option></select>
+        <button class="action-btn secondary" id="suspicious-extract-btn"><i class="fa fa-search"></i> 検証する</button>
+        <button class="action-btn primary" id="suspicious-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+      </div>
+      <div class="status-line" id="suspicious-status"></div>
+      <div class="tile-row" id="suspicious-tile-row"></div>
+      <table class="data-table" id="suspicious-store-table"></table>
+      <table class="data-table" id="suspicious-member-table" style="margin-top: 16px;"></table>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/effect.js"></script>
+<script src="js/compare.js"></script>
+<script src="js/business-hours.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/sync.js"></script>
+<script src="js/ui.js"></script>
+<script>
+let rootHandle = null;
+let clients = [];
+let currentClient = null;
+let lastSuspiciousPushes = [];
+
+const statusEl = document.getElementById('status');
+const syncBtn = document.getElementById('sync-btn');
+const clientSelect = document.getElementById('client-select');
+const suspiciousCard = document.getElementById('suspicious-card');
+const storeSelect = document.getElementById('store-select');
+const periodFrom = document.getElementById('period-from');
+const periodTo = document.getElementById('period-to');
+const suspiciousCsvBtn = document.getElementById('suspicious-csv-btn');
+
+if (!Dashboard.FS.isSupported()) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザはFile System Access APIに対応していません。Chrome/Edgeで開いてください。</div>';
+}
+
+async function doSync() {
+  statusEl.textContent = '読み込み中...';
+  try {
+    clients = await Dashboard.Sync.syncAllClients(rootHandle);
+    statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
+    if (!clients.length) { suspiciousCard.style.display = 'none'; return; }
+    clientSelect.style.display = '';
+    clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
+    const initialIndex = Math.max(0, clients.findIndex(c => c.name === Dashboard.Util.getLastClientName()));
+    clientSelect.value = String(initialIndex);
+    selectClient(initialIndex);
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+}
+
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  try {
+    rootHandle = await Dashboard.FS.pickRootFolder();
+    statusEl.textContent = `選択中のフォルダ: 「${rootHandle.name}」`;
+    syncBtn.disabled = false;
+    await doSync();
+  } catch (e) {
+    statusEl.textContent = 'フォルダ選択がキャンセルされたか、エラーが発生しました: ' + e.message;
+  }
+});
+
+syncBtn.addEventListener('click', doSync);
+clientSelect.addEventListener('change', () => selectClient(Number(clientSelect.value)));
+
+(async () => {
+  if (!Dashboard.FS.isSupported()) return;
+  const saved = await Dashboard.FS.getSavedHandle();
+  if (!saved) return;
+
+  rootHandle = saved;
+  syncBtn.disabled = false;
+
+  if (await Dashboard.FS.hasPermission(saved)) {
+    statusEl.textContent = `前回のフォルダ「${saved.name}」を自動復元しました`;
+    await doSync();
+  } else {
+    statusEl.innerHTML = `前回のフォルダ「${escapeHtml(saved.name)}」の権限が切れています。`
+      + `<button id="resume-btn" class="action-btn secondary" style="height:28px; padding:0 12px; margin-left:8px;">許可して読み込む</button>`;
+    document.getElementById('resume-btn').addEventListener('click', async () => {
+      const granted = await Dashboard.FS.requestPermissionForHandle(saved);
+      if (granted) { await doSync(); }
+      else { statusEl.textContent = '許可されませんでした。①から選び直してください。'; }
+    });
+  }
+})();
+
+function getAvailableRange() {
+  const days = Object.keys(currentClient.merged.byDay).sort();
+  if (!days.length) return { min: new Date(), to: new Date() };
+  const [y1, m1, d1] = days[0].split('-').map(Number);
+  const [y2, m2, d2] = days[days.length - 1].split('-').map(Number);
+  return { min: new Date(y1, m1 - 1, d1), to: new Date(y2, m2 - 1, d2) };
+}
+
+function toInputDate(date) {
+  return `${date.getFullYear()}-${Dashboard.Util.pad2(date.getMonth() + 1)}-${Dashboard.Util.pad2(date.getDate())}`;
+}
+
+function inDateRange(date, from, to) {
+  if (from && date < from) return false;
+  if (to) {
+    const toEnd = new Date(to);
+    toEnd.setHours(23, 59, 59, 999);
+    if (date > toEnd) return false;
+  }
+  return true;
+}
+
+function selectClient(index) {
+  currentClient = clients[index];
+  Dashboard.Util.setLastClientName(currentClient.name);
+  suspiciousCard.style.display = '';
+  lastSuspiciousPushes = [];
+  document.getElementById('suspicious-tile-row').innerHTML = '';
+  document.getElementById('suspicious-store-table').innerHTML = '';
+  document.getElementById('suspicious-member-table').innerHTML = '';
+  document.getElementById('suspicious-status').textContent = '';
+  suspiciousCsvBtn.disabled = true;
+
+  const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
+  storeSelect.innerHTML = '<option value="">全店舗</option>' +
+    stores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+
+  const { min, to } = getAvailableRange();
+  periodFrom.value = toInputDate(min);
+  periodTo.value = toInputDate(to);
+}
+
+// 時間外のスタンプ押下1件に対して、それが生んだチケット(発行/利用)を突き合わせる。
+// チケット発行ログ自体には店舗情報はあるがどの押下から生まれたかの直接の紐付けは無いため、
+// 「同じ会員・同じ分」で一致するチケット発行を1件のスタンプ押下に対応するものとみなす
+// (aggregate.jsのスタンプページ帰属と同じ考え方。4ヶ月分の実データで99.9〜100%一致を確認済み)。
+function findTicketForPush(push, ticketLedger) {
+  if (!push.memberId) return null;
+  const minuteKey = push.at.slice(0, 16);
+  return ticketLedger.find(t => t.memberId === push.memberId && t.issuedAt.slice(0, 16) === minuteKey) || null;
+}
+
+document.getElementById('suspicious-extract-btn').addEventListener('click', () => {
+  const from = periodFrom.value ? new Date(periodFrom.value) : null;
+  const to = periodTo.value ? new Date(periodTo.value) : null;
+  const storeKey = storeSelect.value || null;
+
+  const pushesInRange = currentClient.merged.stampPushes.filter(p =>
+    inDateRange(new Date(p.at), from, to) && (!storeKey || p.storeKey === storeKey)
+  );
+
+  const { results, unconfiguredStores } = Dashboard.BusinessHours.findOutOfHoursPushes(
+    pushesInRange, currentClient.businessHoursConfig
+  );
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+  const ticketLedger = currentClient.ticketLedger || [];
+
+  lastSuspiciousPushes = results.map(p => ({
+    ...p,
+    lineId: members[p.memberId] ? members[p.memberId].lineId : null,
+    ticket: findTicketForPush(p, ticketLedger),
+  })).sort((a, b) => new Date(b.at) - new Date(a.at));
+
+  const statusEl2 = document.getElementById('suspicious-status');
+  const uniqueMembers = new Set(results.map(p => p.memberId)).size;
+  const usedCount = lastSuspiciousPushes.filter(p => p.ticket && p.ticket.usedAt).length;
+
+  document.getElementById('suspicious-tile-row').innerHTML = [
+    { label: '時間外スタンプ押下件数', num: results.length, accent: results.length > 0,
+      tooltip: '「営業時間設定」で登録した営業時間の外でスタンプが押された件数です。営業時間が未設定の店舗は判定できないため含まれません。' },
+    { label: 'うちチケット利用まで確認（確実性の高い不正）', num: usedCount, accent: usedCount > 0,
+      tooltip: '時間外に押されたスタンプから発行されたチケットが、実際に利用まで確認できた件数です。押下だけでなく利用まで伴うため、最も確実性の高い不正利用の兆候です。' },
+    { label: '該当会員数（ユニーク）', num: uniqueMembers,
+      tooltip: '時間外にスタンプを押した会員の、重複を除いた人数です。' },
+    { label: '営業時間未設定の店舗数', num: unconfiguredStores.length,
+      tooltip: '営業時間が登録されていないため、時間外判定の対象から除外された店舗の数です。「営業時間設定」ページで登録すると判定対象に含まれます。' },
+  ].map(renderTile).join('');
+
+  if (unconfiguredStores.length) {
+    statusEl2.innerHTML = `⚠️ 以下の店舗は営業時間が未設定のため判定対象外です: ${unconfiguredStores.map(s => escapeHtml(s.split(':').slice(1).join(':') || s)).join('、')}`;
+  } else {
+    statusEl2.textContent = '';
+  }
+
+  const byStore = {};
+  for (const p of results) byStore[p.storeKey] = (byStore[p.storeKey] || 0) + 1;
+  const storeRows = Object.entries(byStore).sort((a, b) => b[1] - a[1]);
+  document.getElementById('suspicious-store-table').innerHTML = storeRows.length ? `
+    <tr><th>店舗</th><th>時間外押下件数</th></tr>
+    ${storeRows.map(([store, n]) => `<tr>
+      <td>${escapeHtml(store.split(':').slice(1).join(':') || store)}</td><td>${n.toLocaleString()}</td>
+    </tr>`).join('')}` : '';
+
+  renderNestedMemberTable('suspicious-member-table', lastSuspiciousPushes, members);
+  suspiciousCsvBtn.disabled = !lastSuspiciousPushes.length;
+});
+
+// 会員ID×LINE IDごとに「時間外押下件数」を親行で見せ、その下に店舗・日時の内訳を
+// 子行として並べる(ツリー表示)。依頼の形式: 「会員ID LINE ID 件数」→「└─店舗 日時」。
+// 画面とCSVの両方がこのグループ分け(件数の多い会員順→会員内は日時の新しい順)を共有する。
+function groupPushesByMember(results, members) {
+  const byMember = {};
+  for (const p of results) {
+    byMember[p.memberId] = byMember[p.memberId] || [];
+    byMember[p.memberId].push(p);
+  }
+  return Object.entries(byMember)
+    .map(([memberId, pushes]) => ({
+      memberId,
+      lineId: members[memberId] ? (members[memberId].lineId || '(不明)') : '(不明)',
+      pushes: [...pushes].sort((a, b) => new Date(b.at) - new Date(a.at)),
+    }))
+    .sort((a, b) => b.pushes.length - a.pushes.length);
+}
+
+// チケット発行・利用の判定ラベル。発行自体が無い(≒まだ特典に届いていない)押下と区別するため、
+// 発行なしは「-」、発行はあったが未利用は「未利用」、利用まで確認できたものだけ「利用済み」とする。
+function ticketIssuedLabel(p) { return p.ticket ? '発行あり' : '-'; }
+function ticketUsedLabel(p) { return p.ticket ? (p.ticket.usedAt ? '利用済み' : '未利用') : '-'; }
+
+function renderNestedMemberTable(elId, results, members) {
+  const el = document.getElementById(elId);
+  const memberRows = groupPushesByMember(results, members);
+  if (!memberRows.length) { el.innerHTML = ''; return; }
+
+  const MAX_MEMBERS = 50;
+  const shown = memberRows.slice(0, MAX_MEMBERS);
+
+  el.innerHTML = `
+    <tr><th></th><th>会員ID</th><th>LINE ID</th><th>時間外押下件数</th><th>チケット利用件数</th><th>店舗</th><th>日時</th><th>チケット発行</th><th>チケット利用</th></tr>
+    ${shown.map(({ memberId, lineId, pushes }, groupIdx) => {
+      const usedCount = pushes.filter(p => p.ticket && p.ticket.usedAt).length;
+      return `
+        <tr class="member-parent-row">
+          <td><button type="button" class="row-toggle-btn" data-group="${groupIdx}" aria-expanded="false">＋</button></td>
+          <td>${escapeHtml(memberId)}</td>
+          <td>${escapeHtml(lineId)}</td>
+          <td>${pushes.length.toLocaleString()}</td>
+          <td>${usedCount.toLocaleString()}</td>
+          <td></td><td></td><td></td><td></td>
+        </tr>
+        ${pushes.map(p => `
+        <tr class="member-child-row${p.ticket && p.ticket.usedAt ? ' ticket-used-row' : ''}" data-group="${groupIdx}" style="display:none;">
+          <td></td><td></td><td></td><td></td><td></td>
+          <td class="tree-prefix">└ ${escapeHtml(p.storeKey.split(':').slice(1).join(':') || p.storeKey)}</td>
+          <td>${formatLocalDateTime(p.at)}</td>
+          <td>${ticketIssuedLabel(p)}</td>
+          <td>${ticketUsedLabel(p)}</td>
+        </tr>`).join('')}`;
+    }).join('')}
+    ${memberRows.length > MAX_MEMBERS ? `<tr><td colspan="9">他 ${memberRows.length - MAX_MEMBERS}人（CSVダウンロードで全件確認できます）</td></tr>` : ''}`;
+
+  el.querySelectorAll('.row-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      el.querySelectorAll(`tr.member-child-row[data-group="${btn.dataset.group}"]`).forEach(tr => {
+        tr.style.display = expanded ? 'none' : '';
+      });
+      btn.setAttribute('aria-expanded', String(!expanded));
+      btn.textContent = expanded ? '＋' : '－';
+    });
+  });
+}
+
+suspiciousCsvBtn.addEventListener('click', () => {
+  if (!lastSuspiciousPushes.length) return;
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+  const memberRows = groupPushesByMember(lastSuspiciousPushes, members);
+  const rows = [];
+  for (const { memberId, lineId, pushes } of memberRows) {
+    const usedCount = pushes.filter(p => p.ticket && p.ticket.usedAt).length;
+    rows.push([memberId, lineId, pushes.length, usedCount, '', '', '', '']);
+    for (const p of pushes) {
+      rows.push([
+        '', '', '', '', `└ ${p.storeKey.split(':').slice(1).join(':') || p.storeKey}`, formatLocalDateTime(p.at),
+        ticketIssuedLabel(p), ticketUsedLabel(p),
+      ]);
+    }
+  }
+  downloadCsv(
+    `不正アクセス検証_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['会員ID', 'LINE ID', '時間外押下件数', 'チケット利用件数', '店舗', '日時', 'チケット発行', 'チケット利用'],
+    rows
+  );
+});
+
+function renderTile(t) {
+  const tooltipAttr = t.tooltip ? ` data-tooltip="${escapeHtml(t.tooltip)}"` : '';
+  return `<div class="tile ${t.accent ? 'accent' : ''}"${tooltipAttr}>
+    <div class="tile-label">${escapeHtml(t.label)}</div>
+    <div class="tile-num">${t.num.toLocaleString()}</div>
+  </div>`;
+}
+
+function downloadCsv(filename, headers, rows) {
+  const esc = v => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.map(esc).join(','), ...rows.map(r => r.map(esc).join(','))];
+  const csv = String.fromCharCode(0xFEFF) + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function formatLocalDateTime(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${Dashboard.Util.pad2(d.getMonth() + 1)}-${Dashboard.Util.pad2(d.getDate())} ${Dashboard.Util.pad2(d.getHours())}:${Dashboard.Util.pad2(d.getMinutes())}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

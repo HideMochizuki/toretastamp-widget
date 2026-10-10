@@ -36,11 +36,64 @@
       <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
       <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
       <a href="test-members.html" class="nav-item"><i class="fa fa-user-slash"></i> テスト会員設定</a>
+      <a href="suspicious-access.html" class="nav-item"><i class="fa fa-triangle-exclamation"></i> 不正アクセス検証</a>
       <a href="help.html" class="nav-item active"><i class="fa fa-circle-question"></i> 使い方</a>
     </nav>
   </div>
 
 <main class="main-wrapper">
+
+  <div class="card-wrapper">
+    <h2 class="card-title">各ページの使い方</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        どのページも、まず「①フォルダを選択」→「②読み込み」でログフォルダを読み込んでから使います
+        （フォルダの置き方は次のカードを参照）。2回目以降は前回選んだフォルダを自動的に覚えています。
+      </div>
+      <table class="data-table">
+        <tr><th>ページ</th><th>できること</th></tr>
+        <tr>
+          <td><i class="fa fa-chart-line"></i> ホーム</td>
+          <td>
+            全体のレポートです。画面上部の「絞り込み」（期間・店舗）で見る範囲を変えられます。
+            各カードの右上にある <code>🔗連動</code>（絞り込みに従う）／<code>📌固定</code>（常に全期間・全店舗）／
+            <code>🔀このカード専用の絞り込み</code> のタグで、その数字がどの条件で集計されているか分かります。
+          </td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-ticket"></i> チケット設定</td>
+          <td>
+            スタンプ帳で発行されるチケット（特典）の種類ごとに、有効期限のルール
+            （なし／日付・時間指定／発効日からX日／発効日当日のみ）を登録します。
+            ここで登録した内容が、ホームの「チケット有効性」「チケット有効期限が近い会員」カードの判定に使われます。
+          </td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-clock"></i> 営業時間設定</td>
+          <td>
+            店舗ごとに曜日別の営業時間（開始・終了時刻）と定休日を登録します。
+            「全店舗に一括適用」で同じ時間を複数店舗にまとめて設定できます。
+            ここで登録した内容が「不正アクセス検証」ページの時間外判定の基準になります。
+          </td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-user-slash"></i> テスト会員設定</td>
+          <td>
+            動作確認などに使った会員ID（LINE IDではなく会員ID）を登録すると、以後その会員の実績を
+            ホームや不正アクセス検証の集計から丸ごと除外します。詳しくは下のカードを参照してください。
+          </td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-triangle-exclamation"></i> 不正アクセス検証</td>
+          <td>
+            「営業時間設定」の内容をもとに、営業時間外にスタンプが押された記録だけを抽出します。
+            ホームのレポートとは別に、このページ専用の期間・店舗の絞り込みがあります。
+            ネガティブな情報のため、あえてホームのレポートには含めていません。
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
 
   <div class="card-wrapper">
     <h2 class="card-title">ログファイルの置き方</h2>

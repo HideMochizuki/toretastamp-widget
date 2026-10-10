@@ -300,5 +300,132 @@ window.Dashboard.Charts = (function () {
     hitRect.addEventListener('pointerleave', onLeave);
   }
 
-  return { renderLineChart, renderBarChart, renderMultiLineChart };
+  function renderHBarChart(container, points) {
+    container.innerHTML = '';
+    if (!points.length) { container.innerHTML = '<div class="chart-empty">データがありません</div>'; return; }
+
+    const width = 800;
+    const barHeight = 26, gap = 14;
+    const padL = 90, padR = 56, padT = 8, padB = 8;
+    const plotH = points.length * barHeight + (points.length - 1) * gap;
+    const height = plotH + padT + padB;
+    const plotW = width - padL - padR;
+
+    const maxVal = niceMax(Math.max(...points.map(p => p.value), 1));
+    const xAt = v => padL + (v / maxVal) * plotW;
+
+    const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, style: 'display:block; width:100%; height:auto;' });
+
+    const gridCount = 4;
+    for (let g = 0; g <= gridCount; g++) {
+      const x = xAt((maxVal / gridCount) * g);
+      svg.appendChild(el('line', { x1: x, x2: x, y1: padT, y2: padT + plotH, stroke: GRID, 'stroke-width': 1 }));
+    }
+    svg.appendChild(el('line', { x1: padL, x2: padL, y1: padT, y2: padT + plotH, stroke: AXIS, 'stroke-width': 1 }));
+
+    const tip = ensureTooltip(container);
+
+    points.forEach((p, i) => {
+      const y = padT + i * (barHeight + gap);
+      const barW = (p.value / maxVal) * plotW;
+      const rect = el('rect', { x: padL, y, width: Math.max(barW, 1), height: barHeight, rx: 3, fill: COLOR_DARK, style: 'cursor:pointer;' });
+
+      const label = el('text', { x: padL - 8, y: y + barHeight / 2 + 4, 'text-anchor': 'end', 'font-size': 11, fill: TEXT_SECONDARY });
+      label.textContent = p.label;
+
+      const valueLabel = el('text', { x: padL + barW + 8, y: y + barHeight / 2 + 4, 'font-size': 11, fill: TEXT_MUTED });
+      valueLabel.textContent = formatNum(p.value);
+
+      const hit = el('rect', { x: 0, y, width, height: barHeight, fill: 'transparent', style: 'cursor:pointer;' });
+      function show() {
+        rect.setAttribute('fill', COLOR);
+        const rectBox = svg.getBoundingClientRect();
+        tip.textContent = `${p.label}: ${formatNum(p.value)}`;
+        tip.style.display = '';
+        tip.style.left = Math.min(rectBox.width - 120, Math.max(0, (padL / width) * rectBox.width)) + 'px';
+        tip.style.top = Math.max(0, (y / height) * rectBox.height - 26) + 'px';
+      }
+      function hide() { rect.setAttribute('fill', COLOR_DARK); tip.style.display = 'none'; }
+      hit.addEventListener('pointerenter', show);
+      hit.addEventListener('pointermove', show);
+      hit.addEventListener('pointerleave', hide);
+
+      svg.appendChild(rect);
+      svg.appendChild(label);
+      svg.appendChild(valueLabel);
+      svg.appendChild(hit);
+    });
+
+    container.appendChild(svg);
+  }
+
+  // カテゴリの出現順(=呼び出し側で既に決めたソート順)に沿って固定の配色を割り当てる。
+  // 性別など、クライアントによって表記ゆれがある項目でも、同じ並びなら同じ色になる。
+  const PIE_COLORS = ['#8ace36', '#2563eb', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#94a3b8'];
+
+  function renderPieChart(container, points) {
+    container.innerHTML = '';
+    if (!points.length) { container.innerHTML = '<div class="chart-empty">データがありません</div>'; return; }
+
+    const total = points.reduce((s, p) => s + p.value, 0);
+    const size = 220, cx = size / 2, cy = size / 2, r = size / 2 - 10;
+
+    const svg = el('svg', { viewBox: `0 0 ${size} ${size}`, style: 'display:block; margin: 0 auto; width:100%; max-width:220px; height:auto;' });
+    const tip = ensureTooltip(container);
+
+    let angle = -Math.PI / 2;
+    points.forEach((p, i) => {
+      const frac = total > 0 ? p.value / total : 0;
+      const sweep = frac * Math.PI * 2;
+      const endAngle = angle + sweep;
+      const color = PIE_COLORS[i % PIE_COLORS.length];
+
+      let shape;
+      if (frac >= 0.9999) {
+        // 1カテゴリで100%の場合、円弧(A)では描けないため真円として描く
+        shape = el('circle', { cx, cy, r, fill: color, style: 'cursor:pointer;' });
+      } else {
+        const x1 = cx + r * Math.cos(angle), y1 = cy + r * Math.sin(angle);
+        const x2 = cx + r * Math.cos(endAngle), y2 = cy + r * Math.sin(endAngle);
+        const largeArc = sweep > Math.PI ? 1 : 0;
+        const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        shape = el('path', { d, fill: color, style: 'cursor:pointer;' });
+      }
+
+      function show() {
+        shape.setAttribute('opacity', 0.82);
+        tip.textContent = `${p.label}: ${formatNum(p.value)}（${(frac * 100).toFixed(1)}%）`;
+        tip.style.display = '';
+        tip.style.left = '8px';
+        tip.style.top = '8px';
+      }
+      function hide() { shape.setAttribute('opacity', 1); tip.style.display = 'none'; }
+      shape.addEventListener('pointerenter', show);
+      shape.addEventListener('pointerleave', hide);
+
+      svg.appendChild(shape);
+      angle = endAngle;
+    });
+
+    container.appendChild(svg);
+
+    // 凡例(カテゴリ2件以上の円グラフは凡例必須)
+    const legend = document.createElement('div');
+    legend.style.cssText = `display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center; margin-top:10px; font-size:11px; color:${TEXT_SECONDARY};`;
+    points.forEach((p, i) => {
+      const frac = total > 0 ? p.value / total : 0;
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; gap:4px;';
+      const swatch = document.createElement('span');
+      swatch.style.cssText = `display:inline-block; width:10px; height:10px; border-radius:2px; background:${PIE_COLORS[i % PIE_COLORS.length]};`;
+      const text = document.createElement('span');
+      text.textContent = `${p.label} ${formatNum(p.value)}（${(frac * 100).toFixed(1)}%）`;
+      item.appendChild(swatch);
+      item.appendChild(text);
+      legend.appendChild(item);
+    });
+    container.appendChild(legend);
+  }
+
+  return { renderLineChart, renderBarChart, renderHBarChart, renderPieChart, renderMultiLineChart };
 })();

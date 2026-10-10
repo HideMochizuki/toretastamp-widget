@@ -47,5 +47,29 @@ window.Dashboard.Util = (function () {
     return null;
   }
 
-  return { pad2, parseDateTime, toDayKey, toMonthKey, addDays, diffDays, parseMonthFromFileName };
+  // ホーム/チケット設定/営業時間設定など、クライアント選択プルダウンを持つページ間で
+  // 「どのクライアントを見ていたか」を引き継ぐための共通ストレージ。クライアント名をキーにする
+  // (読み込むたびに並び順は同じはずだが、indexではなく名前で突き合わせたほうが安全)。
+  const LAST_CLIENT_KEY = 'toretastamp:lastClientName';
+
+  function getLastClientName() {
+    try {
+      return localStorage.getItem(LAST_CLIENT_KEY);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setLastClientName(name) {
+    try {
+      localStorage.setItem(LAST_CLIENT_KEY, name);
+    } catch (e) {
+      // プライベートブラウジングなどでlocalStorageが使えない場合は、ページ間の引き継ぎを諦めるだけでよい
+    }
+  }
+
+  return {
+    pad2, parseDateTime, toDayKey, toMonthKey, addDays, diffDays, parseMonthFromFileName,
+    getLastClientName, setLastClientName,
+  };
 })();
