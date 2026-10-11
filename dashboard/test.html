@@ -235,6 +235,44 @@ test('aggregate: countRegistrationsByPeriod で日/月/年×店舗を絞り込�
   assertEqual(byDay['2026-10-05'], 1, '日別・A店(10/5)');
 });
 
+test('aggregate: countRegistrationsByPeriodSplit でLINE会員/メール認証会員の内訳付きで集計できる', () => {
+  const rows = [
+    { '会員ID': 'm1', 'LINE ID': 'U1', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/1 10:00' },
+    { '会員ID': 'm2', 'LINE ID': '', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/5 10:00' },
+    { '会員ID': 'm3', 'LINE ID': 'U3', '退会': '0', '初回登録店舗番号': '200', '初回登録店舗名': 'B店', '登録日時': '2026/10/10 10:00' },
+  ];
+  const summary = Dashboard.Aggregate.summarizeMemberList(rows);
+
+  const byMonth = Dashboard.Aggregate.countRegistrationsByPeriodSplit(summary.members, 'month');
+  assertEqual(byMonth['2026-10'].line, 2, '10月のLINE会員数(m1, m3)');
+  assertEqual(byMonth['2026-10'].email, 1, '10月のメール認証会員数(m2)');
+});
+
+test('aggregate: calcMonthlyActiveRate で会員数に対するアクティブ率を月次で計算できる', () => {
+  const members = {
+    'm1': { registeredAt: new Date(2026, 7, 5).toISOString(), storeKey: 'A' }, // 8月登録
+    'm2': { registeredAt: new Date(2026, 7, 20).toISOString(), storeKey: 'A' }, // 8月登録
+    'm3': { registeredAt: new Date(2026, 8, 10).toISOString(), storeKey: 'A' }, // 9月登録
+    'm4': { registeredAt: new Date(2026, 9, 1).toISOString(), storeKey: 'A' }, // 10月登録(10月はまだ誰も押下なし)
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: new Date(2026, 7, 10).toISOString(), storeKey: 'A' }, // 8月: m1のみアクティブ
+    { memberId: 'm1', at: new Date(2026, 8, 3).toISOString(), storeKey: 'A' },  // 9月: m1, m2がアクティブ
+    { memberId: 'm2', at: new Date(2026, 8, 15).toISOString(), storeKey: 'A' },
+  ];
+
+  const result = Dashboard.Aggregate.calcMonthlyActiveRate(stampPushes, members);
+  assertEqual(result['2026-08'].cumulativeRegistered, 2, '8月末時点の累計会員数(m1,m2)');
+  assertEqual(result['2026-08'].activeCount, 1, '8月のアクティブ数(m1)');
+  assertEqual(result['2026-08'].activeRate, 0.5, '8月のアクティブ率(1/2)');
+  assertEqual(result['2026-09'].cumulativeRegistered, 3, '9月末時点の累計会員数(+m3)');
+  assertEqual(result['2026-09'].activeCount, 2, '9月のアクティブ数(m1,m2)');
+  assertEqual(Math.round(result['2026-09'].activeRate * 1000) / 1000, 0.667, '9月のアクティブ率(2/3)');
+  assertEqual(result['2026-10'].cumulativeRegistered, 4, '10月末時点の累計会員数(+m4)');
+  assertEqual(result['2026-10'].activeCount, 0, '10月はアクティブな会員がいない');
+  assertEqual(result['2026-10'].activeRate, 0, '10月のアクティブ率は0');
+});
+
 test('aggregate: countRegistrationsByStoreAndMonth で店舗×月の登録数を1回でまとめられる', () => {
   const rows = [
     { '会員ID': 'm1', '退会': '0', '初回登録店舗番号': '100', '初回登録店舗名': 'A店', '登録日時': '2026/10/1 10:00' },
@@ -275,6 +313,130 @@ test('aggregate: findLapsedRegulars で常連だったが最近来ていない�
   assertEqual(result[0].memberId, 'regular-lapsed', '抽出されるのはregular-lapsed');
   assertEqual(result[0].pushCount, 5, '来店回数が引き継がれる');
   assertEqual(result[0].daysSinceLastVisit, 47, '最終来店日(8/15)からasOf(10/1)までの経過日数');
+});
+
+test('aggregate: calcStampCardProgress で保有スタンプ数・何枚目かの分布を計算できる', () => {
+  const stampPushes = [
+    // member-1: 3回押下 → カードA 1枚目の3個目
+    { memberId: 'member-1', stampPage: 'カードA' }, { memberId: 'member-1', stampPage: 'カードA' }, { memberId: 'member-1', stampPage: 'カードA' },
+    // member-2: 5回押下(=1枚あたりの個数ちょうど) → 1枚目が満了(5個)。次の0個ではなく「5個(満了)」として計上
+    { memberId: 'member-2', stampPage: 'カードA' }, { memberId: 'member-2', stampPage: 'カードA' }, { memberId: 'member-2', stampPage: 'カードA' },
+    { memberId: 'member-2', stampPage: 'カードA' }, { memberId: 'member-2', stampPage: 'カードA' },
+    // member-3: 7回押下 → 2枚目の2個目
+    { memberId: 'member-3', stampPage: 'カードA' }, { memberId: 'member-3', stampPage: 'カードA' }, { memberId: 'member-3', stampPage: 'カードA' },
+    { memberId: 'member-3', stampPage: 'カードA' }, { memberId: 'member-3', stampPage: 'カードA' }, { memberId: 'member-3', stampPage: 'カードA' },
+    { memberId: 'member-3', stampPage: 'カードA' },
+    // member-4: 10回押下(=5の倍数ちょうど) → 2枚目が満了(5個)
+    { memberId: 'member-4', stampPage: 'カードA' }, { memberId: 'member-4', stampPage: 'カードA' }, { memberId: 'member-4', stampPage: 'カードA' },
+    { memberId: 'member-4', stampPage: 'カードA' }, { memberId: 'member-4', stampPage: 'カードA' }, { memberId: 'member-4', stampPage: 'カードA' },
+    { memberId: 'member-4', stampPage: 'カードA' }, { memberId: 'member-4', stampPage: 'カードA' }, { memberId: 'member-4', stampPage: 'カードA' },
+    { memberId: 'member-4', stampPage: 'カードA' },
+    // カードBは1枚あたりの個数が未登録 → 結果に含まれない
+    { memberId: 'member-1', stampPage: 'カードB' }, { memberId: 'member-1', stampPage: 'カードB' },
+  ];
+  const stampPageConfig = {
+    'カードA': { included: true, stampsPerCard: 5 },
+    'カードB': { included: true, stampsPerCard: null },
+  };
+
+  const result = Dashboard.Aggregate.calcStampCardProgress(stampPushes, stampPageConfig);
+  assertEqual(result['カードB'], undefined, '1枚あたりの個数が未登録のスタンプ帳は結果に含まれない');
+  assertEqual(result['カードA'].stampsPerCard, 5, '1枚あたりの個数が引き継がれる');
+  assertEqual(result['カードA'].memberCount, 4, '対象会員数');
+  assertEqual(result['カードA'].byCurrentCount[3], 1, '3個保有はmember-1の1人');
+  assertEqual(result['カードA'].byCurrentCount[5], 2, '5個(満了)はmember-2とmember-4の2人');
+  assertEqual(result['カードA'].byCurrentCount[2], 1, '2個保有はmember-3の1人');
+  assertEqual(result['カードA'].byCardNumber[1], 2, '1枚目はmember-1とmember-2の2人');
+  assertEqual(result['カードA'].byCardNumber[2], 2, '2枚目はmember-3とmember-4の2人');
+});
+
+test('aggregate: calcMemberRankDistribution でステータスランク別の会員数・アクティブ数を計算できる', () => {
+  const asOf = new Date(2026, 9, 10); // 2026-10-10基準
+  const push = (memberId, n, daysAgo) => {
+    const at = new Date(2026, 9, 10 - daysAgo).toISOString();
+    return Array.from({ length: n }, () => ({ memberId, stampPage: 'ポイントカード', at }));
+  };
+  const stampPushes = [
+    ...push('m1', 5, 5),    // スタンダード(0-9)、5日前=アクティブ
+    ...push('m2', 9, 90),   // スタンダード(0-9)、90日前=非アクティブ
+    ...push('m3', 10, 10),  // ブロンズ(10-59)、10日前=アクティブ
+    ...push('m4', 60, 1),   // シルバー(60-159、無制限枠の最後の行)、1日前=アクティブ
+  ];
+  const stampPageConfig = {
+    'ポイントカード': {
+      statusEnabled: true,
+      ranks: [
+        { name: 'スタンダード', max: 9 },
+        { name: 'ブロンズ', max: 59 },
+        { name: 'シルバー', max: null },
+      ],
+    },
+    '未使用スタンプ帳': { statusEnabled: false, ranks: [{ name: 'x', max: null }] },
+  };
+
+  const result = Dashboard.Aggregate.calcMemberRankDistribution(stampPushes, stampPageConfig, asOf, 30);
+  assertEqual(result['未使用スタンプ帳'], undefined, 'statusEnabledがfalseのスタンプ帳は結果に含まれない');
+  assertEqual(result['ポイントカード'].memberCount, 4, '対象会員数');
+  assertEqual(result['ポイントカード'].activeDays, 30, 'アクティブ判定日数が引き継がれる');
+  const ranks = result['ポイントカード'].ranks;
+  assertEqual(ranks[0].name, 'スタンダード', '1番目のランク名');
+  assertEqual(ranks[0].order, 1, '1番目のランクの順位');
+  assertEqual(ranks[0].count, 2, 'スタンダードはm1,m2の2人');
+  assertEqual(ranks[0].activeCount, 1, 'スタンダードのアクティブはm1のみ(m2は90日前で対象外)');
+  assertEqual(ranks[1].name, 'ブロンズ', '2番目のランク名');
+  assertEqual(ranks[1].count, 1, 'ブロンズはm3の1人');
+  assertEqual(ranks[1].activeCount, 1, 'ブロンズのアクティブはm3');
+  assertEqual(ranks[2].name, 'シルバー', '3番目(最上位)のランク名');
+  assertEqual(ranks[2].max, null, '最上位ランクの上限はnull(無制限)');
+  assertEqual(ranks[2].count, 1, 'シルバーはm4の1人');
+  assertEqual(ranks[2].activeCount, 1, 'シルバーのアクティブはm4');
+});
+
+test('aggregate: listStampExpiringSoon で3種類の有効期限タイプから失効が近い会員を抽出できる', () => {
+  const asOf = new Date(2026, 9, 10); // 2026-10-10基準
+  const daysAgo = n => new Date(2026, 9, 10 - n).toISOString();
+  const push = (memberId, page, ...daysAgoList) =>
+    daysAgoList.map(d => ({ memberId, stampPage: page, at: daysAgo(d) }));
+
+  const stampPushes = [
+    // 「最後の押下から」帳: 最終押下日基準
+    ...push('a-soon', '最後の押下から帳', 50, 25),   // 最終25日前 → 失効まで5日(期限内)
+    ...push('a-far', '最後の押下から帳', 50, 5),     // 最終5日前 → 失効まで25日(期限外)
+    ...push('a-expired', '最後の押下から帳', 50, 35), // 最終35日前 → 5日前に失効済み(対象外)
+
+    // 「最初の押下から」帳(ページ毎なし): 生涯最初の押下日基準
+    ...push('b-soon', '最初の押下から帳', 25, 10),   // 初回25日前 → 失効まで5日(期限内)
+
+    // 「最初の押下から」帳(ページ毎あり、1枚あたり5個): 今の周回の開始日基準
+    // cをcycle1(5回・古い)+cycle2(2回・新しい)に分ける → 今の周回は25日前に開始
+    ...push('c-cycle', 'ページ毎帳', 80, 75, 70, 65, 60, 25, 20),
+  ];
+
+  const stampPageConfig = {
+    '最後の押下から帳': { expiry: { type: 'last_push', days: 30 } },
+    '最初の押下から帳': { expiry: { type: 'first_push', days: 30, perPage: false } },
+    'ページ毎帳': { stampsPerCard: 5, expiry: { type: 'first_push', days: 30, perPage: true } },
+    '未設定帳': { expiry: { type: 'none', days: 30 } },
+  };
+
+  const result = Dashboard.Aggregate.listStampExpiringSoon(stampPushes, stampPageConfig, 7, asOf);
+
+  assertEqual(result['未設定帳'], undefined, '有効期限なしのスタンプ帳は結果に含まれない');
+
+  const lastPushPage = result['最後の押下から帳'];
+  assertEqual(lastPushPage.length, 1, '「最後の押下から」で期限内なのはa-soonのみ');
+  assertEqual(lastPushPage[0].memberId, 'a-soon', '対象会員');
+  assertEqual(lastPushPage[0].daysRemaining, 5, '失効まで5日');
+
+  const firstPushPage = result['最初の押下から帳'];
+  assertEqual(firstPushPage.length, 1, '「最初の押下から」で期限内なのはb-soonのみ');
+  assertEqual(firstPushPage[0].daysRemaining, 5, '失効まで5日');
+
+  // ページ毎ONなら「今の周回の開始(25日前)」が起点になるので期限内(5日後に失効)で抽出される。
+  // もしperPageを見ずに生涯最初の押下(80日前)を使ってしまうと、とっくに失効済み(対象外)になるはず。
+  const perPagePage = result['ページ毎帳'];
+  assertEqual(perPagePage.length, 1, 'ページ毎ONだと今の周回基準で期限内のc-cycleが抽出される');
+  assertEqual(perPagePage[0].daysRemaining, 5, '今の周回の開始(25日前)+30日 → 失効まで5日');
 });
 
 test('aggregate: summarizeMemberList は初回登録日時を優先し、無ければ登録日時で代用する', () => {
@@ -394,6 +556,26 @@ test('aggregate: calcRegisteredVsActualStore で登録店舗と実利用店舗(�
   assertEqual(result.byRegisteredStore['A'].different, 1, 'A店登録のうち他店舗で利用');
   assertEqual(result.matchedCount, 2, '会員一覧と突合できた会員数');
   assertEqual(result.unmatchedCount, 1, '会員一覧と突合できなかった会員数');
+});
+
+test('aggregate: calcStoreRepeatStats で店舗ごとの平均来店回数・複数回来店率を計算できる', () => {
+  const stampPushes = [
+    // A店: m1が3回、m2が1回 → 平均2回、複数回来店率50%(2人中1人)
+    { memberId: 'm1', storeKey: 'A' }, { memberId: 'm1', storeKey: 'A' }, { memberId: 'm1', storeKey: 'A' },
+    { memberId: 'm2', storeKey: 'A' },
+    // B店: m1(A店の会員だがB店にも来店)が2回、m3が1回 → 平均1.5回、複数回来店率50%(2人中1人)
+    { memberId: 'm1', storeKey: 'B' }, { memberId: 'm1', storeKey: 'B' },
+    { memberId: 'm3', storeKey: 'B' },
+  ];
+
+  const result = Dashboard.Aggregate.calcStoreRepeatStats(stampPushes);
+  assertEqual(result['A'].memberCount, 2, 'A店の会員数');
+  assertEqual(result['A'].totalPushCount, 4, 'A店の押下合計');
+  assertEqual(result['A'].avgPushPerMember, 2, 'A店の平均来店回数');
+  assertEqual(result['A'].repeatRate, 0.5, 'A店の複数回来店率');
+  assertEqual(result['B'].memberCount, 2, 'B店の会員数(m1は両店舗でカウントされる)');
+  assertEqual(result['B'].avgPushPerMember, 1.5, 'B店の平均来店回数');
+  assertEqual(result['B'].repeatRate, 0.5, 'B店の複数回来店率');
 });
 
 test('tickets: listExpiringSoon で期限間近のチケットだけ抽出できる', () => {

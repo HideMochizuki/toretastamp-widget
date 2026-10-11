@@ -56,6 +56,18 @@
   .tile .tile-delta.flat { color: #94a3b8; }
   .tile.accent { background: #f0fdf4; border-color: #bbf7d0; }
   .tile[data-tooltip] { position: relative; cursor: help; }
+  .rank-tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+  .rank-tile {
+    background: #fff; border: 1px solid var(--border-color); border-radius: 14px;
+    padding: 18px 22px; min-width: 150px; flex: 0 1 160px; text-align: center;
+  }
+  .rank-tile-icon { font-size: 2.1rem; line-height: 1; margin-bottom: 8px; }
+  .rank-tile-label { font-size: 0.78rem; font-weight: bold; color: #64748b; }
+  .rank-tile-range { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+  .rank-tile-num { font-size: 1.9rem; font-weight: bold; color: #1e293b; margin-top: 4px; }
+  .rank-tile-num .rank-tile-unit { font-size: 0.9rem; font-weight: normal; color: #64748b; margin-left: 2px; }
+  .rank-tile-active { font-size: 0.72rem; color: #16a34a; margin-top: 6px; }
+  .rank-tile-top { background: #fffbeb; border-color: #fde68a; }
   .tile[data-tooltip]:hover::after {
     content: attr(data-tooltip);
     position: absolute; bottom: 100%; left: 0; transform: translateY(-8px);
@@ -148,6 +160,9 @@
       <a href="tickets.html" class="nav-item">
         <i class="fa fa-ticket"></i> チケット設定
       </a>
+      <a href="stamp-pages.html" class="nav-item">
+        <i class="fa fa-stamp"></i> スタンプ帳設定
+      </a>
       <a href="business-hours.html" class="nav-item">
         <i class="fa fa-clock"></i> 営業時間設定
       </a>
@@ -229,6 +244,7 @@
                 </div>
               </div>
             </div>
+            <div class="status-line" id="compare-warning" style="color: #b45309;"></div>
           </div>
 
           <div class="filter-divider"></div>
@@ -266,6 +282,23 @@
             <select id="reg-store-select"><option value="">全店舗</option></select>
           </div>
           <div id="registration-chart"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">アクティブ率の推移<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">
+            会員数（登録者数）は増え続けるのが普通ですが、大切なのは「実際に使ってくれているか」です。
+            月ごとに、その月末時点までの累計会員数に対して、その月に実際にスタンプを押した会員（アクティブ）の割合を表示します。
+            会員数が伸びていてもこの折れ線が下がっている場合、増えた会員が使われていないサインです。
+          </div>
+          <div class="inline-controls no-print">
+            <label>店舗（初回登録店舗）</label>
+            <select id="active-rate-store-select"><option value="">全店舗</option></select>
+          </div>
+          <div class="status-line" id="active-rate-status"></div>
+          <div id="active-rate-chart"></div>
         </div>
       </div>
 
@@ -335,6 +368,18 @@
       </div>
 
       <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">スタンプ帳の保有状況・ステータスランク<span class="scope-tag fixed">📌固定（常に全期間・全店舗）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title" id="stamp-card-progress-status">
+            「スタンプ帳設定」で登録した内容をもとに、会員が今どこまで貯めているか・どのステータスランクにいるかを
+            今この瞬間のスナップショットで表示します（カードは満了すると0に戻って次の1枚が始まる仕様、
+            ステータスランクは累計スタンプ数で判定）。何も登録していないスタンプ帳は表示されません。
+          </div>
+          <div id="stamp-card-progress-sections"></div>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
         <h2 class="card-title"><span class="card-title-text">店舗別内訳<span class="scope-tag linked">🔗連動</span></span></h2>
         <div class="card">
           <div class="card-sub-title">※ チケット利用はログに店舗・スタンプページの情報が無いため、この内訳には含まれません（全体合計は主要指標を参照）</div>
@@ -379,6 +424,14 @@
       </div>
 
       <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">店舗別のリピート来店傾向<span class="scope-tag fixed">📌固定（常に全期間・全店舗）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">会員の生涯の来店パターンを見る指標のため、期間では絞り込まず常に全期間で計算します（短い期間で切ると大半が1回になり、数字が意味を持たなくなるため）。複数店舗を利用する会員は、利用した店舗それぞれでカウントされます。</div>
+          <table class="data-table" id="store-repeat-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
         <h2 class="card-title"><span class="card-title-text">チケット有効性（現在時点）<span class="scope-tag fixed">📌固定（常に「今」の状態）</span></span></h2>
         <div class="card">
           <div class="tile-row" id="ticket-tile-row"></div>
@@ -414,6 +467,29 @@
           </div>
           <div class="status-line" id="expiry-status"></div>
           <table class="data-table" id="expiry-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">スタンプ失効が近い会員（LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">「スタンプ帳設定」で「スタンプ有効期限」を登録したスタンプ帳のうち、指定日数以内に失効する会員を抽出します（まだ失効していない会員のみ）</div>
+          <div class="inline-controls">
+            <label>残り日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="7">7日</button>
+              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="14">14日</button>
+              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="30">30日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="stamp-expiry-days" value="7" min="1" class="effect-window-input">
+            <span class="range-sep">日以内</span>
+            <button class="action-btn secondary" id="stamp-expiry-extract-btn"><i class="fa fa-search"></i> 抽出</button>
+            <button class="action-btn primary" id="stamp-expiry-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+            <button class="action-btn secondary" id="stamp-expiry-lineid-csv-btn" disabled><i class="fa fa-download"></i> LINE IDのみダウンロード</button>
+          </div>
+          <div class="status-line" id="stamp-expiry-status"></div>
+          <table class="data-table" id="stamp-expiry-table"></table>
         </div>
       </div>
 
@@ -545,7 +621,7 @@ function wireQuickButtonGroup(inputId) {
   input.addEventListener('input', syncActive);
   syncActive();
 }
-['expiry-days', 'funnel-window', 'effect-window', 'stamp-trend-days', 'lapsed-min-visits', 'lapsed-days'].forEach(wireQuickButtonGroup);
+['expiry-days', 'stamp-expiry-days', 'funnel-window', 'effect-window', 'stamp-trend-days', 'lapsed-min-visits', 'lapsed-days'].forEach(wireQuickButtonGroup);
 
 funnelWindowInput.addEventListener('input', () => { if (currentClient) renderFunnel(); });
 effectWindowInput.addEventListener('input', () => { if (currentClient) renderEffectTable(); });
@@ -566,6 +642,9 @@ document.querySelectorAll('#reg-granularity-btns .quick-btn').forEach(btn => {
 
 const regStoreSelect = document.getElementById('reg-store-select');
 regStoreSelect.addEventListener('change', () => { if (currentClient) renderRegistrationChart(); });
+
+const activeRateStoreSelect = document.getElementById('active-rate-store-select');
+activeRateStoreSelect.addEventListener('change', () => { if (currentClient) renderActiveRateChart(); });
 
 let stampTrendGranularity = 'day';
 const stampTrendDaysRow = document.getElementById('stamp-trend-days-row');
@@ -706,6 +785,8 @@ function selectClient(index) {
   const regStores = ms ? Array.from(new Set(Object.values(ms.members).map(m => m.storeKey))).sort() : [];
   regStoreSelect.innerHTML = '<option value="">全店舗</option>' +
     regStores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
+  activeRateStoreSelect.innerHTML = '<option value="">全店舗</option>' +
+    regStores.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.split(':').slice(1).join(':') || s)}</option>`).join('');
 
   const { min, to } = getAvailableRange();
   periodFrom.value = toInputDate(min);
@@ -743,6 +824,22 @@ function renderReport() {
   const compFrom = doCompare && compareFrom.value ? new Date(compareFrom.value) : null;
   const compTo = doCompare && compareTo.value ? new Date(compareTo.value) : null;
 
+  // 比較期間がログの取得期間(dateRange)と1日も重ならない場合、その期間の集計は必ず0になる。
+  // 数字だけ見ると「ゼロになった(=減った)」ように誤解されるため、原因をはっきり伝える。
+  // (典型例: データ全期間をそのまま表示しているとき「比較する」を付けると、自動算出される比較期間が
+  //  データの取得開始日より前になり、必ず空になる)
+  const compareWarningEl = document.getElementById('compare-warning');
+  if (doCompare && compFrom && compTo) {
+    const dataMin = currentClient.merged.dateRange.min;
+    const dataMax = currentClient.merged.dateRange.max;
+    const noOverlap = dataMin && dataMax && (compTo < dataMin || compFrom > dataMax);
+    compareWarningEl.textContent = noOverlap
+      ? `⚠️ 比較期間（${toInputDate(compFrom)}〜${toInputDate(compTo)}）にはログデータがありません。このままでは比較の数字がすべて0になります。期間を選び直してください。`
+      : '';
+  } else {
+    compareWarningEl.textContent = '';
+  }
+
   document.getElementById('warnings').innerHTML = currentClient.warnings
     .map(w => `<div class="warn">⚠️ ${escapeHtml(w)}</div>`).join('');
 
@@ -773,6 +870,7 @@ function renderReport() {
 
   const activeUserCount = countActiveUsers(currentClient.merged.stampPushes, from, to, storeKey);
   const compActiveUserCount = doCompare ? countActiveUsers(currentClient.merged.stampPushes, compFrom, compTo, storeKey) : null;
+  const activeRate = ms && ms.total ? (activeUserCount / ms.total * 100) : null;
 
   const tiles = [
     { label: '会員数（内LINE）', num: ms ? `${ms.total.toLocaleString()}（${ms.lineMembers.toLocaleString()}）` : '-',
@@ -781,6 +879,8 @@ function renderReport() {
       tooltip: '会員のうち、退会手続きが完了している人数です。' },
     { label: 'アクティブユーザー数', num: activeUserCount.toLocaleString(), comp: compActiveUserCount, accent: true,
       tooltip: '選択した期間・店舗で、実際に1回以上スタンプを押した会員のユニーク人数です（押下回数ではなく人数）。' },
+    { label: 'アクティブ率', num: activeRate !== null ? `${activeRate.toFixed(1)}%` : '-', accent: true,
+      tooltip: '会員数（全期間の累計登録者数）に対して、選択した期間・店舗で実際にスタンプを押した会員の割合です。会員数が増えてもこの数字が伸びていなければ、「増えているのに使われていない会員」が増えているサインです。' },
     { label: 'スタンプ押下数', num: (counts['スタンプ押下'] || 0).toLocaleString(), comp: compCounts ? (compCounts['スタンプ押下'] || 0) : null,
       tooltip: '選択した期間・店舗でのスタンプ押下の合計回数です（来店のたびに記録されるイベント数）。' },
     { label: 'チケット発行数', num: ticketsIssuedInRange.toLocaleString(), comp: compTicketsIssued,
@@ -793,8 +893,8 @@ function renderReport() {
 
   document.getElementById('tile-row').innerHTML = tiles.map(renderTile).join('');
 
-  const stampPageCounts = Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from, to, storeKey });
-  const compStampPageCounts = doCompare ? Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from: compFrom, to: compTo, storeKey }) : null;
+  const stampPageCounts = filterExcludedStampPages(Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from, to, storeKey }));
+  const compStampPageCounts = doCompare ? filterExcludedStampPages(Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { from: compFrom, to: compTo, storeKey })) : null;
   renderBreakdownTable('stamp-page-table', 'スタンプページ', stampPageCounts, null, null, compStampPageCounts, STAMP_PAGE_BREAKDOWN_COLUMNS);
 
   const storeCounts = Dashboard.Aggregate.queryByStore(currentClient.merged.byDay, { from, to });
@@ -802,12 +902,15 @@ function renderReport() {
   renderBreakdownTable('store-table', '店舗', storeCounts, s => s.split(':').slice(1).join(':') || s, storeKey, compStoreCounts, STORE_BREAKDOWN_COLUMNS);
 
   renderMemberStoreTable();
+  renderStoreRepeatTable();
   renderStoreGapCard();
   renderFunnel();
   renderTrendChart();
   renderRegistrationChart();
+  renderActiveRateChart();
   renderMemberAttributesCard();
   renderStampTrendChart();
+  renderStampCardProgress();
   renderCohortChart();
   renderTicketTrendChart();
 
@@ -882,6 +985,21 @@ const STORE_BREAKDOWN_COLUMNS = ['スタンプ押下', 'チケット発行', 'LI
 // スタンプ帳ごとの押下数: チケット発行は「同じ会員・同じ分のスタンプ押下」から推定して含める
 // (aggregate.js側で付与済み)。チケット利用・LINEログインはこの推定が効かない(相関17%程度)ため除外。
 const STAMP_PAGE_BREAKDOWN_COLUMNS = ['スタンプ押下', 'チケット発行'];
+
+// 「スタンプ帳設定」でデモ検証用など「レポートに含めない」にしたスタンプ帳を、
+// スタンプ帳別の内訳・推移から除外する(チケット設定の除外と同じ考え方)。
+function isStampPageIncluded(page) {
+  const c = (currentClient.stampPageConfig || {})[page];
+  return !c || c.included !== false;
+}
+function filterExcludedStampPages(counts) {
+  const result = {};
+  for (const [page, c] of Object.entries(counts)) {
+    if (isStampPageIncluded(page)) result[page] = c;
+  }
+  return result;
+}
+
 const tableState = {};
 
 function renderBreakdownTable(elId, labelCol, data, formatKey, highlightKey, compData, columns) {
@@ -984,7 +1102,13 @@ function renderTrendChart() {
   const compPoints = dailyMetricPoints(compFrom, compTo, metric, storeKey);
   const n = Math.min(mainPoints.length, compPoints.length);
 
-  noteEl.textContent = mainPoints.length !== compPoints.length
+  const dataMin = currentClient.merged.dateRange.min;
+  const dataMax = currentClient.merged.dateRange.max;
+  const compNoOverlap = dataMin && dataMax && (compTo < dataMin || compFrom > dataMax);
+
+  noteEl.textContent = compNoOverlap
+    ? `⚠️ 比較期間（${toInputDate(compFrom)}〜${toInputDate(compTo)}）にはログデータがなく、比較期間の線は必ず0になります。期間を選び直してください。`
+    : mainPoints.length !== compPoints.length
     ? `※ 選択期間（${mainPoints.length}日）と比較期間（${compPoints.length}日）の日数が異なるため、短い方（${n}日）に揃えて表示しています`
     : '';
 
@@ -1043,9 +1167,32 @@ function renderRegistrationChart() {
   const ms = currentClient.memberSummary;
   if (!ms) { el.innerHTML = ''; return; }
   const storeKey = regStoreSelect.value || null;
-  const src = Dashboard.Aggregate.countRegistrationsByPeriod(ms.members, registrationGranularity, storeKey);
-  const points = Object.keys(src).sort().map(k => ({ label: String(k), value: src[k] }));
-  Dashboard.Charts.renderBarChart(el, points);
+  const src = Dashboard.Aggregate.countRegistrationsByPeriodSplit(ms.members, registrationGranularity, storeKey);
+  const keys = Object.keys(src).sort();
+  Dashboard.Charts.renderStackedBarChart(el, [
+    { label: 'LINE会員', color: '#5a9c1e', points: keys.map(k => ({ label: k, value: src[k].line })) },
+    { label: 'メール認証会員', color: '#2a78d6', points: keys.map(k => ({ label: k, value: src[k].email })) },
+  ]);
+}
+
+function renderActiveRateChart() {
+  const el = document.getElementById('active-rate-chart');
+  const statusEl = document.getElementById('active-rate-status');
+  const ms = currentClient.memberSummary;
+  if (!ms) { el.innerHTML = ''; statusEl.textContent = ''; return; }
+
+  const storeKey = activeRateStoreSelect.value || null;
+  const src = Dashboard.Aggregate.calcMonthlyActiveRate(currentClient.merged.stampPushes, ms.members, storeKey);
+  const months = Object.keys(src).sort();
+
+  if (!months.length) { el.innerHTML = '<div class="chart-empty">データがありません</div>'; statusEl.textContent = ''; return; }
+
+  const latest = src[months[months.length - 1]];
+  statusEl.textContent = `直近の${months[months.length - 1]}: 累計会員数${latest.cumulativeRegistered.toLocaleString()}人のうち、`
+    + `${latest.activeCount.toLocaleString()}人がアクティブ（${(latest.activeRate * 100).toFixed(1)}%）`;
+
+  const points = months.map(m => ({ label: m, value: Math.round(src[m].activeRate * 1000) / 10 }));
+  Dashboard.Charts.renderLineChart(el, points);
 }
 
 const MEMBER_ATTR_AGE_ORDER = ['10代以下', '20代', '30代', '40代', '50代', '60代', '70代以上'];
@@ -1125,7 +1272,7 @@ function renderStampTrendChart() {
   const noteEl = document.getElementById('stamp-trend-note');
   const storeKey = stampTrendStoreSelect.value || null;
 
-  const allPageCounts = Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { storeKey });
+  const allPageCounts = filterExcludedStampPages(Dashboard.Aggregate.queryByStampPage(currentClient.merged.byDay, { storeKey }));
   const pageTotals = Object.entries(allPageCounts)
     .map(([page, counts]) => [page, counts['スタンプ押下'] || 0])
     .filter(([, n]) => n > 0)
@@ -1203,6 +1350,165 @@ function renderStampTrendChart() {
   }
 
   Dashboard.Charts.renderMultiLineChart(el, series);
+}
+
+// 「枚数(何周目か)」はヘビーユーザーほど増えて系列が膨らむので、上位10枚目までは個別の棒にして
+// それ以降は「11枚目以上」にまとめる(datavizスキルの「上位N+その他」の指針に沿う)。
+const STAMP_CARD_NUMBER_TOP_N = 10;
+// 「1枚あたりの個数」が大きいスタンプ帳(例: 310個)だと1個刻みの棒が多すぎて読めなくなるので、
+// 棒の本数がこれを超える場合は範囲(ビン)にまとめる。ただし「満了ちょうど」は会員が実際に
+// カードを完走した重要な区切りなので、範囲にまとめず常に独立した棒として残す。
+// 奇数にしておくと、棒グラフ側の目盛り間引き(2本に1本)が最後の棒とちょうど重なって、
+// X軸ラベルが隣同士でぶつからずに済む(偶数だと最後の2本のラベルが重なることがある)。
+const STAMP_CURRENT_COUNT_MAX_BARS = 15;
+
+function bucketStampCurrentCounts(byCurrentCount, stampsPerCard) {
+  if (stampsPerCard <= STAMP_CURRENT_COUNT_MAX_BARS) {
+    const points = [];
+    for (let i = 1; i <= stampsPerCard; i++) {
+      points.push({ label: i === stampsPerCard ? `${i}個(満了)` : `${i}個`, value: byCurrentCount[i] || 0 });
+    }
+    return points;
+  }
+
+  const completedCount = byCurrentCount[stampsPerCard] || 0;
+  const binCount = STAMP_CURRENT_COUNT_MAX_BARS - 1;
+  const binSize = Math.ceil((stampsPerCard - 1) / binCount);
+  const points = [];
+  for (let start = 1; start < stampsPerCard; start += binSize) {
+    const end = Math.min(start + binSize - 1, stampsPerCard - 1);
+    let sum = 0;
+    for (let i = start; i <= end; i++) sum += byCurrentCount[i] || 0;
+    points.push({ label: start === end ? `${start}個` : `${start}〜${end}個`, value: sum });
+  }
+  points.push({ label: `${stampsPerCard}個(満了)`, value: completedCount });
+  return points;
+}
+
+function renderStampCardProgress() {
+  const sectionsEl = document.getElementById('stamp-card-progress-sections');
+  const statusEl = document.getElementById('stamp-card-progress-status');
+  const config = currentClient.stampPageConfig || {};
+  const progress = Dashboard.Aggregate.calcStampCardProgress(currentClient.merged.stampPushes, config);
+  const rankDist = Dashboard.Aggregate.calcMemberRankDistribution(currentClient.merged.stampPushes, config);
+
+  const pages = Array.from(new Set([...Object.keys(progress), ...Object.keys(rankDist)]))
+    .filter(isStampPageIncluded)
+    .sort((a, b) => {
+      const countA = (progress[a] || rankDist[a]).memberCount;
+      const countB = (progress[b] || rankDist[b]).memberCount;
+      return countB - countA;
+    });
+
+  if (!pages.length) {
+    sectionsEl.innerHTML = '';
+    statusEl.textContent = '「スタンプ帳設定」で「1枚あたりのスタンプ個数」またはステータスランクを登録すると、ここに表示されます。';
+    return;
+  }
+
+  sectionsEl.innerHTML = pages.map((page, idx) => {
+    const cardInfo = progress[page];
+    const rankInfo = rankDist[page];
+    const memberCount = (cardInfo || rankInfo).memberCount;
+    return `
+    <div style="margin-top: 24px;">
+      <div style="font-size: 0.85rem; font-weight: bold; color: #334155; margin-bottom: 4px;">
+        ${escapeHtml(page)}${cardInfo ? `（1枚あたり${cardInfo.stampsPerCard}個）` : ''}（対象${memberCount.toLocaleString()}人）
+      </div>
+      ${cardInfo ? `
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; margin-top: 12px;">
+        <div style="flex: 1; min-width: 280px;">
+          <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 6px;">保有スタンプ数別の会員数（満了ちょうどは満了数として計上）</div>
+          <div id="stamp-card-current-${idx}"></div>
+        </div>
+        ${cardInfo.stampsPerCard > 1 ? `
+        <div style="flex: 1; min-width: 280px;">
+          <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 6px;">何枚目か別の会員数</div>
+          <div id="stamp-card-number-${idx}"></div>
+        </div>` : ''}
+      </div>` : ''}
+      ${rankInfo ? `
+      <div style="margin-top: ${cardInfo ? '20px' : '12px'};">
+        <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 6px;">ステータスランク別の会員数（緑文字は直近${rankInfo.activeDays}日以内に来店したアクティブな人数）</div>
+        <div class="rank-tile-row" id="stamp-rank-dist-${idx}"></div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  statusEl.textContent = '「スタンプ帳設定」で登録した内容をもとに、会員が今どこまで貯めているか・どのステータスランクにいるかを'
+    + '今この瞬間のスナップショットで表示します（カードは満了すると0に戻って次の1枚が始まる仕様、'
+    + 'ステータスランクは累計スタンプ数で判定）。何も登録していないスタンプ帳は表示されません。';
+
+  pages.forEach((page, idx) => {
+    const cardInfo = progress[page];
+    if (cardInfo) {
+      const currentPoints = bucketStampCurrentCounts(cardInfo.byCurrentCount, cardInfo.stampsPerCard);
+      renderCountsAsChartOrTiles(`stamp-card-current-${idx}`, currentPoints);
+
+      // 1枚あたり1個の場合、「何枚目か」は実質「総来店回数」と同じ意味になり、
+      // 常に1個(満了)にしかならない「保有スタンプ数別」と並べても新しい情報が増えないため表示しない。
+      if (cardInfo.stampsPerCard > 1) {
+        const maxCardNumber = Math.max(...Object.keys(cardInfo.byCardNumber).map(Number));
+        const cardNumberPoints = [];
+        let otherCount = 0;
+        for (let i = 1; i <= maxCardNumber; i++) {
+          const count = cardInfo.byCardNumber[i] || 0;
+          if (i <= STAMP_CARD_NUMBER_TOP_N) cardNumberPoints.push({ label: `${i}枚目`, value: count });
+          else otherCount += count;
+        }
+        if (otherCount > 0) cardNumberPoints.push({ label: `${STAMP_CARD_NUMBER_TOP_N + 1}枚目以上`, value: otherCount });
+        renderCountsAsChartOrTiles(`stamp-card-number-${idx}`, cardNumberPoints);
+      }
+    }
+
+    const rankInfo = rankDist[page];
+    if (rankInfo) renderRankTiles(`stamp-rank-dist-${idx}`, rankInfo.ranks);
+  });
+}
+
+// 区分が少ない(例: 1枚あたりのスタンプ個数が1〜3個しかない)と、棒グラフは棒が1〜3本しかなく
+// かえって分かりにくいので、主要指標と同じ「タイル表示」に切り替える。区分が多いときだけ
+// 棒グラフのまま(相対比較には棒グラフの方が向くため)。
+const COUNT_CHART_TILE_THRESHOLD = 3;
+function renderCountsAsChartOrTiles(elId, points) {
+  const el = document.getElementById(elId);
+  if (points.length <= COUNT_CHART_TILE_THRESHOLD) {
+    el.innerHTML = `<div class="tile-row">${points.map(p => `
+      <div class="tile">
+        <div class="tile-label">${escapeHtml(p.label)}</div>
+        <div class="tile-num">${p.value.toLocaleString()}<span style="font-size:0.9rem; font-weight:normal; color:#64748b; margin-left:2px;">人</span></div>
+      </div>`).join('')}</div>`;
+  } else {
+    Dashboard.Charts.renderBarChart(el, points);
+  }
+}
+
+// ランク名によく出てくる言葉からアイコンを選ぶ。どれにも当てはまらない独自の名称は、
+// 下から上への定番の進行(🔰→🥉→🥈→🥇→💎→👑)で順位に応じたアイコンにフォールバックする。
+const RANK_ORDER_ICON_FALLBACK = ['🔰', '🥉', '🥈', '🥇', '💎', '👑'];
+function pickRankIcon(name, order) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('ブロンズ') || n.includes('bronze')) return '🥉';
+  if (n.includes('シルバー') || n.includes('silver')) return '🥈';
+  if (n.includes('ゴールド') || n.includes('gold')) return '🥇';
+  if (n.includes('プラチナ') || n.includes('platinum')) return '💠';
+  if (n.includes('ダイヤ') || n.includes('diamond')) return '💎';
+  if (n.includes('vip') || n.includes('ロイヤル') || n.includes('royal')) return '👑';
+  if (n.includes('スタンダード') || n.includes('standard') || n.includes('ノーマル') || n.includes('normal') || n.includes('エントリー')) return '🔰';
+  return RANK_ORDER_ICON_FALLBACK[Math.min(order - 1, RANK_ORDER_ICON_FALLBACK.length - 1)];
+}
+
+function renderRankTiles(elId, ranks) {
+  const el = document.getElementById(elId);
+  const topOrder = ranks.length;
+  el.innerHTML = ranks.map(r => `
+    <div class="rank-tile${r.order === topOrder ? ' rank-tile-top' : ''}">
+      <div class="rank-tile-icon">${pickRankIcon(r.name, r.order)}</div>
+      <div class="rank-tile-label">${escapeHtml(r.name)}</div>
+      <div class="rank-tile-range">${r.min.toLocaleString()}〜${r.max !== null ? r.max.toLocaleString() : ''}個</div>
+      <div class="rank-tile-num">${r.count.toLocaleString()}<span class="rank-tile-unit">人</span></div>
+      <div class="rank-tile-active">うちアクティブ ${r.activeCount.toLocaleString()}人</div>
+    </div>`).join('');
 }
 
 function renderCohortChart() {
@@ -1292,6 +1598,57 @@ function renderMemberStoreTable() {
         memberStoreTableSort.dir = key === 'label' ? 'asc' : 'desc';
       }
       renderMemberStoreTable();
+    });
+  });
+}
+
+const storeRepeatTableSort = { col: 'avgPushPerMember', dir: 'desc' };
+
+function renderStoreRepeatTable() {
+  const el = document.getElementById('store-repeat-table');
+  const stats = Dashboard.Aggregate.calcStoreRepeatStats(currentClient.merged.stampPushes);
+  const rows = Object.entries(stats).map(([store, info]) => ({
+    store,
+    label: store.split(':').slice(1).join(':') || store,
+    ...info,
+  }));
+
+  if (!rows.length) { el.innerHTML = '<tr><td>データなし</td></tr>'; return; }
+
+  const { col, dir } = storeRepeatTableSort;
+  rows.sort((a, b) => {
+    const av = col === 'label' ? a.label : a[col];
+    const bv = col === 'label' ? b.label : b[col];
+    if (col === 'label') return dir === 'asc' ? av.localeCompare(bv, 'ja') : bv.localeCompare(av, 'ja');
+    return dir === 'asc' ? av - bv : bv - av;
+  });
+
+  function th(key, label) {
+    const active = key === col;
+    const arrow = active ? (dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th class="sortable-th${active ? ' active' : ''}" data-sort-key="${key}">${escapeHtml(label)}${arrow}</th>`;
+  }
+
+  el.innerHTML = `
+    <tr>${th('label', '店舗')}${th('memberCount', '会員数')}${th('totalPushCount', 'スタンプ押下合計')}${th('avgPushPerMember', '平均来店回数')}${th('repeatRate', '複数回来店率')}</tr>
+    ${rows.map(r => `<tr>
+      <td>${escapeHtml(r.label)}</td>
+      <td>${r.memberCount.toLocaleString()}</td>
+      <td>${r.totalPushCount.toLocaleString()}</td>
+      <td>${r.avgPushPerMember.toFixed(1)}回</td>
+      <td>${(r.repeatRate * 100).toFixed(1)}%</td>
+    </tr>`).join('')}`;
+
+  el.querySelectorAll('th.sortable-th').forEach(thEl => {
+    thEl.addEventListener('click', () => {
+      const key = thEl.dataset.sortKey;
+      if (storeRepeatTableSort.col === key) {
+        storeRepeatTableSort.dir = storeRepeatTableSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        storeRepeatTableSort.col = key;
+        storeRepeatTableSort.dir = key === 'label' ? 'asc' : 'desc';
+      }
+      renderStoreRepeatTable();
     });
   });
 }
@@ -1468,6 +1825,71 @@ expiryLineIdCsvBtn.addEventListener('click', () => {
   if (!lineIds.length) return;
   downloadCsv(
     `チケット有効期限間近_LINEID_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['LINE ID'],
+    lineIds.map(id => [id])
+  );
+});
+
+const stampExpiryDaysInput = document.getElementById('stamp-expiry-days');
+const stampExpiryCsvBtn = document.getElementById('stamp-expiry-csv-btn');
+const stampExpiryLineIdCsvBtn = document.getElementById('stamp-expiry-lineid-csv-btn');
+let lastExpiringStamps = [];
+
+document.getElementById('stamp-expiry-extract-btn').addEventListener('click', () => {
+  const thresholdDays = Number(stampExpiryDaysInput.value) || 7;
+  const expiringByPage = Dashboard.Aggregate.listStampExpiringSoon(
+    currentClient.merged.stampPushes, currentClient.stampPageConfig || {}, thresholdDays, new Date()
+  );
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+
+  lastExpiringStamps = Object.entries(expiringByPage)
+    .flatMap(([page, list]) => list.map(m => ({
+      ...m,
+      page,
+      lineId: members[m.memberId] ? members[m.memberId].lineId : null,
+    })))
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+  const statusEl2 = document.getElementById('stamp-expiry-status');
+  const el = document.getElementById('stamp-expiry-table');
+
+  if (!lastExpiringStamps.length) {
+    statusEl2.textContent = `${thresholdDays}日以内に失効するスタンプはありませんでした（「スタンプ帳設定」でスタンプ有効期限が登録されている必要があります）。`;
+    el.innerHTML = '';
+    stampExpiryCsvBtn.disabled = true;
+    stampExpiryLineIdCsvBtn.disabled = true;
+    return;
+  }
+
+  statusEl2.textContent = `${lastExpiringStamps.length}件 該当（うちLINE ID取得できたもの: ${lastExpiringStamps.filter(m => m.lineId).length}件）`;
+  el.innerHTML = `
+    <tr><th>スタンプ帳名称</th><th>会員ID</th><th>LINE ID</th><th>最終来店日</th><th>残り日数</th><th>失効予定日</th></tr>
+    ${lastExpiringStamps.map(m => `<tr>
+      <td>${escapeHtml(m.page)}</td>
+      <td>${escapeHtml(m.memberId)}</td>
+      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${formatLocalDate(m.lastPushAt)}</td>
+      <td>${m.daysRemaining}</td>
+      <td>${formatLocalDate(m.expiresAt)}</td>
+    </tr>`).join('')}`;
+  stampExpiryCsvBtn.disabled = false;
+  stampExpiryLineIdCsvBtn.disabled = !lastExpiringStamps.some(m => m.lineId);
+});
+
+stampExpiryCsvBtn.addEventListener('click', () => {
+  if (!lastExpiringStamps.length) return;
+  downloadCsv(
+    `スタンプ失効間近_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['スタンプ帳名称', '会員ID', 'LINE ID', '最終来店日', '残り日数', '失効予定日'],
+    lastExpiringStamps.map(m => [m.page, m.memberId, m.lineId || '', formatLocalDate(m.lastPushAt), m.daysRemaining, formatLocalDate(m.expiresAt)])
+  );
+});
+
+stampExpiryLineIdCsvBtn.addEventListener('click', () => {
+  const lineIds = Array.from(new Set(lastExpiringStamps.map(m => m.lineId).filter(Boolean)));
+  if (!lineIds.length) return;
+  downloadCsv(
+    `スタンプ失効間近_LINEID_${currentClient.name}_${toInputDate(new Date())}.csv`,
     ['LINE ID'],
     lineIds.map(id => [id])
   );

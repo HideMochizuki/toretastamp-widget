@@ -203,6 +203,121 @@ window.Dashboard.Charts = (function () {
     container.appendChild(svg);
   }
 
+  // 積み上げ棒グラフ(例: 会員登録者数のLINE会員/メール認証会員の内訳)。
+  // series: [{ label, color, points: [{label, value}] }]。全seriesのpointsはラベルが揃っている前提。
+  function renderStackedBarChart(container, series) {
+    container.innerHTML = '';
+    const pointCount = series[0] ? series[0].points.length : 0;
+    if (!pointCount) { container.innerHTML = '<div class="chart-empty">データがありません</div>'; return; }
+
+    const width = 800, height = 260;
+    const padL = 48, padR = 16, padT = 16, padB = 36;
+    const plotW = width - padL - padR, plotH = height - padT - padB;
+
+    const totals = series[0].points.map((_, i) => series.reduce((sum, s) => sum + (s.points[i].value || 0), 0));
+    const maxVal = niceMax(Math.max(...totals, 1));
+    const yAt = v => padT + plotH - (v / maxVal) * plotH;
+
+    const slot = plotW / pointCount;
+    const barW = Math.min(24, slot * 0.6);
+    const labels = series[0].points.map(p => p.label);
+
+    const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, style: 'display:block; width:100%; height:auto;' });
+
+    const gridCount = 4;
+    for (let g = 0; g <= gridCount; g++) {
+      const v = (maxVal / gridCount) * g;
+      const y = yAt(v);
+      svg.appendChild(el('line', { x1: padL, x2: width - padR, y1: y, y2: y, stroke: GRID, 'stroke-width': 1 }));
+      const label = el('text', { x: padL - 8, y: y + 4, 'text-anchor': 'end', 'font-size': 11, fill: TEXT_MUTED });
+      label.textContent = formatNum(Math.round(v));
+      svg.appendChild(label);
+    }
+    svg.appendChild(el('line', { x1: padL, x2: width - padR, y1: padT + plotH, y2: padT + plotH, stroke: AXIS, 'stroke-width': 1 }));
+
+    const tickEvery = Math.max(1, Math.ceil(pointCount / 10));
+    const tip = ensureTooltip(container);
+
+    for (let i = 0; i < pointCount; i++) {
+      const cx = padL + slot * i + slot / 2;
+      let cumulative = 0;
+      const segments = series.map(s => {
+        const v = s.points[i].value || 0;
+        const seg = { s, v, from: cumulative, to: cumulative + v };
+        cumulative += v;
+        return seg;
+      });
+      const total = cumulative;
+
+      const rects = [];
+      segments.forEach(seg => {
+        if (seg.v <= 0) return;
+        const y1 = yAt(seg.to), y2 = yAt(seg.from);
+        const rect = el('rect', {
+          x: cx - barW / 2, y: y1, width: barW, height: Math.max(y2 - y1, 1),
+          fill: seg.s.color, style: 'cursor:pointer;',
+        });
+        rects.push(rect);
+        svg.appendChild(rect);
+      });
+
+      const hit = el('rect', { x: cx - slot / 2, y: padT, width: slot, height: plotH, fill: 'transparent' });
+
+      function show() {
+        rects.forEach(r => r.setAttribute('opacity', 0.8));
+        tip.innerHTML = '';
+        const title = document.createElement('div');
+        title.style.fontWeight = 'bold';
+        title.textContent = labels[i];
+        tip.appendChild(title);
+        segments.forEach(seg => {
+          const row = document.createElement('div');
+          row.textContent = `${seg.s.label}: ${formatNum(seg.v)}`;
+          tip.appendChild(row);
+        });
+        const totalRow = document.createElement('div');
+        totalRow.textContent = `合計: ${formatNum(total)}`;
+        tip.appendChild(totalRow);
+        tip.style.display = '';
+        const rectBox = svg.getBoundingClientRect();
+        tip.style.left = Math.min(rectBox.width - 140, Math.max(0, (cx / width) * rectBox.width - 50)) + 'px';
+        tip.style.top = Math.max(0, (yAt(total) / height) * rectBox.height - 30) + 'px';
+      }
+      function hide() {
+        rects.forEach(r => r.setAttribute('opacity', 1));
+        tip.style.display = 'none';
+      }
+      hit.addEventListener('pointerenter', show);
+      hit.addEventListener('pointermove', show);
+      hit.addEventListener('pointerleave', hide);
+      svg.appendChild(hit);
+
+      if (i % tickEvery === 0 || i === pointCount - 1) {
+        const label = el('text', { x: cx, y: height - 14, 'text-anchor': 'middle', 'font-size': 11, fill: TEXT_MUTED });
+        label.textContent = labels[i];
+        svg.appendChild(label);
+      }
+    }
+
+    container.appendChild(svg);
+
+    // 凡例(2系列以上は凡例必須)
+    const legend = document.createElement('div');
+    legend.style.cssText = `display:flex; flex-wrap:wrap; gap:6px 16px; justify-content:center; margin-top:10px; font-size:11px; color:${TEXT_SECONDARY};`;
+    series.forEach(s => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; gap:4px;';
+      const swatch = document.createElement('span');
+      swatch.style.cssText = `display:inline-block; width:10px; height:10px; border-radius:2px; background:${s.color};`;
+      const text = document.createElement('span');
+      text.textContent = s.label;
+      item.appendChild(swatch);
+      item.appendChild(text);
+      legend.appendChild(item);
+    });
+    container.appendChild(legend);
+  }
+
   // 複数系列の折れ線(例: チケットの発行/利用/有効/失効)。凡例と、全系列の値を1つにまとめた
   // ツールチップを出す(2系列以上では凡例が必須、かつ1つのツールチップで全系列の値を見せる、という
   // データビジュアライゼーションの基本に沿っている)。系列ごとにX軸のlabelは揃っている前提。
@@ -427,5 +542,5 @@ window.Dashboard.Charts = (function () {
     container.appendChild(legend);
   }
 
-  return { renderLineChart, renderBarChart, renderHBarChart, renderPieChart, renderMultiLineChart };
+  return { renderLineChart, renderBarChart, renderStackedBarChart, renderHBarChart, renderPieChart, renderMultiLineChart };
 })();

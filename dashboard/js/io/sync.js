@@ -16,11 +16,13 @@ window.Dashboard.Sync = (function () {
   const CONFIG_FILE = 'tickets.json';
   const BUSINESS_HOURS_FILE = 'business-hours.json';
   const TEST_MEMBERS_FILE = 'test-members.json';
+  const STAMP_PAGE_CONFIG_FILE = 'stamp-pages.json';
   // aggregate.js の出力構造を変えたときはこれを上げる。古いバージョンのキャッシュは
   // 中身を信用せず、空として扱って全ファイルを再集計する(でないと新旧の構造が混ざって壊れる)。
   // ※ util.js の日時パース処理(ハイフン区切り対応)の不具合修正に伴い、修正前に空集計のまま
   //   キャッシュされてしまったクライアントがいるため、ここも上げて強制的に再集計させる。
-  const CACHE_SCHEMA_VERSION = 11;
+  // v12: stampPushes各行に stampPage(スタンプページ名称) を付与(スタンプ帳の保有状況カードで使用)。
+  const CACHE_SCHEMA_VERSION = 12;
 
   function isAccessLogFile(name) {
     return /^すべてのログ/.test(name) && /\.csv$/i.test(name);
@@ -60,6 +62,18 @@ window.Dashboard.Sync = (function () {
   async function saveTicketConfig(clientDirHandle, config) {
     const configDir = await FS.getOrCreateSubdirectory(clientDirHandle, CONFIG_DIR);
     await FS.writeJsonFile(configDir, CONFIG_FILE, config);
+  }
+
+  // スタンプ帳(スタンプページ)ごとの設定。{ "<スタンプページ名称>": { included, stampsPerCard } } の形。
+  // included=false のスタンプ帳は、レポート側のスタンプ帳別の内訳・推移から除外する(デモ検証用など)。
+  async function loadStampPageConfig(clientDirHandle) {
+    const configDir = await FS.getOrCreateSubdirectory(clientDirHandle, CONFIG_DIR);
+    return (await FS.readJsonFile(configDir, STAMP_PAGE_CONFIG_FILE)) || {};
+  }
+
+  async function saveStampPageConfig(clientDirHandle, config) {
+    const configDir = await FS.getOrCreateSubdirectory(clientDirHandle, CONFIG_DIR);
+    await FS.writeJsonFile(configDir, STAMP_PAGE_CONFIG_FILE, config);
   }
 
   async function loadBusinessHoursConfig(clientDirHandle) {
@@ -210,6 +224,7 @@ window.Dashboard.Sync = (function () {
     const merged = Agg.mergeMonthlyAggregates(monthlyAggregates);
     const ticketLedger = Agg.buildTicketLedger(merged.ticketIssued, merged.ticketUsed);
     const ticketConfig = await loadTicketConfig(clientDirHandle);
+    const stampPageConfig = await loadStampPageConfig(clientDirHandle);
     const businessHoursConfig = await loadBusinessHoursConfig(clientDirHandle);
 
     const memberSummaries = Object.values(cache.memberListFiles).map(e => e.summary);
@@ -223,6 +238,7 @@ window.Dashboard.Sync = (function () {
       merged,
       ticketLedger,
       ticketConfig,
+      stampPageConfig,
       businessHoursConfig,
       testMemberConfig,
       memberSummary,
@@ -242,6 +258,7 @@ window.Dashboard.Sync = (function () {
   return {
     syncAllClients, syncClientFolder,
     loadTicketConfig, saveTicketConfig,
+    loadStampPageConfig, saveStampPageConfig,
     loadBusinessHoursConfig, saveBusinessHoursConfig,
     loadTestMemberConfig, saveTestMemberConfig,
   };

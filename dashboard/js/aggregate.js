@@ -99,7 +99,7 @@ window.Dashboard.Aggregate = (function () {
         result.pageViews.push({ memberId, at: dt.toISOString() });
       }
       if (memberId && event === 'スタンプ押下') {
-        result.stampPushes.push({ memberId, at: dt.toISOString(), storeKey });
+        result.stampPushes.push({ memberId, at: dt.toISOString(), storeKey, stampPage });
       }
 
       // メッセージ配信/配信ユーザー行、およびそこから発生した行動には同じID(通常配信ID or リッチメッセージID)が
@@ -257,6 +257,14 @@ window.Dashboard.Aggregate = (function () {
     const set = new Set();
     for (const bucket of Object.values(byDay)) {
       for (const s of Object.keys(bucket.byStore)) set.add(s);
+    }
+    return Array.from(set).sort();
+  }
+
+  function listStampPages(byDay) {
+    const set = new Set();
+    for (const bucket of Object.values(byDay)) {
+      for (const p of Object.keys(bucket.byStampPage)) set.add(p);
     }
     return Array.from(set).sort();
   }
@@ -432,6 +440,61 @@ window.Dashboard.Aggregate = (function () {
     return result;
   }
 
+  // countRegistrationsByPeriodと同じ集計を、LINE会員(LINE IDあり)とメール認証会員(LINE IDなし)の
+  // 内訳付きで出す(会員登録者数の推移グラフで、LINE/メールの割合を積み上げ棒で見せる用)。
+  function countRegistrationsByPeriodSplit(members, granularity, storeKey) {
+    const result = {};
+    for (const m of Object.values(members)) {
+      if (storeKey && m.storeKey !== storeKey) continue;
+      if (!m.registeredAt) continue;
+      const d = new Date(m.registeredAt);
+      const key = granularity === 'day' ? U.toDayKey(d)
+        : granularity === 'year' ? String(d.getFullYear())
+        : U.toMonthKey(d);
+      const bucket = result[key] = result[key] || { line: 0, email: 0 };
+      if (m.lineId) bucket.line += 1; else bucket.email += 1;
+    }
+    return result;
+  }
+
+  // 月ごとに「その月末時点までの累計会員数」に対する「その月にスタンプを押した会員数(アクティブ)」の
+  // 割合を計算する。会員数は増え続けても、実際に使われているか(アクティブ率)が伴っているかを見るための指標
+  // (会員数の増加だけを見て安心してしまう、という事業者の思い込みに気づいてもらうための数字)。
+  function calcMonthlyActiveRate(stampPushes, members, storeKey) {
+    const registrationMonths = Object.values(members)
+      .filter(m => m.registeredAt && (!storeKey || m.storeKey === storeKey))
+      .map(m => U.toMonthKey(new Date(m.registeredAt)))
+      .sort();
+
+    const activeByMonth = {};
+    for (const p of stampPushes) {
+      if (!p.memberId) continue;
+      if (storeKey && p.storeKey !== storeKey) continue;
+      const month = U.toMonthKey(new Date(p.at));
+      const set = activeByMonth[month] = activeByMonth[month] || new Set();
+      set.add(p.memberId);
+    }
+
+    const months = Array.from(new Set([...registrationMonths, ...Object.keys(activeByMonth)])).sort();
+
+    const result = {};
+    let cumulativeRegistered = 0;
+    let regIdx = 0;
+    for (const month of months) {
+      while (regIdx < registrationMonths.length && registrationMonths[regIdx] <= month) {
+        cumulativeRegistered += 1;
+        regIdx += 1;
+      }
+      const activeCount = activeByMonth[month] ? activeByMonth[month].size : 0;
+      result[month] = {
+        cumulativeRegistered,
+        activeCount,
+        activeRate: cumulativeRegistered ? activeCount / cumulativeRegistered : 0,
+      };
+    }
+    return result;
+  }
+
   // 店舗ごと・月ごとの会員登録数を1回の走査でまとめる。「会員登録された店舗」の表で
   // 当月・先月の登録数を店舗別に出す用(countRegistrationsByPeriodを店舗の数だけ呼ぶと
   // 走査がO(店舗数×会員数)になってしまうため、専用に1回の走査で集計する)。
@@ -475,6 +538,158 @@ window.Dashboard.Aggregate = (function () {
     }
 
     return results.sort((a, b) => b.pushCount - a.pushCount);
+  }
+
+  // スタンプ帳ごとに「今、会員が何個目まで貯めているか(保有スタンプ数)」「今何枚目のカードか」の
+  // 分布を数える(現在のスナップショット。全期間・全店舗が対象で、期間や店舗の絞り込みはしない)。
+  // 「1枚あたりの個数」に達するとカウントは0に戻って次の1枚が始まる(=カードが満了してチケット発行)
+  // という仕様を前提にしている。ちょうど満了した会員は「次の1枚の0個」ではなく「その枚の満了(=個数ぴったり)」
+  // として数える(「0個」という誰も気にしない区分より、「満了した」区分の方がファネルとして意味を持つため)。
+  // 「1枚あたりの個数」が未登録のスタンプ帳は枚数の境目が分からないため計算できず、結果に含まれない。
+  function calcStampCardProgress(stampPushes, stampPageConfig) {
+    const totalsByPageMember = {};
+    for (const p of stampPushes) {
+      if (!p.memberId || !p.stampPage) continue;
+      const byMember = totalsByPageMember[p.stampPage] = totalsByPageMember[p.stampPage] || {};
+      byMember[p.memberId] = (byMember[p.memberId] || 0) + 1;
+    }
+
+    const result = {};
+    for (const [page, byMember] of Object.entries(totalsByPageMember)) {
+      const config = stampPageConfig[page] || {};
+      const stampsPerCard = Number(config.stampsPerCard) || null;
+      if (!stampsPerCard) continue;
+
+      const byCurrentCount = {};
+      const byCardNumber = {};
+      for (const total of Object.values(byMember)) {
+        const current = total % stampsPerCard || stampsPerCard;
+        const cardNumber = Math.ceil(total / stampsPerCard);
+        bump(byCurrentCount, current);
+        bump(byCardNumber, cardNumber);
+      }
+
+      result[page] = {
+        stampsPerCard,
+        memberCount: Object.keys(byMember).length,
+        byCurrentCount,
+        byCardNumber,
+      };
+    }
+    return result;
+  }
+
+  // 「スタンプ帳設定」で登録したステータスランク(累計スタンプ数に基づく会員ランク)ごとに、
+  // 今何人の会員がそのランクにいるかを数える(現在のスナップショット。カードの保有数と違い、
+  // こちらは一度貯めたら減らない「累計」のスタンプ数で判定する)。
+  // ランクはエントリー(下限0)側から順に1位・2位…と並べる(「このランクは何段階中何番目か」が分かるように)。
+  // activeDays: 「直近N日以内にスタンプを押した会員」をそのランクの「アクティブ」として数える
+  // (ランク自体は累計スタンプ数という生涯の実績で決まるが、そのランクの会員が今も通ってくれているかは
+  // 別の話のため、両方を出す)。asOfDateは基準日(省略時は現在時刻)。
+  function calcMemberRankDistribution(stampPushes, stampPageConfig, asOfDate, activeDays) {
+    const asOf = asOfDate || new Date();
+    const activeWindow = activeDays || 30;
+
+    const totalsByPageMember = {};
+    const lastPushByPageMember = {};
+    for (const p of stampPushes) {
+      if (!p.memberId || !p.stampPage) continue;
+      const byMember = totalsByPageMember[p.stampPage] = totalsByPageMember[p.stampPage] || {};
+      byMember[p.memberId] = (byMember[p.memberId] || 0) + 1;
+
+      const lastByMember = lastPushByPageMember[p.stampPage] = lastPushByPageMember[p.stampPage] || {};
+      const at = new Date(p.at);
+      if (!lastByMember[p.memberId] || at > lastByMember[p.memberId]) lastByMember[p.memberId] = at;
+    }
+
+    const result = {};
+    for (const [page, byMember] of Object.entries(totalsByPageMember)) {
+      const config = stampPageConfig[page] || {};
+      if (!config.statusEnabled || !config.ranks || !config.ranks.length) continue;
+
+      let nextMin = 0;
+      const bounds = config.ranks.map((r, i) => {
+        const isLast = i === config.ranks.length - 1;
+        const min = nextMin;
+        const max = (!isLast && r.max !== null && r.max !== undefined) ? Number(r.max) : Infinity;
+        nextMin = max + 1;
+        return { name: r.name || `ランク${i + 1}`, order: i + 1, min, max };
+      });
+
+      const counts = bounds.map(() => 0);
+      const activeCounts = bounds.map(() => 0);
+      const lastByMember = lastPushByPageMember[page] || {};
+      for (const [memberId, total] of Object.entries(byMember)) {
+        let idx = bounds.findIndex(b => total >= b.min && total <= b.max);
+        if (idx === -1) idx = bounds.length - 1;
+        counts[idx] += 1;
+        if (U.diffDays(lastByMember[memberId], asOf) <= activeWindow) activeCounts[idx] += 1;
+      }
+
+      result[page] = {
+        memberCount: Object.keys(byMember).length,
+        activeDays: activeWindow,
+        ranks: bounds.map((b, i) => ({
+          name: b.name, order: b.order, min: b.min, max: b.max === Infinity ? null : b.max,
+          count: counts[i], activeCount: activeCounts[i],
+        })),
+      };
+    }
+    return result;
+  }
+
+  // 「スタンプ帳設定」の「スタンプ有効期限」をもとに、まもなくスタンプが失効する会員を抽出する。
+  // type='last_push': 最終押下日+days(来店のたびに延びる、よくある「休眠で失効」のパターン)。
+  // type='first_push'かつperPage=false: 生涯で最初の押下日+days(1回きりの期限、延長されない)。
+  // type='first_push'かつperPage=true: 今の周回(カード)が始まった日+days
+  //   (「1枚あたりの個数」を使って、今の保有数ぶん遡った押下日時を周回の開始日とみなす。
+  //    calcStampCardProgressの「保有数」の考え方と揃えている)。
+  // thresholdDays以内に失効する(まだ失効していない)会員だけを、スタンプ帳ごとにまとめて返す。
+  function listStampExpiringSoon(stampPushes, stampPageConfig, thresholdDays, asOfDate) {
+    const asOf = asOfDate || new Date();
+
+    const byPageMember = {};
+    for (const p of stampPushes) {
+      if (!p.memberId || !p.stampPage) continue;
+      const byMember = byPageMember[p.stampPage] = byPageMember[p.stampPage] || {};
+      const list = byMember[p.memberId] = byMember[p.memberId] || [];
+      list.push(new Date(p.at));
+    }
+
+    const result = {};
+    for (const [page, byMember] of Object.entries(byPageMember)) {
+      const config = stampPageConfig[page] || {};
+      const expiry = config.expiry;
+      if (!expiry || expiry.type === 'none' || !expiry.days) continue;
+
+      const members = [];
+      for (const [memberId, datesRaw] of Object.entries(byMember)) {
+        const dates = datesRaw.slice().sort((a, b) => a - b);
+        const firstAt = dates[0];
+        const lastAt = dates[dates.length - 1];
+
+        let baseAt;
+        if (expiry.type === 'last_push') {
+          baseAt = lastAt;
+        } else if (expiry.perPage && config.stampsPerCard) {
+          const stampsPerCard = Number(config.stampsPerCard);
+          const currentCount = dates.length % stampsPerCard || stampsPerCard;
+          baseAt = dates[dates.length - currentCount];
+        } else {
+          baseAt = firstAt;
+        }
+
+        const expiresAt = new Date(baseAt);
+        expiresAt.setDate(expiresAt.getDate() + Number(expiry.days));
+        const daysRemaining = U.diffDays(asOf, expiresAt);
+        if (daysRemaining < 0 || daysRemaining > thresholdDays) continue;
+
+        members.push({ memberId, lastPushAt: lastAt.toISOString(), expiresAt: expiresAt.toISOString(), daysRemaining });
+      }
+
+      if (members.length) result[page] = members.sort((a, b) => a.daysRemaining - b.daysRemaining);
+    }
+    return result;
   }
 
   // 月ごとに、スタンプ押下を「新規(その月が初回来店月=初めてスタンプを押した月の会員)」と
@@ -573,23 +788,58 @@ window.Dashboard.Aggregate = (function () {
     return { ...result, matchedCount, unmatchedCount };
   }
 
+  // 店舗ごとに「会員あたりの平均来店回数」「複数回来店率(2回以上来た会員の割合)」を数える。
+  // 会員の生涯の来店パターンを見る指標のため、期間や店舗の絞り込みは行わず常に全期間で計算する想定
+  // (短い期間で切ると大半が1回になり、数字が意味を持たなくなるため)。
+  // 複数店舗を利用する会員は、利用した店舗それぞれでカウントされる(店舗単位の指標のため)。
+  function calcStoreRepeatStats(stampPushes) {
+    const byStore = {};
+    for (const p of stampPushes) {
+      if (!p.memberId || !p.storeKey) continue;
+      const byMember = byStore[p.storeKey] = byStore[p.storeKey] || {};
+      byMember[p.memberId] = (byMember[p.memberId] || 0) + 1;
+    }
+
+    const result = {};
+    for (const [storeKey, byMember] of Object.entries(byStore)) {
+      const counts = Object.values(byMember);
+      const memberCount = counts.length;
+      const totalPushCount = counts.reduce((a, b) => a + b, 0);
+      const repeatMemberCount = counts.filter(c => c >= 2).length;
+      result[storeKey] = {
+        memberCount,
+        totalPushCount,
+        avgPushPerMember: memberCount ? totalPushCount / memberCount : 0,
+        repeatRate: memberCount ? repeatMemberCount / memberCount : 0,
+      };
+    }
+    return result;
+  }
+
   return {
     aggregateAccessLogRows,
     mergeMonthlyAggregates,
     queryCounts,
     calcMonthlyPushByCohort,
     calcRegisteredVsActualStore,
+    calcStoreRepeatStats,
     queryByStore,
     queryByStampPage,
     listBrands,
     listStores,
+    listStampPages,
     buildTicketLedger,
     summarizeMemberList,
     mergeMemberSummaries,
     summarizeMemberAttributes,
     calcAgeGroup,
     countRegistrationsByPeriod,
+    countRegistrationsByPeriodSplit,
+    calcMonthlyActiveRate,
     countRegistrationsByStoreAndMonth,
     findLapsedRegulars,
+    calcStampCardProgress,
+    calcMemberRankDistribution,
+    listStampExpiringSoon,
   };
 })();
