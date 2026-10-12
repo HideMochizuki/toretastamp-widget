@@ -816,6 +816,34 @@ window.Dashboard.Aggregate = (function () {
     return result;
   }
 
+  // 生涯のスタンプ押下数が多い会員の上位ランキング(「離脱予兆」の対になる、前向きな切り口のカード用)。
+  // 複数店舗・複数スタンプ帳をまたいだ合計で順位付けする(お礼キャンペーン等の対象選定に使う想定のため、
+  // 店舗やスタンプ帳単位に分けず「この会員は全体として上得意か」をシンプルに見せる)。
+  function rankTopMembers(stampPushes, topN) {
+    const byMember = {};
+    for (const p of stampPushes) {
+      if (!p.memberId) continue;
+      const m = byMember[p.memberId] = byMember[p.memberId] || {
+        memberId: p.memberId, pushCount: 0, firstPushAt: null, lastPushAt: null, storeKeys: new Set(),
+      };
+      m.pushCount += 1;
+      const at = new Date(p.at);
+      if (!m.firstPushAt || at < m.firstPushAt) m.firstPushAt = at;
+      if (!m.lastPushAt || at > m.lastPushAt) m.lastPushAt = at;
+      if (p.storeKey) m.storeKeys.add(p.storeKey);
+    }
+
+    const list = Object.values(byMember).map(m => ({
+      memberId: m.memberId,
+      pushCount: m.pushCount,
+      firstPushAt: m.firstPushAt,
+      lastPushAt: m.lastPushAt,
+      storeCount: m.storeKeys.size,
+    }));
+    list.sort((a, b) => b.pushCount - a.pushCount);
+    return topN ? list.slice(0, topN) : list;
+  }
+
   return {
     aggregateAccessLogRows,
     mergeMonthlyAggregates,
@@ -823,6 +851,7 @@ window.Dashboard.Aggregate = (function () {
     calcMonthlyPushByCohort,
     calcRegisteredVsActualStore,
     calcStoreRepeatStats,
+    rankTopMembers,
     queryByStore,
     queryByStampPage,
     listBrands,

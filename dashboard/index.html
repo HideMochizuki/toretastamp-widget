@@ -9,15 +9,17 @@
 <link rel="stylesheet" href="../generator/style.css">
 <style>
   .main-wrapper { flex-direction: column; max-width: 1200px; margin: 0 auto; width: 100%; }
-  .filter-groups { display: flex; flex-wrap: wrap; align-items: stretch; gap: 24px; }
+  /* align-itemsをflex-startにして、①と②の内容量が違っても互いに引き伸ばされて
+     余白が空かないようにする(区切り線は自分でalign-self:stretchを持つので別途全高に伸びる)。 */
+  .filter-groups { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; }
   .filter-group-block { display: flex; flex-direction: column; gap: 10px; }
   .filter-group-title {
     font-size: 0.68rem; font-weight: bold; color: #94a3b8; text-transform: uppercase;
     letter-spacing: 0.06em;
   }
   .filter-divider { width: 1px; background: #e2e8f0; align-self: stretch; }
-  .filter-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px; }
-  .filter-group { display: flex; flex-direction: column; gap: 6px; min-height: 60px; justify-content: flex-end; }
+  .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 28px; }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; min-height: 60px; justify-content: center; }
   .filter-group label { font-size: 0.75rem; font-weight: bold; color: #475569; height: 14px; }
   .filter-group select, .filter-group input[type="date"], .effect-window-input {
     height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;
@@ -35,8 +37,13 @@
     box-shadow: 0 0 0 3px rgba(138, 206, 54, 0.18);
   }
   .option-sep { font-size: 0.72rem; color: #94a3b8; }
-  .compare-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; height: 14px; }
-  .filter-apply-btn { margin-left: auto; align-self: flex-end; }
+  .compare-toggle { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; height: 38px; }
+  .applied-filter-status-row { margin-top: 5px; }
+  .applied-filter-status {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #16a34a;
+    border: 1.5px solid #16a34a; border-radius: 999px; padding: 7px 16px; background: #fff; line-height: 1.5;
+  }
+  .applied-filter-status:empty { display: none; }
   .inline-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
   .inline-controls label { font-size: 0.75rem; font-weight: bold; color: #475569; }
   .quick-btns { display: flex; gap: 6px; }
@@ -46,6 +53,22 @@
   }
   .quick-btn:hover { background: #f1f5f9; }
   .quick-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+  .filter-group-label-row { display: flex; align-items: center; gap: 6px; position: relative; height: 14px; }
+  .period-preset-toggle {
+    display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px;
+    font-size: 0.68rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;
+    color: #64748b; cursor: pointer; line-height: 1;
+  }
+  .period-preset-toggle:hover { background: #f1f5f9; }
+  .period-preset-toggle.filtered { border-color: var(--primary-color); color: var(--primary-color); }
+  .period-preset-toggle .caret { font-size: 0.55rem; }
+  .period-preset-popover {
+    position: absolute; top: 24px; left: 0; z-index: 20; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+    padding: 8px;
+  }
+  .quick-btns-column { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+  .quick-btns-column .quick-btn { display: block; width: 100%; text-align: left; }
   .tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
   .tile { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 20px; min-width: 160px; flex: 1; }
   .tile .tile-label { font-size: 0.75rem; color: #64748b; }
@@ -56,6 +79,18 @@
   .tile .tile-delta.flat { color: #94a3b8; }
   .tile.accent { background: #f0fdf4; border-color: #bbf7d0; }
   .tile[data-tooltip] { position: relative; cursor: help; }
+  .highlight-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 4px;
+    border-bottom: 1px solid #f1f5f9; font-size: 0.9rem;
+  }
+  .highlight-item:last-child { border-bottom: none; }
+  .highlight-icon { font-size: 1.3rem; line-height: 1; }
+  .highlight-label { color: #475569; }
+  .highlight-value { font-weight: bold; color: #1e293b; font-size: 1.05rem; margin-left: auto; }
+  .highlight-delta { font-size: 0.78rem; min-width: 150px; text-align: right; }
+  .highlight-delta.up { color: #16a34a; }
+  .highlight-delta.down { color: #dc2626; }
+  .highlight-delta.flat { color: #94a3b8; }
   .rank-tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
   .rank-tile {
     background: #fff; border: 1px solid var(--border-color); border-radius: 14px;
@@ -228,30 +263,56 @@
             <div class="filter-group-title">② 期間・比較</div>
             <div class="filter-row">
               <div class="filter-group">
-                <label>期間</label>
+                <div class="filter-group-label-row">
+                  <label>期間</label>
+                  <button type="button" class="period-preset-toggle" id="period-preset-toggle" title="期間をすぐ選ぶ">
+                    <i class="fa fa-calendar"></i><span class="caret">▼</span>
+                  </button>
+                  <div class="period-preset-popover" id="period-preset-popover" style="display:none;">
+                    <div class="quick-btns-column" id="period-preset-btns">
+                      <button type="button" class="quick-btn" data-preset="today">今日</button>
+                      <button type="button" class="quick-btn" data-preset="yesterday">昨日</button>
+                      <button type="button" class="quick-btn" data-preset="last7">過去7日間</button>
+                      <button type="button" class="quick-btn" data-preset="last28">過去28日間</button>
+                      <button type="button" class="quick-btn" data-preset="last30">過去30日間</button>
+                      <button type="button" class="quick-btn" data-preset="thisMonth">今月</button>
+                      <button type="button" class="quick-btn" data-preset="lastMonth">先月</button>
+                      <button type="button" class="quick-btn" data-preset="last90">過去90日間</button>
+                      <button type="button" class="quick-btn active" data-preset="all">全期間</button>
+                    </div>
+                  </div>
+                </div>
                 <div class="range-pair">
                   <input type="date" id="period-from">
                   <span class="range-sep">〜</span>
                   <input type="date" id="period-to">
                 </div>
               </div>
-              <div class="filter-group">
-                <label class="compare-toggle"><input type="checkbox" id="compare-toggle"> 比較する</label>
-                <div class="range-pair" id="compare-range" style="display:none;">
+              <div class="filter-group" id="compare-range-group" style="display:none;">
+                <label style="visibility:hidden;">比較期間</label>
+                <div class="range-pair" id="compare-range">
                   <input type="date" id="compare-from">
                   <span class="range-sep">〜</span>
                   <input type="date" id="compare-to">
                 </div>
               </div>
+              <div class="filter-group">
+                <label style="visibility:hidden;">比較</label>
+                <label class="compare-toggle"><input type="checkbox" id="compare-toggle"> 比較する</label>
+              </div>
+              <div class="filter-group">
+                <label style="visibility:hidden;">適用</label>
+                <button class="action-btn primary" id="apply-btn">
+                  <i class="fa fa-check"></i> ③ 適用
+                </button>
+              </div>
             </div>
             <div class="status-line" id="compare-warning" style="color: #b45309;"></div>
           </div>
+        </div>
 
-          <div class="filter-divider"></div>
-
-          <button class="action-btn primary filter-apply-btn" id="apply-btn">
-            <i class="fa fa-check"></i> ③ 適用
-          </button>
+        <div class="applied-filter-status-row">
+          <div class="applied-filter-status" id="applied-filter-status"></div>
         </div>
       </div>
     </div>
@@ -259,6 +320,14 @@
     <div id="report-area" style="display:none;">
       <div id="print-summary"></div>
       <div id="warnings"></div>
+
+      <div class="card-wrapper" id="highlights-card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">今月のハイライト<span class="scope-tag fixed">📌固定（全期間・全店舗の実績から算出）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">当月の実績を前月と比べたダイジェストです。上の「絞り込み」の設定には影響されません。</div>
+          <div id="highlights-list"></div>
+        </div>
+      </div>
 
       <div class="card-wrapper">
         <h2 class="card-title">主要指標</h2>
@@ -282,6 +351,7 @@
             <select id="reg-store-select"><option value="">全店舗</option></select>
           </div>
           <div id="registration-chart"></div>
+          <div id="registration-chart-summary"></div>
         </div>
       </div>
 
@@ -364,6 +434,7 @@
           </div>
           <div class="status-line" id="stamp-trend-note"></div>
           <div id="stamp-trend-chart"></div>
+          <div id="stamp-trend-chart-summary"></div>
         </div>
       </div>
 
@@ -593,8 +664,11 @@ const clientSelect = document.getElementById('client-select');
 const storeSelect = document.getElementById('store-select');
 const periodFrom = document.getElementById('period-from');
 const periodTo = document.getElementById('period-to');
+const periodPresetBtns = document.querySelectorAll('#period-preset-btns .quick-btn');
+const periodPresetToggle = document.getElementById('period-preset-toggle');
+const periodPresetPopover = document.getElementById('period-preset-popover');
 const compareToggle = document.getElementById('compare-toggle');
-const compareRange = document.getElementById('compare-range');
+const compareRange = document.getElementById('compare-range-group');
 const compareFrom = document.getElementById('compare-from');
 const compareTo = document.getElementById('compare-to');
 const effectWindowInput = document.getElementById('effect-window');
@@ -622,6 +696,136 @@ function wireQuickButtonGroup(inputId) {
   syncActive();
 }
 ['expiry-days', 'stamp-expiry-days', 'funnel-window', 'effect-window', 'stamp-trend-days', 'lapsed-min-visits', 'lapsed-days'].forEach(wireQuickButtonGroup);
+
+// 期間プリセット(①今日〜全期間)。「今日」の基準はPC時計の実日付ではなく、
+// 取り込み済みログの最終日(=最新のデータがある日)。エクスポートが数日前のことも多く、
+// 実日付基準だと「今日」が毎回0件になり得るため。
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function startOfMonth(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
+function endOfMonth(date) { return new Date(date.getFullYear(), date.getMonth() + 1, 0); }
+
+function applyPeriodPreset(preset) {
+  const { min, to: anchor } = getAvailableRange();
+  let from, to;
+  switch (preset) {
+    case 'today': from = anchor; to = anchor; break;
+    case 'yesterday': from = addDays(anchor, -1); to = addDays(anchor, -1); break;
+    case 'last7': from = addDays(anchor, -6); to = anchor; break;
+    case 'last28': from = addDays(anchor, -27); to = anchor; break;
+    case 'last30': from = addDays(anchor, -29); to = anchor; break;
+    case 'last90': from = addDays(anchor, -89); to = anchor; break;
+    case 'thisMonth': from = startOfMonth(anchor); to = anchor; break;
+    case 'lastMonth': {
+      const lm = new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1);
+      from = startOfMonth(lm); to = endOfMonth(lm);
+      break;
+    }
+    case 'all': default: from = min; to = anchor; break;
+  }
+  if (from < min) from = min;
+  periodFrom.value = toInputDate(from);
+  periodTo.value = toInputDate(to);
+  periodPresetBtns.forEach(b => b.classList.toggle('active', b.dataset.preset === preset));
+  periodPresetToggle.classList.toggle('filtered', preset !== 'all');
+  periodPresetPopover.style.display = 'none';
+  if (compareToggle.checked) fillDefaultCompareRange();
+}
+periodPresetBtns.forEach(btn => btn.addEventListener('click', () => applyPeriodPreset(btn.dataset.preset)));
+[periodFrom, periodTo].forEach(inp => inp.addEventListener('input', () => {
+  periodPresetBtns.forEach(b => b.classList.remove('active'));
+  periodPresetToggle.classList.remove('filtered');
+}));
+
+// プリセット一覧は普段は畳んでおき、カレンダーアイコンをクリックしたときだけ開く
+periodPresetToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  periodPresetPopover.style.display = periodPresetPopover.style.display === 'none' ? '' : 'none';
+});
+document.addEventListener('click', (e) => {
+  if (periodPresetPopover.style.display !== 'none'
+    && !periodPresetPopover.contains(e.target) && e.target !== periodPresetToggle && !periodPresetToggle.contains(e.target)) {
+    periodPresetPopover.style.display = 'none';
+  }
+});
+
+// 推移グラフ用の「今月・今週・1日あたり平均」サマリー行。
+// グラフ本体の単位(日/月など)や表示期間の絞り込みに関わらず、日別の生データから常に実カレンダー基準で算出する。
+// 基準日はapplyPeriodPresetと同じ考え方で「ログの最終日」(=latestDay)を使う。
+function buildPeriodSummaryStats(dailyMap) {
+  const days = Object.keys(dailyMap).sort();
+  if (!days.length) return null;
+  const [ay, am, ad] = days[days.length - 1].split('-').map(Number);
+  const anchor = new Date(ay, am - 1, ad);
+
+  const sumRange = (from, to) => {
+    let total = 0;
+    for (const k of days) {
+      if (k >= toInputDate(from) && k <= toInputDate(to)) total += dailyMap[k];
+    }
+    return total;
+  };
+
+  const thisMonthStart = startOfMonth(anchor);
+  const thisMonthTotal = sumRange(thisMonthStart, anchor);
+  const daysIntoMonth = Math.round((anchor - thisMonthStart) / 86400000) + 1;
+  const prevMonthAnchor = new Date(anchor.getFullYear(), anchor.getMonth() - 1, 1);
+  const prevMonthSameDay = addDays(prevMonthAnchor, daysIntoMonth - 1);
+  const prevMonthTotal = sumRange(prevMonthAnchor, prevMonthSameDay);
+
+  const dow = (anchor.getDay() + 6) % 7; // 月曜=0始まり
+  const thisWeekStart = addDays(anchor, -dow);
+  const thisWeekTotal = sumRange(thisWeekStart, anchor);
+  const prevWeekStart = addDays(thisWeekStart, -7);
+  const prevWeekSameDay = addDays(prevWeekStart, dow);
+  const prevWeekTotal = sumRange(prevWeekStart, prevWeekSameDay);
+
+  const total = days.reduce((s, k) => s + dailyMap[k], 0);
+  const avg = total / days.length;
+
+  const pct = (cur, prev) => prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null;
+
+  return {
+    thisMonth: { value: thisMonthTotal, delta: pct(thisMonthTotal, prevMonthTotal) },
+    thisWeek: { value: thisWeekTotal, delta: pct(thisWeekTotal, prevWeekTotal) },
+    avg: { value: Math.round(avg * 10) / 10 },
+  };
+}
+
+function renderTrendSummaryRow(elId, dailyMap, opts = {}) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const stats = buildPeriodSummaryStats(dailyMap);
+  if (!stats) { el.innerHTML = ''; return; }
+  const unit = opts.unit || '';
+  const fmt = v => v.toLocaleString();
+  const deltaHtml = (d, label) => {
+    if (d === null) return '';
+    const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+    const arrow = d > 0 ? '▲' : d < 0 ? '▼' : '―';
+    return `<div class="tile-delta ${cls}">${arrow} ${Math.abs(d)}%（${label}）</div>`;
+  };
+  el.innerHTML = `
+    <div class="tile-row" style="margin-top: 10px;">
+      <div class="tile"><div class="tile-label">今月</div><div class="tile-num">${fmt(stats.thisMonth.value)}${unit}</div>${deltaHtml(stats.thisMonth.delta, '前月同日数比')}</div>
+      <div class="tile"><div class="tile-label">今週</div><div class="tile-num">${fmt(stats.thisWeek.value)}${unit}</div>${deltaHtml(stats.thisWeek.delta, '前週同曜日比')}</div>
+      <div class="tile"><div class="tile-label">1日あたり平均</div><div class="tile-num">${fmt(stats.avg.value)}${unit}</div></div>
+    </div>`;
+}
+
+function buildDailyCountMap(records, { storeKey, page } = {}) {
+  const map = {};
+  for (const r of records) {
+    if (storeKey && r.storeKey !== storeKey) continue;
+    if (page && r.stampPage !== page) continue;
+    const key = toInputDate(new Date(r.at));
+    map[key] = (map[key] || 0) + 1;
+  }
+  return map;
+}
 
 funnelWindowInput.addEventListener('input', () => { if (currentClient) renderFunnel(); });
 effectWindowInput.addEventListener('input', () => { if (currentClient) renderEffectTable(); });
@@ -791,6 +995,8 @@ function selectClient(index) {
   const { min, to } = getAvailableRange();
   periodFrom.value = toInputDate(min);
   periodTo.value = toInputDate(to);
+  periodPresetBtns.forEach(b => b.classList.toggle('active', b.dataset.preset === 'all'));
+  periodPresetToggle.classList.remove('filtered');
   fillDefaultCompareRange();
 
   reportArea.style.display = '';
@@ -816,7 +1022,84 @@ function fillDefaultCompareRange() {
   compareTo.value = toInputDate(range.to);
 }
 
+// 「主要指標」より前に表示する前向きなダイジェスト。離脱予兆やスタンプ失効間近など
+// 要対応系の抽出カードが多いので、見る側(店舗オーナー・マーケ担当)が最初に目にする情報は
+// 「できている・伸びている」話にする。絞り込み(①②)の設定には影響されず、常に当月実績を前月と比べる。
+function renderHighlights() {
+  const wrapperEl = document.getElementById('highlights-card-wrapper');
+  const listEl = document.getElementById('highlights-list');
+  const ms = currentClient.memberSummary;
+  if (!ms) { wrapperEl.style.display = 'none'; return; }
+
+  const items = [];
+
+  const regDailySrc = Dashboard.Aggregate.countRegistrationsByPeriodSplit(ms.members, 'day', null);
+  const regDailyMap = {};
+  Object.keys(regDailySrc).forEach(k => { regDailyMap[k] = regDailySrc[k].line + regDailySrc[k].email; });
+  const regStats = buildPeriodSummaryStats(regDailyMap);
+  if (regStats) {
+    items.push({
+      icon: '🎉', label: '今月の新規会員登録', value: `${regStats.thisMonth.value.toLocaleString()}人`,
+      delta: regStats.thisMonth.delta, deltaLabel: '前月同日数比',
+    });
+  }
+
+  const stampDailyMap = buildDailyCountMap(currentClient.merged.stampPushes, {});
+  const stampStats = buildPeriodSummaryStats(stampDailyMap);
+  if (stampStats) {
+    items.push({
+      icon: '✨', label: '今月のスタンプ押下数', value: `${stampStats.thisMonth.value.toLocaleString()}回`,
+      delta: stampStats.thisMonth.delta, deltaLabel: '前月同日数比',
+    });
+  }
+
+  const activeSrc = Dashboard.Aggregate.calcMonthlyActiveRate(currentClient.merged.stampPushes, ms.members, null);
+  const activeMonths = Object.keys(activeSrc).sort();
+  if (activeMonths.length) {
+    const latestMonth = activeMonths[activeMonths.length - 1];
+    const latest = activeSrc[latestMonth];
+    const prev = activeMonths.length >= 2 ? activeSrc[activeMonths[activeMonths.length - 2]] : null;
+    const delta = prev ? Math.round((latest.activeRate - prev.activeRate) * 1000) / 10 : null;
+    items.push({
+      icon: '📈', label: `アクティブ率（${latestMonth}）`, value: `${(latest.activeRate * 100).toFixed(1)}%`,
+      delta, deltaLabel: '前月比', deltaUnit: 'pt',
+    });
+  }
+
+  const storeStats = Dashboard.Aggregate.calcStoreRepeatStats(currentClient.merged.stampPushes);
+  const storeEntries = Object.entries(storeStats);
+  if (storeEntries.length > 1) {
+    const top = storeEntries.reduce((a, b) => (b[1].repeatRate > a[1].repeatRate ? b : a));
+    const label = top[0].split(':').slice(1).join(':') || top[0];
+    items.push({
+      icon: '⭐', label: '複数回来店率トップの店舗', value: `${escapeHtml(label)}（${(top[1].repeatRate * 100).toFixed(1)}%）`,
+      delta: null,
+    });
+  }
+
+  if (!items.length) { wrapperEl.style.display = 'none'; listEl.innerHTML = ''; return; }
+  wrapperEl.style.display = '';
+
+  listEl.innerHTML = items.map(it => {
+    let deltaHtml = '';
+    if (it.delta !== null && it.delta !== undefined) {
+      const cls = it.delta > 0 ? 'up' : it.delta < 0 ? 'down' : 'flat';
+      const arrow = it.delta > 0 ? '▲' : it.delta < 0 ? '▼' : '―';
+      deltaHtml = `<span class="highlight-delta ${cls}">${arrow} ${Math.abs(it.delta)}${it.deltaUnit || '%'}（${it.deltaLabel}）</span>`;
+    }
+    return `
+      <div class="highlight-item">
+        <span class="highlight-icon">${it.icon}</span>
+        <span class="highlight-label">${escapeHtml(it.label)}</span>
+        <span class="highlight-value">${it.value}</span>
+        ${deltaHtml}
+      </div>`;
+  }).join('');
+}
+
 function renderReport() {
+  renderHighlights();
+
   const from = periodFrom.value ? new Date(periodFrom.value) : null;
   const to = periodTo.value ? new Date(periodTo.value) : null;
   const storeKey = storeSelect.value || null;
@@ -844,6 +1127,13 @@ function renderReport() {
     .map(w => `<div class="warn">⚠️ ${escapeHtml(w)}</div>`).join('');
 
   const storeLabel = storeKey ? storeSelect.options[storeSelect.selectedIndex].text : '全店舗';
+
+  // 「③適用」ボタンの近くに今反映されている条件を出す。結果が出るレポートエリアと絞り込みカードが
+  // 画面上離れているため、ボタンを押した直後にスクロールしなくても反映されたと分かるようにするため。
+  document.getElementById('applied-filter-status').innerHTML =
+    `✓ 表示中：${periodFrom.value || '-'} 〜 ${periodTo.value || '-'}・${escapeHtml(storeLabel)}`
+    + (doCompare && compareFrom.value && compareTo.value ? `<br>比較：${compareFrom.value} 〜 ${compareTo.value}` : '');
+
   document.getElementById('print-summary').innerHTML = `
     <div class="print-summary-title"><i class="fa fa-filter"></i>${escapeHtml(currentClient.name)}</div>
     <div class="print-summary-detail">
@@ -1173,6 +1463,12 @@ function renderRegistrationChart() {
     { label: 'LINE会員', color: '#5a9c1e', points: keys.map(k => ({ label: k, value: src[k].line })) },
     { label: 'メール認証会員', color: '#2a78d6', points: keys.map(k => ({ label: k, value: src[k].email })) },
   ]);
+
+  // サマリー行(今月・今週・平均)は、上のグラフの単位(日/月/年)に関わらず常に日別の生データから算出する
+  const dailySrc = Dashboard.Aggregate.countRegistrationsByPeriodSplit(ms.members, 'day', storeKey);
+  const dailyMap = {};
+  Object.keys(dailySrc).forEach(k => { dailyMap[k] = dailySrc[k].line + dailySrc[k].email; });
+  renderTrendSummaryRow('registration-chart-summary', dailyMap, { unit: '人' });
 }
 
 function renderActiveRateChart() {
@@ -1308,6 +1604,12 @@ function renderStampTrendChart() {
     }
     noteEl.textContent = '当月を含む直近13ヶ月';
   }
+
+  // サマリー行(今月・今週・平均)は、上のグラフの単位(日次/月次)や「○日前から」の表示期間に関わらず、
+  // 常に全履歴の日別データから算出する。「表示」で特定のスタンプ帳を選んでいればその帳だけに絞る。
+  const summaryPageFilter = (selectedPage && selectedPage !== '__total__') ? selectedPage : null;
+  renderTrendSummaryRow('stamp-trend-chart-summary',
+    buildDailyCountMap(currentClient.merged.stampPushes, { storeKey, page: summaryPageFilter }), { unit: '回' });
 
   // スタンプ帳を1つ(または「全体合計」)選んでいるときは、その1系列だけを棒グラフで出す
   // (上長からの要望：特定のスタンプカードは棒グラフの方が増減を追いやすい)。
