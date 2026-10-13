@@ -9,7 +9,12 @@ const FETCH_HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; ToretaStampTonma
 const MAX_HTML_CHARS = 20000;
 const MAX_CSS_FILES = 3;
 const MAX_CSS_CHARS_PER_FILE = 8000;
-const MAX_COLOR_CANDIDATES = 30;
+// 出現頻度の高い色（構造色＝背景・ヘッダーなど広い面積に使われがち）と、
+// 頻度の低い色（アクセント候補＝バッジ等あえて少数箇所にしか使わない色）を
+// 別枠で確保する。アクセントカラーは定義上「使用頻度が低い」のが当たり前なので、
+// 単純な頻度上位N件の足切りだと真っ先に漏れてしまうため。
+const MAX_STRUCTURAL_CANDIDATES = 20;
+const MAX_ACCENT_CANDIDATES = 40;
 const MIN_CONTRAST_RATIO = 4.5;
 
 // index.html（UIデザイン設定）の cfg-* 項目のうち、
@@ -184,6 +189,8 @@ async function fetchSiteMaterial(targetUrl) {
 // HTML・CSSの中から実際に使われているカラーコードを拾い出し、
 // 出現頻度順に並べる。AIに「実在する色」の手がかりとして渡すことで、
 // サイトと無関係な色を創作してしまうのを防ぐ。
+// 頻度の高い側（構造色候補）と低い側（アクセント候補）を別枠で返すことで、
+// 出現回数の少ないアクセントカラーが上位N件の足切りで消えてしまうのを防ぐ。
 function extractColorCandidates(text) {
   const matches = text.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g) || [];
   const freq = new Map();
@@ -192,10 +199,14 @@ function extractColorCandidates(text) {
     freq.set(color, (freq.get(color) || 0) + 1);
   });
 
-  return Array.from(freq.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_COLOR_CANDIDATES)
-    .map(([color]) => color);
+  const sorted = Array.from(freq.entries()).sort((a, b) => b[1] - a[1]);
+
+  return {
+    structural: sorted.slice(0, MAX_STRUCTURAL_CANDIDATES).map(([color]) => color),
+    accent: sorted
+      .slice(MAX_STRUCTURAL_CANDIDATES, MAX_STRUCTURAL_CANDIDATES + MAX_ACCENT_CANDIDATES)
+      .map(([color]) => color),
+  };
 }
 
 function normalizeHex(hex) {
@@ -223,9 +234,20 @@ function buildResponseSchema() {
 }
 
 function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates) {
-  const colorHint = colorCandidates.length
-    ? `このサイトのHTML/CSSから実際に検出されたカラーコード（出現頻度順）:\n${colorCandidates.join(', ')}\n\nこれらは実際にサイトで使われている色です。トンマナに合う配色を作る際は、この中から主要なブランドカラーを優先的に選んで使ってください。白・黒・グレーに近い色は背景/文字の土台として使い、それ以外の有彩色をアクセント（ボタンや見出し）に使うと自然になります。`
-    : '色の検出はできませんでした。業態の一般的な印象から妥当な配色を提案してください。';
+  const { structural, accent } = colorCandidates;
+  let colorHint;
+  if (structural.length || accent.length) {
+    colorHint = 'このサイトのHTML/CSSから実際に検出されたカラーコードです。\n\n';
+    if (structural.length) {
+      colorHint += `【高頻度で検出された色＝構造色の候補】\n${structural.join(', ')}\nこれらは背景・ヘッダー・ボタンなど広い面積で使われている可能性が高い色です。\n\n`;
+    }
+    if (accent.length) {
+      colorHint += `【低頻度で検出された色＝アクセントカラーの候補】\n${accent.join(', ')}\nアクセントカラーは「NEW」「おすすめ」バッジなど、デザイン上あえて少数箇所にしか使わないことが多い色です。出現回数が少ないからといって軽視せず、そのサイトらしさを象徴する色として積極的に検討してください。\n\n`;
+    }
+    colorHint += 'これらは実際にサイトで使われている色です。トンマナに合う配色を作る際は、この中から主要なブランドカラーを優先的に選んで使ってください。白・黒・グレーに近い色は背景/文字の土台として使い、それ以外の有彩色をアクセント（ボタンや見出し）に使うと自然になります。';
+  } else {
+    colorHint = '色の検出はできませんでした。業態の一般的な印象から妥当な配色を提案してください。';
+  }
 
   return `あなたは飲食店の公式サイトのデザインを分析し、配色のトンマナを抽出する専門家です。
 
