@@ -135,9 +135,10 @@ async function handleAnalyzeSite(request, env) {
   // 背景色と文字色のコントラストが低い場合は、読みやすい色に自動補正する
   enforceContrast(geminiJson);
 
-  // index.html のインポート機能が要求する必須キーを補完
-  // （画面の実装上、このキーが無いと「無効なファイル形式」と判定される）
-  geminiJson['saved_menu_items'] = [];
+  // 注意：ここで saved_menu_items を補完しないこと。
+  // index.html 側のインポート機能は、ファイルに saved_menu_items が含まれていると
+  // 中身が空配列であってもフッターメニューを空に上書きしてしまう（generator/script.js）。
+  // このAPIは色のトンマナしか推定していないので、メニュー構成には一切触れない。
 
   // 各色は <input type="color"> 本体と、同期表示用の `-val` テキスト欄の
   // 両方に同じ値を入れないと、再読み込み後に表示がずれるため複製する
