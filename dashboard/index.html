@@ -70,9 +70,20 @@
   .quick-btns-column { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
   .quick-btns-column .quick-btn { display: block; width: 100%; text-align: left; }
   .tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
-  .tile { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 20px; min-width: 160px; flex: 1; }
+  .tile { background: #fff; border: 1px solid var(--border-color); border-radius: 10px; padding: 16px 20px; min-width: 160px; flex: 1; }
+  .tile-content { display: flex; align-items: flex-start; gap: 14px; }
+  .tile-body { flex: 1; min-width: 0; }
+  .tile-icon-badge {
+    flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.25rem; line-height: 1;
+  }
+  .tile-icon-badge.green { background: #ecfdf3; color: #16a34a; }
+  .tile-icon-badge.blue { background: #eff6ff; color: #2563eb; }
+  .tile-icon-badge.orange { background: #fff7ed; color: #ea580c; }
+  .tile-icon-badge.purple { background: #f5f3ff; color: #7c3aed; }
+  .tile-icon-badge.slate { background: #f1f5f9; color: #475569; }
   .tile .tile-label { font-size: 0.75rem; color: #64748b; }
-  .tile .tile-num { font-size: 1.6rem; font-weight: bold; color: #1e293b; margin-top: 4px; }
+  .tile .tile-num { font-size: 1.85rem; font-weight: bold; color: #1e293b; margin-top: 4px; }
   .tile .tile-delta { font-size: 0.78rem; margin-top: 4px; }
   .tile .tile-delta.up { color: #16a34a; }
   .tile .tile-delta.down { color: #dc2626; }
@@ -159,13 +170,16 @@
   .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
   .not-supported { color: #dc2626; font-weight: bold; }
   #print-summary {
-    background: #f0fdf4; border: 2px solid var(--primary-color);
-    border-radius: 20px; padding: 20px 26px; margin-bottom: 4px;
+    background-color: #17a34a;
+    color: #fff;
+    border-radius: 10px;
+    padding: 20px 26px;
+    margin-bottom: 10px;
   }
-  .print-summary-title { font-size: 1.4rem; font-weight: bold; color: #1e293b; display: flex; align-items: center; gap: 10px; }
-  .print-summary-title i { color: var(--primary-color); font-size: 1.3rem; }
-  .print-summary-detail { font-size: 0.85rem; color: #64748b; margin-top: 8px; margin-left: 2px; }
-  .print-summary-detail .muted { color: #94a3b8; }
+  .print-summary-title { font-size: 1.4rem; font-weight: bold; color: #fff; display: flex; align-items: center; gap: 10px; }
+  .print-summary-title i { color: #fff; font-size: 1.3rem; }
+  .print-summary-detail { font-size: 0.85rem; color: rgba(255, 255, 255, 0.92); margin-top: 8px; margin-left: 2px; }
+  .print-summary-detail .muted { color: rgba(255, 255, 255, 0.72); }
   @media print {
     .no-print { display: none !important; }
     .sidebar { display: none !important; }
@@ -1181,20 +1195,28 @@ function renderReport() {
 
   const tiles = [
     { label: '会員数（内LINE）', num: ms ? `${ms.total.toLocaleString()}（${ms.lineMembers.toLocaleString()}）` : '-',
+      icon: '👥', color: 'blue',
       tooltip: '会員登録済みの総数です。カッコ内は、そのうちLINEアカウントで登録している会員数です（メール登録など、LINE以外での登録会員も含みます）。' },
     { label: '退会者数', num: ms ? ms.withdrawn.toLocaleString() : '-',
+      icon: '🚪', color: 'slate',
       tooltip: '会員のうち、退会手続きが完了している人数です。' },
     { label: 'アクティブユーザー数', num: activeUserCount.toLocaleString(), comp: compActiveUserCount, accent: true,
+      icon: '🔥', color: 'green',
       tooltip: '選択した期間・店舗で、実際に1回以上スタンプを押した会員のユニーク人数です（押下回数ではなく人数）。' },
     { label: 'アクティブ率', num: activeRate !== null ? `${activeRate.toFixed(1)}%` : '-', accent: true,
+      icon: '📈', color: 'green',
       tooltip: '会員数（全期間の累計登録者数）に対して、選択した期間・店舗で実際にスタンプを押した会員の割合です。会員数が増えてもこの数字が伸びていなければ、「増えているのに使われていない会員」が増えているサインです。' },
     { label: 'スタンプ押下数', num: (counts['スタンプ押下'] || 0).toLocaleString(), comp: compCounts ? (compCounts['スタンプ押下'] || 0) : null,
+      icon: '✨', color: 'blue',
       tooltip: '選択した期間・店舗でのスタンプ押下の合計回数です（来店のたびに記録されるイベント数）。' },
     { label: 'チケット発行数', num: ticketsIssuedInRange.toLocaleString(), comp: compTicketsIssued,
+      icon: '🎟️', color: 'orange',
       tooltip: '選択した期間・店舗で発行されたチケット（特典）の件数です。店舗を絞り込むと、その店舗での発行分だけが対象になります。' },
     { label: storeKey ? 'チケット利用数（全店舗合計）' : 'チケット利用数', num: ticketsUsedInRange.toLocaleString(), comp: compTicketsUsed,
+      icon: '✅', color: 'orange',
       tooltip: '選択した期間に利用されたチケットの件数です。チケット利用ログには店舗情報が記録されないため、店舗を絞り込んでも常に全店舗の合計になります。' },
     { label: 'ログイン数', num: loginCount.toLocaleString(), comp: compLoginCount,
+      icon: '🔑', color: 'purple',
       tooltip: '選択した期間のLINEログイン・マジックリンクログインの合計回数です。' },
   ];
 
@@ -1225,10 +1247,13 @@ function renderReport() {
   const validity = Dashboard.Tickets.calcTicketValidity(currentClient.reportTicketLedger, currentClient.ticketConfig, new Date());
   document.getElementById('ticket-tile-row').innerHTML = [
     { label: '有効チケット（現在）', num: validity.activeCount, accent: true,
+      icon: '🎟️', color: 'orange',
       tooltip: '今この瞬間、まだ有効期限内で未使用のチケットの件数です（「チケット設定」で有効期限ルールを登録したチケットのみ判定できます）。' },
     { label: '失効/使用済み', num: validity.inactiveCount,
+      icon: '🗑️', color: 'slate',
       tooltip: '有効期限が過ぎた、またはすでに使用済みのチケットの件数です。' },
     { label: '未設定（計算対象外）', num: validity.unconfiguredCount,
+      icon: '❓', color: 'slate',
       tooltip: '「チケット設定」で有効期限ルールが登録されておらず、有効/失効の判定ができないチケットの件数です。' },
   ].map(renderTile).join('');
 
@@ -1278,10 +1303,16 @@ function renderTile(t) {
     delta = `<div class="tile-delta ${cls}">前期間比 ${sign}${diff.toLocaleString()}（${pctLabel}）</div>`;
   }
   const tooltipAttr = t.tooltip ? ` data-tooltip="${escapeHtml(t.tooltip)}"` : '';
+  const icon = t.icon ? `<div class="tile-icon-badge ${t.color || 'slate'}">${t.icon}</div>` : '';
   return `<div class="tile ${t.accent ? 'accent' : ''}"${tooltipAttr}>
-    <div class="tile-label">${escapeHtml(t.label)}</div>
-    <div class="tile-num">${typeof t.num === 'number' ? t.num.toLocaleString() : t.num}</div>
-    ${delta}
+    <div class="tile-content">
+      ${icon}
+      <div class="tile-body">
+        <div class="tile-label">${escapeHtml(t.label)}</div>
+        <div class="tile-num">${typeof t.num === 'number' ? t.num.toLocaleString() : t.num}</div>
+        ${delta}
+      </div>
+    </div>
   </div>`;
 }
 

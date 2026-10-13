@@ -34,6 +34,20 @@ window.Dashboard.Charts = (function () {
     return n.toLocaleString();
   }
 
+  // 折れ線の下地に使うグラデーション(上が濃く、下にいくほど透明)を<defs>に登録してurl()参照を返す。
+  // 同じページに複数のチャートが並ぶため、id はページ全体で一意にする(採番カウンタ)。
+  let gradientSeq = 0;
+  function makeAreaGradient(svg, color) {
+    const id = `chart-area-grad-${++gradientSeq}`;
+    const defs = el('defs', {});
+    const grad = el('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 });
+    grad.appendChild(el('stop', { offset: '0%', 'stop-color': color, 'stop-opacity': 0.32 }));
+    grad.appendChild(el('stop', { offset: '100%', 'stop-color': color, 'stop-opacity': 0.02 }));
+    defs.appendChild(grad);
+    svg.appendChild(defs);
+    return `url(#${id})`;
+  }
+
   function ensureTooltip(container) {
     let tip = container.querySelector('.chart-tooltip');
     if (!tip) {
@@ -91,11 +105,14 @@ window.Dashboard.Charts = (function () {
     });
     areaPath.push('L', xAt(points.length - 1), padT + plotH, 'L', xAt(0), padT + plotH, 'Z');
 
-    svg.appendChild(el('path', { d: areaPath.join(' '), fill: COLOR, 'fill-opacity': 0.1, stroke: 'none' }));
-    svg.appendChild(el('path', { d: linePath.join(' '), fill: 'none', stroke: COLOR_DARK, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    const areaFill = makeAreaGradient(svg, COLOR_DARK);
+    svg.appendChild(el('path', { d: areaPath.join(' '), fill: areaFill, stroke: 'none' }));
+    svg.appendChild(el('path', { d: linePath.join(' '), fill: 'none', stroke: COLOR_DARK, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
 
-    const lastIdx = points.length - 1;
-    svg.appendChild(el('circle', { cx: xAt(lastIdx), cy: yAt(points[lastIdx].value), r: 5, fill: COLOR_DARK, stroke: '#fff', 'stroke-width': 2 }));
+    // 各点にドットを打つ(最後の点だけでなく全点。波線のにぎやかさを出す)
+    points.forEach((p, i) => {
+      svg.appendChild(el('circle', { cx: xAt(i), cy: yAt(p.value), r: 3.5, fill: COLOR_DARK, stroke: '#fff', 'stroke-width': 1.5 }));
+    });
 
     const crosshair = el('line', { x1: 0, x2: 0, y1: padT, y2: padT + plotH, stroke: AXIS, 'stroke-width': 1, style: 'display:none;' });
     svg.appendChild(crosshair);
@@ -358,12 +375,21 @@ window.Dashboard.Charts = (function () {
       svg.appendChild(t);
     });
 
+    // 系列が多いと点が密集して見づらくなるため、ドットは3系列以下の時だけ全点に打つ
+    // (多系列の時は従来通り最後の点だけ)。
+    const showAllDots = series.length <= 3;
     series.forEach(s => {
       const linePath = ['M', xAt(0), yAt(s.points[0].value)];
       s.points.forEach((p, i) => { if (i > 0) linePath.push('L', xAt(i), yAt(p.value)); });
       svg.appendChild(el('path', { d: linePath.join(' '), fill: 'none', stroke: s.color, 'stroke-width': s.width || 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-      const lastIdx = s.points.length - 1;
-      svg.appendChild(el('circle', { cx: xAt(lastIdx), cy: yAt(s.points[lastIdx].value), r: 4, fill: s.color, stroke: '#fff', 'stroke-width': 2 }));
+      if (showAllDots) {
+        s.points.forEach((p, i) => {
+          svg.appendChild(el('circle', { cx: xAt(i), cy: yAt(p.value), r: 3, fill: s.color, stroke: '#fff', 'stroke-width': 1.5 }));
+        });
+      } else {
+        const lastIdx = s.points.length - 1;
+        svg.appendChild(el('circle', { cx: xAt(lastIdx), cy: yAt(s.points[lastIdx].value), r: 4, fill: s.color, stroke: '#fff', 'stroke-width': 2 }));
+      }
     });
 
     // 凡例: 塗りつぶしの箱ではなく線で系列を示す(折れ線なので、凡例も線の見た目に揃える)

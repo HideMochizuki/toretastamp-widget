@@ -130,6 +130,25 @@
       <table class="data-table" id="suspicious-member-table" style="margin-top: 16px;"></table>
     </div>
   </div>
+
+  <div class="card-wrapper" id="retouch-card" style="display:none;">
+    <h2 class="card-title">不正アクセス検証（再タッチ許可時間の違反）</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        「スタンプ帳設定」で登録した「再タッチ許可時間」のルールと照らして、本来許可されていない間隔で
+        再度スタンプが押されている会員を検出します（ルール未登録のスタンプ帳は判定できないため対象外）。
+        上の「期間・店舗」を適用し、「検証する」を押してください。
+      </div>
+      <div class="inline-controls">
+        <button class="action-btn secondary" id="retouch-extract-btn"><i class="fa fa-search"></i> 検証する</button>
+        <button class="action-btn primary" id="retouch-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+      </div>
+      <div class="status-line" id="retouch-status"></div>
+      <div class="tile-row" id="retouch-tile-row"></div>
+      <table class="data-table" id="retouch-store-table"></table>
+      <table class="data-table" id="retouch-member-table" style="margin-top: 16px;"></table>
+    </div>
+  </div>
 </main>
 </div>
 
@@ -148,16 +167,19 @@ let rootHandle = null;
 let clients = [];
 let currentClient = null;
 let lastSuspiciousPushes = [];
+let lastRetouchViolations = [];
 
 const statusEl = document.getElementById('status');
 const topLoadingBar = document.getElementById('top-loading-bar');
 const syncBtn = document.getElementById('sync-btn');
 const clientSelect = document.getElementById('client-select');
 const suspiciousCard = document.getElementById('suspicious-card');
+const retouchCard = document.getElementById('retouch-card');
 const storeSelect = document.getElementById('store-select');
 const periodFrom = document.getElementById('period-from');
 const periodTo = document.getElementById('period-to');
 const suspiciousCsvBtn = document.getElementById('suspicious-csv-btn');
+const retouchCsvBtn = document.getElementById('retouch-csv-btn');
 
 if (!Dashboard.FS.isSupported()) {
   document.getElementById('support-check').innerHTML =
@@ -260,6 +282,14 @@ function selectClient(index) {
   document.getElementById('suspicious-member-table').innerHTML = '';
   document.getElementById('suspicious-status').textContent = '';
   suspiciousCsvBtn.disabled = true;
+
+  retouchCard.style.display = '';
+  lastRetouchViolations = [];
+  document.getElementById('retouch-tile-row').innerHTML = '';
+  document.getElementById('retouch-store-table').innerHTML = '';
+  document.getElementById('retouch-member-table').innerHTML = '';
+  document.getElementById('retouch-status').textContent = '';
+  retouchCsvBtn.disabled = true;
 
   const stores = Dashboard.Aggregate.listStores(currentClient.merged.byDay);
   storeSelect.innerHTML = '<option value="">全店舗</option>' +
@@ -374,7 +404,7 @@ function renderNestedMemberTable(elId, results, members) {
         <tr class="member-parent-row">
           <td><button type="button" class="row-toggle-btn" data-group="${groupIdx}" aria-expanded="false">＋</button></td>
           <td>${escapeHtml(memberId)}</td>
-          <td>${escapeHtml(lineId)}</td>
+          <td>${escapeHtml(maskLineId(lineId))}</td>
           <td>${pushes.length.toLocaleString()}</td>
           <td>${usedCount.toLocaleString()}</td>
           <td></td><td></td><td></td><td></td>
@@ -424,6 +454,133 @@ suspiciousCsvBtn.addEventListener('click', () => {
   );
 });
 
+// ミリ秒を「○日○時間○分」の読みやすい表記にする(間隔の表示用)
+function formatGapDuration(ms) {
+  const totalMin = Math.max(0, Math.round(ms / 60000));
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  const mins = totalMin % 60;
+  const parts = [];
+  if (days) parts.push(`${days}日`);
+  if (hours) parts.push(`${hours}時間`);
+  if (mins || !parts.length) parts.push(`${mins}分`);
+  return parts.join('');
+}
+
+document.getElementById('retouch-extract-btn').addEventListener('click', () => {
+  const from = periodFrom.value ? new Date(periodFrom.value) : null;
+  const to = periodTo.value ? new Date(periodTo.value) : null;
+  const storeKey = storeSelect.value || null;
+
+  // 「前回の押下」との間隔で判定するため、期間・店舗で絞り込む前の全履歴で違反を検出してから、
+  // 表示対象(当該押下が選択期間・店舗に入っているか)だけを絞り込む。先に絞り込むと、
+  // 期間の境界付近で「直前の押下」が範囲外に落ちて誤判定になるのを防ぐため。
+  const { results: allResults, unconfiguredPages } = Dashboard.Aggregate.findRetouchViolations(
+    currentClient.merged.stampPushes, currentClient.stampPageConfig || {}
+  );
+  const results = allResults.filter(p =>
+    inDateRange(new Date(p.at), from, to) && (!storeKey || p.storeKey === storeKey)
+  );
+
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+  lastRetouchViolations = results.map(p => ({
+    ...p,
+    lineId: members[p.memberId] ? members[p.memberId].lineId : null,
+  }));
+
+  const statusEl3 = document.getElementById('retouch-status');
+  const uniqueMembers = new Set(results.map(p => p.memberId)).size;
+
+  document.getElementById('retouch-tile-row').innerHTML = [
+    { label: '再タッチ許可時間の違反件数', num: results.length, accent: results.length > 0,
+      tooltip: '「スタンプ帳設定」で登録した「再タッチ許可時間」のルールより短い間隔で再度スタンプが押された件数です。ルール未登録のスタンプ帳は判定できないため含まれません。' },
+    { label: '該当会員数（ユニーク）', num: uniqueMembers,
+      tooltip: '違反した押下があった会員の、重複を除いた人数です。' },
+    { label: '再タッチ許可時間 未登録のスタンプ帳数', num: unconfiguredPages.length,
+      tooltip: '「再タッチ許可時間」が登録されていないため、判定対象から除外されたスタンプ帳の数です。「スタンプ帳設定」ページで登録すると判定対象に含まれます。' },
+  ].map(renderTile).join('');
+
+  statusEl3.innerHTML = unconfiguredPages.length
+    ? `⚠️ 以下のスタンプ帳は「再タッチ許可時間」が未設定のため判定対象外です: ${unconfiguredPages.map(p => escapeHtml(p)).join('、')}`
+    : '';
+
+  const byStore = {};
+  for (const p of results) byStore[p.storeKey] = (byStore[p.storeKey] || 0) + 1;
+  const storeRows = Object.entries(byStore).sort((a, b) => b[1] - a[1]);
+  document.getElementById('retouch-store-table').innerHTML = storeRows.length ? `
+    <tr><th>店舗</th><th>違反件数</th></tr>
+    ${storeRows.map(([store, n]) => `<tr>
+      <td>${escapeHtml(store.split(':').slice(1).join(':') || store)}</td><td>${n.toLocaleString()}</td>
+    </tr>`).join('')}` : '';
+
+  renderRetouchMemberTable('retouch-member-table', lastRetouchViolations, members);
+  retouchCsvBtn.disabled = !lastRetouchViolations.length;
+});
+
+// 「不正アクセス検証(営業時間外)」と同じツリー表示だが、チケットの代わりに
+// 「スタンプ帳名称・前回の押下・間隔」を見せる(再タッチ違反はチケットと直接関係しないため)。
+function renderRetouchMemberTable(elId, results, members) {
+  const el = document.getElementById(elId);
+  const memberRows = groupPushesByMember(results, members);
+  if (!memberRows.length) { el.innerHTML = ''; return; }
+
+  const MAX_MEMBERS = 50;
+  const shown = memberRows.slice(0, MAX_MEMBERS);
+
+  el.innerHTML = `
+    <tr><th></th><th>会員ID</th><th>LINE ID</th><th>違反件数</th><th>スタンプ帳名称</th><th>店舗</th><th>日時</th><th>前回の押下</th><th>間隔</th></tr>
+    ${shown.map(({ memberId, lineId, pushes }, groupIdx) => `
+        <tr class="member-parent-row">
+          <td><button type="button" class="row-toggle-btn" data-group="${groupIdx}" aria-expanded="false">＋</button></td>
+          <td>${escapeHtml(memberId)}</td>
+          <td>${escapeHtml(maskLineId(lineId))}</td>
+          <td>${pushes.length.toLocaleString()}</td>
+          <td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        ${pushes.map(p => `
+        <tr class="member-child-row" data-group="${groupIdx}" style="display:none;">
+          <td></td><td></td><td></td><td></td>
+          <td>${escapeHtml(p.stampPage)}</td>
+          <td class="tree-prefix">└ ${escapeHtml(p.storeKey.split(':').slice(1).join(':') || p.storeKey)}</td>
+          <td>${formatLocalDateTime(p.at)}</td>
+          <td>${formatLocalDateTime(p.previousAt)}</td>
+          <td>${formatGapDuration(p.gapMs)}</td>
+        </tr>`).join('')}`).join('')}
+    ${memberRows.length > MAX_MEMBERS ? `<tr><td colspan="9">他 ${memberRows.length - MAX_MEMBERS}人（CSVダウンロードで全件確認できます）</td></tr>` : ''}`;
+
+  el.querySelectorAll('.row-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      el.querySelectorAll(`tr.member-child-row[data-group="${btn.dataset.group}"]`).forEach(tr => {
+        tr.style.display = expanded ? 'none' : '';
+      });
+      btn.setAttribute('aria-expanded', String(!expanded));
+      btn.textContent = expanded ? '＋' : '－';
+    });
+  });
+}
+
+retouchCsvBtn.addEventListener('click', () => {
+  if (!lastRetouchViolations.length) return;
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+  const memberRows = groupPushesByMember(lastRetouchViolations, members);
+  const rows = [];
+  for (const { memberId, lineId, pushes } of memberRows) {
+    rows.push([memberId, lineId, pushes.length, '', '', '', '', '']);
+    for (const p of pushes) {
+      rows.push([
+        '', '', '', p.stampPage, p.storeKey.split(':').slice(1).join(':') || p.storeKey,
+        formatLocalDateTime(p.at), formatLocalDateTime(p.previousAt), formatGapDuration(p.gapMs),
+      ]);
+    }
+  }
+  downloadCsv(
+    `不正アクセス検証_再タッチ違反_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['会員ID', 'LINE ID', '違反件数', 'スタンプ帳名称', '店舗', '日時', '前回の押下', '間隔'],
+    rows
+  );
+});
+
 function renderTile(t) {
   const tooltipAttr = t.tooltip ? ` data-tooltip="${escapeHtml(t.tooltip)}"` : '';
   return `<div class="tile ${t.accent ? 'accent' : ''}"${tooltipAttr}>
@@ -457,6 +614,15 @@ function formatLocalDateTime(iso) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 画面表示・PDF(印刷)ではLINE IDを一部伏せる(中間をマスク)。実際に配信・連絡に使う場面は
+// CSVダウンロードを使う想定のため、CSV側はマスクせずフルのIDを出す(他ページと同じ方針)。
+function maskLineId(lineId) {
+  if (!lineId || lineId === '(不明)') return lineId || '';
+  const s = String(lineId);
+  if (s.length <= 8) return s.slice(0, 2) + '...' + s.slice(-2);
+  return s.slice(0, 5) + '...' + s.slice(-4);
 }
 </script>
 </body>

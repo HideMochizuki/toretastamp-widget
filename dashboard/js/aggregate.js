@@ -844,6 +844,86 @@ window.Dashboard.Aggregate = (function () {
     return topN ? list.slice(0, topN) : list;
   }
 
+  // 「リセット時刻」用: 直前の押下(at)から見て、次に再タッチが許可される境界時刻を返す。
+  // 管理画面の選択肢が常に「翌N時」(当日N時ではない)なので、押下した日の"翌"日のN時固定になる
+  // (深夜営業の店舗向けに、日付が変わる瞬間ではなく任意の時刻を基準にできる設定)。
+  function nextDailyResetBoundary(at, resetHour) {
+    const d = new Date(at);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, resetHour || 0, 0, 0, 0);
+  }
+
+  // 「リセット日時」用: 直前の押下(at)より後で最初に訪れる「毎月N日 0時」を返す。
+  function nextMonthlyResetBoundary(at, resetDay) {
+    const d = new Date(at);
+    const day = resetDay || 1;
+    let candidate = new Date(d.getFullYear(), d.getMonth(), day, 0, 0, 0, 0);
+    if (candidate <= d) candidate = new Date(d.getFullYear(), d.getMonth() + 1, day, 0, 0, 0, 0);
+    return candidate;
+  }
+
+  function brandOf(storeKey) {
+    return storeKey ? storeKey.split(':')[0] : null;
+  }
+
+  // 「スタンプ帳設定」で登録した「再タッチ許可時間」のルールに反して、本来許可されていない間隔で
+  // 再度スタンプが押されている会員を検出する(「営業時間外」とは独立した、もう1つの不正シグナル)。
+  // scope(再タッチ制御対象)に応じてグルーピングの単位を変える:
+  //   stamp = 同一スタンプ(会員×スタンプ帳名称), store = 同一店舗(会員×店舗), brand = 同一ブランド(会員×ブランド)。
+  // ルールが未設定(type='none'または登録なし)のスタンプ帳は判定不能として対象外にする
+  // (=計算に含めない。黙って0件に見せない。営業時間設定と同じ考え方)。
+  function findRetouchViolations(stampPushes, stampPageConfig) {
+    const groups = {};
+    const unconfiguredPages = new Set();
+
+    for (const p of stampPushes) {
+      if (!p.memberId || !p.stampPage) continue;
+      const config = stampPageConfig[p.stampPage];
+      const retouch = config && config.retouch;
+      if (!retouch || !retouch.type || retouch.type === 'none') {
+        unconfiguredPages.add(p.stampPage);
+        continue;
+      }
+
+      let groupKey;
+      if (retouch.scope === 'store') groupKey = `store:${p.memberId}:${p.storeKey}`;
+      else if (retouch.scope === 'brand') groupKey = `brand:${p.memberId}:${brandOf(p.storeKey)}`;
+      else groupKey = `stamp:${p.memberId}:${p.stampPage}`;
+
+      groups[groupKey] = groups[groupKey] || { retouch, pushes: [] };
+      groups[groupKey].pushes.push(p);
+    }
+
+    const results = [];
+    for (const { retouch, pushes } of Object.values(groups)) {
+      const sorted = [...pushes].sort((a, b) => new Date(a.at) - new Date(b.at));
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+        const prevAt = new Date(prev.at);
+        const currAt = new Date(curr.at);
+        let violated = false;
+
+        if (retouch.type === 'elapsed') {
+          const minGapMs = ((retouch.elapsedH || 0) * 3600 + (retouch.elapsedM || 0) * 60 + (retouch.elapsedS || 0)) * 1000;
+          violated = (currAt - prevAt) < minGapMs;
+        } else if (retouch.type === 'resetTime') {
+          violated = currAt < nextDailyResetBoundary(prev.at, retouch.resetHour);
+        } else if (retouch.type === 'onceOnly') {
+          violated = true; // そのグループの2回目以降は常に違反
+        } else if (retouch.type === 'resetMonthly') {
+          violated = currAt < nextMonthlyResetBoundary(prev.at, retouch.resetDay);
+        }
+
+        if (violated) {
+          results.push({ ...curr, previousAt: prev.at, gapMs: currAt - prevAt });
+        }
+      }
+    }
+
+    results.sort((a, b) => new Date(b.at) - new Date(a.at));
+    return { results, unconfiguredPages: Array.from(unconfiguredPages) };
+  }
+
   return {
     aggregateAccessLogRows,
     mergeMonthlyAggregates,
@@ -870,5 +950,6 @@ window.Dashboard.Aggregate = (function () {
     calcStampCardProgress,
     calcMemberRankDistribution,
     listStampExpiringSoon,
+    findRetouchViolations,
   };
 })();

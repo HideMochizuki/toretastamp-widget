@@ -718,6 +718,94 @@ test('businessHours: findOutOfHoursPushes で時間外の押下だけ抽出し�
   assertEqual(unconfiguredStores, ['999:未設定店'], '未設定店舗の一覧');
 });
 
+// --- retouch (再タッチ許可時間) ---
+test('findRetouchViolations: 経過時間モードで、許可時間より短い間隔の再押下だけを違反として検出する', () => {
+  const config = {
+    'カード': { retouch: { type: 'elapsed', elapsedH: 1, elapsedM: 0, elapsedS: 0, scope: 'stamp' } },
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T10:00:00', storeKey: '100:A店', stampPage: 'カード' },
+    { memberId: 'm1', at: '2026-10-05T10:30:00', storeKey: '100:A店', stampPage: 'カード' }, // 30分後=違反
+    { memberId: 'm1', at: '2026-10-05T12:00:00', storeKey: '100:A店', stampPage: 'カード' }, // 1.5時間後=OK
+  ];
+  const { results, unconfiguredPages } = Dashboard.Aggregate.findRetouchViolations(stampPushes, config);
+  assertEqual(results.length, 1, '違反は1件(10:30の押下)');
+  assertEqual(results[0].at, '2026-10-05T10:30:00', '違反した押下の日時');
+  assertEqual(unconfiguredPages, [], '未設定ページなし');
+});
+
+test('findRetouchViolations: リセット時刻モードで、翌日の指定時刻を跨がないと違反になる', () => {
+  const config = {
+    'カード': { retouch: { type: 'resetTime', resetHour: 5, scope: 'stamp' } },
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T23:00:00', storeKey: '100:A店', stampPage: 'カード' },
+    { memberId: 'm1', at: '2026-10-06T04:59:00', storeKey: '100:A店', stampPage: 'カード' }, // 翌05時前=違反
+  ];
+  const { results } = Dashboard.Aggregate.findRetouchViolations(stampPushes, config);
+  assertEqual(results.length, 1, '翌05時を跨いでいないので違反');
+
+  const stampPushesOk = [
+    { memberId: 'm2', at: '2026-10-05T23:00:00', storeKey: '100:A店', stampPage: 'カード' },
+    { memberId: 'm2', at: '2026-10-06T05:01:00', storeKey: '100:A店', stampPage: 'カード' }, // 翌05時後=OK
+  ];
+  const resultOk = Dashboard.Aggregate.findRetouchViolations(stampPushesOk, config);
+  assertEqual(resultOk.results.length, 0, '翌05時を跨いでいるので違反なし');
+});
+
+test('findRetouchViolations: 1回のみ有効モードで、2回目以降は常に違反になる', () => {
+  const config = {
+    'カード': { retouch: { type: 'onceOnly', scope: 'stamp' } },
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T10:00:00', storeKey: '100:A店', stampPage: 'カード' },
+    { memberId: 'm1', at: '2027-01-01T10:00:00', storeKey: '100:A店', stampPage: 'カード' }, // 何ヶ月後でも違反
+  ];
+  const { results } = Dashboard.Aggregate.findRetouchViolations(stampPushes, config);
+  assertEqual(results.length, 1, '1回のみ有効なので2回目は違反');
+});
+
+test('findRetouchViolations: リセット日時(毎月N日)モードで、月をまたがないと違反になる', () => {
+  const config = {
+    'カード': { retouch: { type: 'resetMonthly', resetDay: 1, scope: 'stamp' } },
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T10:00:00', storeKey: '100:A店', stampPage: 'カード' },
+    { memberId: 'm1', at: '2026-10-20T10:00:00', storeKey: '100:A店', stampPage: 'カード' }, // 同月=違反
+  ];
+  const { results } = Dashboard.Aggregate.findRetouchViolations(stampPushes, config);
+  assertEqual(results.length, 1, '毎月1日のリセットを跨いでいないので違反');
+});
+
+test('findRetouchViolations: scope(再タッチ制御対象)で同一店舗/同一ブランドの判定が変わる', () => {
+  const config = {
+    'カード': { retouch: { type: 'onceOnly', scope: 'store' } },
+  };
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T10:00:00', storeKey: '100:A店', stampPage: 'カード' },
+    { memberId: 'm1', at: '2026-10-05T11:00:00', storeKey: '100:B店', stampPage: 'カード' }, // 別店舗なのでOK(store scope)
+  ];
+  const { results } = Dashboard.Aggregate.findRetouchViolations(stampPushes, config);
+  assertEqual(results.length, 0, '同一店舗scopeなら店舗が違えば違反にならない');
+
+  const configBrand = {
+    'カード': { retouch: { type: 'onceOnly', scope: 'brand' } },
+  };
+  const resultBrand = Dashboard.Aggregate.findRetouchViolations(stampPushes, configBrand);
+  assertEqual(resultBrand.results.length, 1, '同一ブランドscopeなら店舗をまたいでも違反になる(同じブランド100)');
+});
+
+test('findRetouchViolations: 再タッチ許可時間が未設定のスタンプ帳は判定不能として除外する', () => {
+  const config = {};
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-05T10:00:00', storeKey: '100:A店', stampPage: '未設定カード' },
+    { memberId: 'm1', at: '2026-10-05T10:01:00', storeKey: '100:A店', stampPage: '未設定カード' },
+  ];
+  const { results, unconfiguredPages } = Dashboard.Aggregate.findRetouchViolations(stampPushes, config);
+  assertEqual(results.length, 0, '設定が無いので違反判定しない');
+  assertEqual(unconfiguredPages, ['未設定カード'], '未設定ページとして集計される');
+});
+
 // --- effect ---
 test('effect: 配信後N日以内のタグ付きスタンプ押下だけを反応としてカウントする', () => {
   const messagesSent = { 'MSG1': { id: 'MSG1', subject: 'テスト配信', sentAt: '2026-10-01T11:00:00.000Z', recipientCount: 100 } };
