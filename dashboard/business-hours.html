@@ -46,6 +46,8 @@
   table.hours-table .closed-check-wrap input[type="checkbox"] {
     width: 16px; height: 16px; accent-color: var(--primary-color); cursor: pointer;
   }
+  table.hours-table .hours-range-split { display: flex; flex-direction: column; gap: 8px; }
+  table.hours-table .hours-period-label { font-size: 0.75rem; color: #64748b; width: 44px; display: inline-block; }
   .quick-btns { display: flex; gap: 6px; }
   .quick-btn {
     padding: 5px 12px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px;
@@ -115,7 +117,7 @@
   <div class="card-wrapper" id="hours-card" style="display:none;">
     <h2 class="card-title">店舗ごとの営業時間</h2>
     <div class="card">
-      <div class="card-sub-title">曜日ごとに開始・終了時刻を登録します。「定休日」にチェックした曜日は終日「時間外」扱いになります。</div>
+      <div class="card-sub-title">曜日ごとに開始・終了時刻を登録します。「定休日」にチェックした曜日は終日「時間外」扱いになります。ランチ・ディナーの間に休憩を挟むお店は「ランチ/ディナーで分ける」にチェックすると、休憩時間帯も正しく「時間外」として扱われます。</div>
       <div class="inline-controls">
         <label>店舗</label>
         <select id="store-select"></select>
@@ -236,20 +238,44 @@ function selectClient(index) {
   renderStoreStatusList();
 }
 
-// tableEl: 曜日テーブルのDOM。config: {mon:{open,close,closed}, ...}（空なら既定値10:00-20:00で埋める）
+// tableEl: 曜日テーブルのDOM。config: {mon:{open,close,closed,split,lunchOpen,lunchClose,dinnerOpen,dinnerClose}, ...}
+// (空なら既定値10:00-20:00で埋める。splitが無い/falseな過去データはそのまま「通し営業」として読める)
 function renderTable(tableEl, config) {
   tableEl.innerHTML = `
-    <tr><th>曜日</th><th>定休日</th><th>営業時間</th></tr>
+    <tr><th>曜日</th><th>定休日</th><th>営業形態</th><th>営業時間</th></tr>
     ${DAY_ORDER.map(day => {
-      const d = config[day] || { open: '10:00', close: '20:00', closed: false };
+      const d = config[day] || {};
+      const closed = !!d.closed;
+      const split = !!d.split;
+      const open = d.open || '10:00';
+      const close = d.close || '20:00';
+      const lunchOpen = d.lunchOpen || '11:00';
+      const lunchClose = d.lunchClose || '14:00';
+      const dinnerOpen = d.dinnerOpen || '17:00';
+      const dinnerClose = d.dinnerClose || '22:00';
       return `<tr data-day="${day}">
         <td class="day-cell">${Dashboard.BusinessHours.DAY_LABELS[day]}</td>
-        <td><label class="closed-check-wrap"><input type="checkbox" class="closed-check" ${d.closed ? 'checked' : ''}> 定休日</label></td>
+        <td><label class="closed-check-wrap"><input type="checkbox" class="closed-check" ${closed ? 'checked' : ''}> 定休日</label></td>
+        <td><label class="closed-check-wrap"><input type="checkbox" class="split-check" ${split ? 'checked' : ''}> ランチ/ディナーで分ける</label></td>
         <td>
-          <div class="hours-range">
-            <input type="time" class="open-input" value="${d.open || '10:00'}" ${d.closed ? 'disabled' : ''}>
+          <div class="hours-range single-range" style="${split ? 'display:none;' : ''}">
+            <input type="time" class="open-input" value="${open}" ${closed ? 'disabled' : ''}>
             <span class="hours-sep">〜</span>
-            <input type="time" class="close-input" value="${d.close || '20:00'}" ${d.closed ? 'disabled' : ''}>
+            <input type="time" class="close-input" value="${close}" ${closed ? 'disabled' : ''}>
+          </div>
+          <div class="hours-range-split" style="${split ? '' : 'display:none;'}">
+            <div class="hours-range">
+              <span class="hours-period-label">ランチ</span>
+              <input type="time" class="lunch-open-input" value="${lunchOpen}" ${closed ? 'disabled' : ''}>
+              <span class="hours-sep">〜</span>
+              <input type="time" class="lunch-close-input" value="${lunchClose}" ${closed ? 'disabled' : ''}>
+            </div>
+            <div class="hours-range">
+              <span class="hours-period-label">ディナー</span>
+              <input type="time" class="dinner-open-input" value="${dinnerOpen}" ${closed ? 'disabled' : ''}>
+              <span class="hours-sep">〜</span>
+              <input type="time" class="dinner-close-input" value="${dinnerClose}" ${closed ? 'disabled' : ''}>
+            </div>
           </div>
         </td>
       </tr>`;
@@ -258,8 +284,14 @@ function renderTable(tableEl, config) {
   tableEl.querySelectorAll('.closed-check').forEach(cb => {
     cb.addEventListener('change', () => {
       const tr = cb.closest('tr');
-      tr.querySelector('.open-input').disabled = cb.checked;
-      tr.querySelector('.close-input').disabled = cb.checked;
+      tr.querySelectorAll('input[type="time"]').forEach(inp => { inp.disabled = cb.checked; });
+    });
+  });
+  tableEl.querySelectorAll('.split-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const tr = cb.closest('tr');
+      tr.querySelector('.single-range').style.display = cb.checked ? 'none' : '';
+      tr.querySelector('.hours-range-split').style.display = cb.checked ? '' : 'none';
     });
   });
 }
@@ -275,8 +307,13 @@ function readTableState(tableEl) {
     const day = tr.dataset.day;
     state[day] = {
       closed: tr.querySelector('.closed-check').checked,
+      split: tr.querySelector('.split-check').checked,
       open: tr.querySelector('.open-input').value,
       close: tr.querySelector('.close-input').value,
+      lunchOpen: tr.querySelector('.lunch-open-input').value,
+      lunchClose: tr.querySelector('.lunch-close-input').value,
+      dinnerOpen: tr.querySelector('.dinner-open-input').value,
+      dinnerClose: tr.querySelector('.dinner-close-input').value,
     };
   });
   return state;
@@ -286,11 +323,19 @@ function applyStateToTable(tableEl, state) {
   tableEl.querySelectorAll('tr[data-day]').forEach(tr => {
     const day = tr.dataset.day;
     const d = state[day];
-    tr.querySelector('.closed-check').checked = d.closed;
+    const closed = !!d.closed;
+    const split = !!d.split;
+    tr.querySelector('.closed-check').checked = closed;
+    tr.querySelector('.split-check').checked = split;
     tr.querySelector('.open-input').value = d.open;
-    tr.querySelector('.open-input').disabled = d.closed;
     tr.querySelector('.close-input').value = d.close;
-    tr.querySelector('.close-input').disabled = d.closed;
+    tr.querySelector('.lunch-open-input').value = d.lunchOpen || '11:00';
+    tr.querySelector('.lunch-close-input').value = d.lunchClose || '14:00';
+    tr.querySelector('.dinner-open-input').value = d.dinnerOpen || '17:00';
+    tr.querySelector('.dinner-close-input').value = d.dinnerClose || '22:00';
+    tr.querySelectorAll('input[type="time"]').forEach(inp => { inp.disabled = closed; });
+    tr.querySelector('.single-range').style.display = split ? 'none' : '';
+    tr.querySelector('.hours-range-split').style.display = split ? '' : 'none';
   });
 }
 

@@ -691,6 +691,18 @@ test('businessHours: 営業時間内/時間外/定休日/未設定を判定で�
   assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T10:30:00', undefined), null, '店舗自体が未設定ならnull');
 });
 
+test('businessHours: split=trueのとき、ランチ・ディナーの間の休憩時間も時間外として判定される', () => {
+  const config = {
+    '100:A店': {
+      mon: { split: true, lunchOpen: '11:00', lunchClose: '14:00', dinnerOpen: '17:00', dinnerClose: '22:00', closed: false },
+    },
+  };
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T12:00:00', config['100:A店']), false, '月曜 12:00(ランチ営業中)');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T15:30:00', config['100:A店']), true, '月曜 15:30(ランチとディナーの間の休憩時間。通し営業として登録すると誤って時間内になってしまうケース)');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T19:00:00', config['100:A店']), false, '月曜 19:00(ディナー営業中)');
+  assertEqual(Dashboard.BusinessHours.isOutsideBusinessHours('2026-10-05T23:00:00', config['100:A店']), true, '月曜 23:00(閉店後)');
+});
+
 test('businessHours: findOutOfHoursPushes で時間外の押下だけ抽出し、未設定店舗は別集計する', () => {
   const config = {
     '100:A店': { mon: { open: '10:00', close: '20:00', closed: false } },

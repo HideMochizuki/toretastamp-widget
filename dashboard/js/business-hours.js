@@ -12,6 +12,8 @@ window.Dashboard.BusinessHours = (function () {
   }
 
   // 戻り値: true(時間外) / false(時間内) / null(その店舗の設定が無く判定不能)
+  // dayConfig.split=trueのとき、ランチ・ディナーの間の休憩時間は「どちらのレンジにも入らない」ため
+  // 正しく時間外判定される(通し営業として1本のレンジで登録すると、休憩時間を時間内と誤判定してしまう)。
   function isOutsideBusinessHours(at, storeHoursConfig) {
     if (!storeHoursConfig) return null;
     const date = new Date(at);
@@ -21,6 +23,13 @@ window.Dashboard.BusinessHours = (function () {
     if (dayConfig.closed) return true;
 
     const minutes = date.getHours() * 60 + date.getMinutes();
+
+    if (dayConfig.split) {
+      const inLunch = minutes >= timeToMinutes(dayConfig.lunchOpen) && minutes <= timeToMinutes(dayConfig.lunchClose);
+      const inDinner = minutes >= timeToMinutes(dayConfig.dinnerOpen) && minutes <= timeToMinutes(dayConfig.dinnerClose);
+      return !(inLunch || inDinner);
+    }
+
     return minutes < timeToMinutes(dayConfig.open) || minutes > timeToMinutes(dayConfig.close);
   }
 
