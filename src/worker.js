@@ -17,40 +17,83 @@ const MAX_STRUCTURAL_CANDIDATES = 20;
 const MAX_ACCENT_CANDIDATES = 40;
 const MIN_CONTRAST_RATIO = 4.5;
 
-// index.html（UIデザイン設定）の cfg-* 項目のうち、
-// サイトのトンマナ（配色・雰囲気）に直結する主要項目だけを対象にする。
-// ここに無い項目は画面側のデフォルト値のまま変更されない。
-const COLOR_FIELDS = [
-  'cfg-body-bg',
-  'cfg-header-bg',
-  'cfg-header-text-c',
-  'cfg-h3-color',
-  'cfg-mock-header-bg',
-  'cfg-btn-area-bg',
-  'cfg-btn1-bg',
-  'cfg-btn1-txt',
-  'cfg-btn2-bg',
-  'cfg-btn2-txt',
-  'cfg-list-bg',
-  'cfg-list-txt',
-  'cfg-ticket-bg',
-  'cfg-ticket-title-c',
-  'cfg-user-bg',
-  'cfg-user-card-bg',
-  'cfg-std-bg-c',
-  'cfg-notice-color',
-];
+// ヘッダーのメイン画像として使うサイズ（generator側の「スライダー画像サイズ」既定値に合わせる）
+const HEADER_IMAGE_WIDTH = 500;
+const HEADER_IMAGE_HEIGHT = 250;
+
+// --- Gemini に判断させる「役割」は6つだけに絞る ---------------------------------
+// 以前は cfg-* の18項目それぞれを独立にGeminiへ判断させていたが、
+// 「ヘッダー背景」「フッターメニュー背景」「チケットタイトル文字色」のように
+// 本来は同じ"メインカラー"であるべき項目が、独立判断のせいで毎回バラバラな値になったり、
+// 矛盾したりする問題があった。
+// そこで、Geminiには少数の「役割（role）」だけを答えさせ、
+// そこから各 cfg-* 項目へはコード側で機械的に展開する。これにより：
+// 　・同じ役割を持つ項目同士は常に同じ値になる（ブレない・矛盾しない）
+// 　・結果的に以前よりカバーする項目数が増える
+const ROLE_DESCRIPTIONS = {
+  mainColor: 'サイトで最も特徴的な、ブランドを象徴するメインカラー。ヘッダー・主要ボタン・見出しなど広い範囲で使われる色。',
+  accentColor: '「NEW」バッジやQRコード読み取りボタンなど、あえて少数箇所にしか使わず目立たせるためのアクセントカラー。メインカラーとは別の色にすること。',
+  bodyBg: 'ページ全体の土台となる背景色。白に近いごく薄いグレーなど、落ち着いた色。',
+  cardBg: 'その上に乗る、個々のカード・リスト・チケットなどの表面色。白またはそれに近い色が自然。',
+  textColor: '本文の基本的な文字色。黒に近い色。',
+  noticeColor: 'お知らせ・注意書きの文字色。警告として目立つ、独立した色でよい。',
+};
+const ROLE_FIELDS = Object.keys(ROLE_DESCRIPTIONS);
+
+// role -> その値をそのままコピーする cfg-* 項目（背景・文字色として同じ値を使う箇所）
+const ROLE_TO_FIELDS = {
+  mainColor: [
+    'cfg-header-bg',
+    'cfg-mock-header-bg',
+    'cfg-btn1-bg',
+    'cfg-bg', // フッター固定メニューの背景色
+    'cfg-ticket-title-c',
+    'cfg-h3-color',
+    'cfg-btn2-txt', // セカンダリボタンの文字色＝メインカラー
+    'cfg-btn2-icon-c',
+  ],
+  accentColor: ['cfg-pgbtn-org-bg-c'], // QR読み取り等、強調ボタンの背景
+  bodyBg: ['cfg-body-bg', 'cfg-user-bg'],
+  cardBg: [
+    'cfg-btn-area-bg',
+    'cfg-list-bg',
+    'cfg-ticket-bg',
+    'cfg-std-bg-c',
+    'cfg-user-card-bg',
+    'cfg-btn2-bg', // セカンダリボタンの背景＝カードと同じ白系
+  ],
+  textColor: ['cfg-list-txt'],
+  noticeColor: ['cfg-notice-color'],
+};
+
+// role の色の「上に乗る文字色」。初期値は白を仮置きし、enforceContrast() で
+// 読みにくければ黒へ補正する（＝自前で判断せず、既存のコントラスト補正に任せる）。
+const TEXT_ON_ROLE_FIELDS = {
+  mainColor: ['cfg-header-text-c', 'cfg-txt', 'cfg-btn1-txt'],
+  accentColor: ['cfg-pgbtn-org-txt-c'],
+};
 
 // 背景色とセットで読みやすさ（コントラスト）を保証すべき組み合わせ
 const CONTRAST_PAIRS = [
   ['cfg-header-bg', 'cfg-header-text-c'],
+  ['cfg-bg', 'cfg-txt'],
   ['cfg-btn1-bg', 'cfg-btn1-txt'],
+  ['cfg-pgbtn-org-bg-c', 'cfg-pgbtn-org-txt-c'],
   ['cfg-btn2-bg', 'cfg-btn2-txt'],
   ['cfg-list-bg', 'cfg-list-txt'],
   ['cfg-ticket-bg', 'cfg-ticket-title-c'],
   ['cfg-body-bg', 'cfg-h3-color'],
   ['cfg-body-bg', 'cfg-notice-color'],
 ];
+
+// 各色は <input type="color"> 本体と、同期表示用の `-val` テキスト欄の
+// 両方に同じ値を入れないと、再読み込み後に表示がずれるため複製する。対象は全色項目。
+const ALL_COLOR_FIELDS = Array.from(
+  new Set([
+    ...Object.values(ROLE_TO_FIELDS).flat(),
+    ...Object.values(TEXT_ON_ROLE_FIELDS).flat(),
+  ])
+);
 
 export default {
   async fetch(request, env) {
@@ -100,7 +143,7 @@ async function handleAnalyzeSite(request, env) {
   const schema = buildResponseSchema();
   const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), cssText, colorCandidates);
 
-  let geminiJson;
+  let roles;
   try {
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
@@ -112,6 +155,9 @@ async function handleAnalyzeSite(request, env) {
           generationConfig: {
             responseMimeType: 'application/json',
             responseSchema: schema,
+            // 同じサイトを解析したときに毎回違う配色が出るとブレの原因になるため、
+            // ある程度決定的寄りの値にして再現性を上げる（0にはせず、多少の幅は残す）
+            temperature: 0.2,
           },
         }),
       }
@@ -127,28 +173,54 @@ async function handleAnalyzeSite(request, env) {
     if (!text) {
       return jsonResponse({ error: 'Geminiから有効な応答が得られませんでした' }, 502);
     }
-    geminiJson = JSON.parse(text);
+    roles = JSON.parse(text);
   } catch (e) {
     return jsonResponse({ error: 'Gemini呼び出し中に予期しないエラーが発生しました: ' + e.message }, 500);
   }
 
+  // role（6項目）から、実際の cfg-* 項目へ機械的に展開する。
+  // 同じ役割を参照する項目は必ず同じ値になるので、項目間の矛盾・ブレが起きない。
+  const settings = {};
+  Object.entries(ROLE_TO_FIELDS).forEach(([role, fields]) => {
+    fields.forEach((field) => {
+      if (roles[role]) settings[field] = roles[role];
+    });
+  });
+  Object.entries(TEXT_ON_ROLE_FIELDS).forEach(([role, fields]) => {
+    // 初期値は白を仮置き。背景色とのコントラストが低ければ enforceContrast() が黒に補正する。
+    fields.forEach((field) => {
+      settings[field] = '#ffffff';
+    });
+  });
+  if (roles.noticeColor) settings['cfg-notice-color'] = roles.noticeColor;
+
   // 背景色と文字色のコントラストが低い場合は、読みやすい色に自動補正する
-  enforceContrast(geminiJson);
+  enforceContrast(settings);
 
   // 注意：ここで saved_menu_items を補完しないこと。
   // index.html 側のインポート機能は、ファイルに saved_menu_items が含まれていると
   // 中身が空配列であってもフッターメニューを空に上書きしてしまう（generator/script.js）。
   // このAPIは色のトンマナしか推定していないので、メニュー構成には一切触れない。
 
-  // 各色は <input type="color"> 本体と、同期表示用の `-val` テキスト欄の
-  // 両方に同じ値を入れないと、再読み込み後に表示がずれるため複製する
-  COLOR_FIELDS.forEach((field) => {
-    if (geminiJson[field]) {
-      geminiJson[field + '-val'] = geminiJson[field];
+  ALL_COLOR_FIELDS.forEach((field) => {
+    if (settings[field]) {
+      settings[field + '-val'] = settings[field];
     }
   });
 
-  return jsonResponse(geminiJson, 200);
+  // ヘッダーのメイン画像：公式サイトのお知らせ・トピックス・カルーセルらしい画像を1枚探し、
+  // スライダーの既定サイズ（500×250）にリサイズしたURLを設定する。
+  // 画像が見つかった場合のみ、それが実際に表示される「パターンB（リッチ）」も合わせて選ぶ
+  // （画像だけ設定してもheader-patternがAのままだと表示されないため）。
+  const headerImageUrl = extractHeaderImageCandidate(html, targetUrl);
+  if (headerImageUrl) {
+    settings['cfg-header-main-img'] = buildResizedImageUrl(headerImageUrl, HEADER_IMAGE_WIDTH, HEADER_IMAGE_HEIGHT);
+    settings['cfg-header-slider-width'] = String(HEADER_IMAGE_WIDTH);
+    settings['cfg-header-slider-height'] = String(HEADER_IMAGE_HEIGHT);
+    settings['header-pattern'] = 'B';
+  }
+
+  return jsonResponse(settings, 200);
 }
 
 // サイト本体のHTMLに加えて、外部CSSファイルも取得して解析材料にする
@@ -219,18 +291,67 @@ function normalizeHex(hex) {
   return h;
 }
 
+// 公式サイトの <img> タグから、ヘッダースライダーに使えそうな画像を1枚選ぶ。
+// ロゴ・アイコン・SVG等は除外し、「お知らせ/トピックス/カルーセル」らしいパス、
+// なるべく横幅の大きい画像を優先する。
+function extractHeaderImageCandidate(html, baseUrl) {
+  const imgTagRegex = /<img\b[^>]*>/gi;
+  const srcRegex = /\b(?:src|data-src)=["']([^"']+)["']/i;
+  const widthRegex = /\bwidth=["']?(\d+)/i;
+
+  const tags = html.match(imgTagRegex) || [];
+  const candidates = [];
+
+  for (const tag of tags) {
+    const srcMatch = tag.match(srcRegex);
+    if (!srcMatch) continue;
+    const src = srcMatch[1];
+
+    if (/\.svg(\?|$)/i.test(src)) continue;
+    if (/logo|icon|favicon|sprite|pixel|spacer|\.gif(\?|$)/i.test(src)) continue;
+
+    let url;
+    try {
+      url = new URL(src, baseUrl).toString();
+    } catch (e) {
+      continue;
+    }
+
+    const widthMatch = tag.match(widthRegex);
+    const width = widthMatch ? parseInt(widthMatch[1], 10) : 0;
+    const looksLikeNews = /news|topics?|carousel|slide|banner|\bkv\b|campaign/i.test(src);
+
+    candidates.push({ url, width, looksLikeNews });
+  }
+
+  candidates.sort((a, b) => {
+    if (a.looksLikeNews !== b.looksLikeNews) return a.looksLikeNews ? -1 : 1;
+    return b.width - a.width;
+  });
+
+  return candidates.length ? candidates[0].url : null;
+}
+
+// 自前でCloudflare Image Resizingを使うには有料プラン/専用設定が必要なため、
+// 無料で使える画像プロキシ（wsrv.nl）経由で指定サイズにリサイズしたURLを返す。
+// 実際のリサイズ処理は表示時にそのプロキシ側で行われる。
+function buildResizedImageUrl(originalUrl, width, height) {
+  const encoded = encodeURIComponent(originalUrl);
+  return `https://wsrv.nl/?url=${encoded}&w=${width}&h=${height}&fit=cover&output=jpg`;
+}
+
 function buildResponseSchema() {
   const properties = {};
-  COLOR_FIELDS.forEach((field) => {
-    properties[field] = {
+  ROLE_FIELDS.forEach((role) => {
+    properties[role] = {
       type: 'string',
-      description: '16進カラーコード。例: #ffffff',
+      description: `16進カラーコード。例: #ffffff。${ROLE_DESCRIPTIONS[role]}`,
     };
   });
   return {
     type: 'object',
     properties,
-    required: COLOR_FIELDS,
+    required: ROLE_FIELDS,
   };
 }
 
@@ -245,7 +366,7 @@ function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates) {
     if (accent.length) {
       colorHint += `【低頻度で検出された色＝アクセントカラーの候補】\n${accent.join(', ')}\nアクセントカラーは「NEW」「おすすめ」バッジなど、デザイン上あえて少数箇所にしか使わないことが多い色です。出現回数が少ないからといって軽視せず、そのサイトらしさを象徴する色として積極的に検討してください。\n\n`;
     }
-    colorHint += 'これらは実際にサイトで使われている色です。トンマナに合う配色を作る際は、この中から主要なブランドカラーを優先的に選んで使ってください。白・黒・グレーに近い色は背景/文字の土台として使い、それ以外の有彩色をアクセント（ボタンや見出し）に使うと自然になります。';
+    colorHint += 'これらは実際にサイトで使われている色です。配色を作る際は、この中から主要なブランドカラーを優先的に選んで使ってください。';
   } else {
     colorHint = '色の検出はできませんでした。業態の一般的な印象から妥当な配色を提案してください。';
   }
@@ -265,11 +386,20 @@ ${cssText ? cssText.slice(0, MAX_CSS_CHARS_PER_FILE * MAX_CSS_FILES) : '(取得�
 ${colorHint}
 
 このサイトの配色・雰囲気（高級感がある／カジュアル／和風／ポップ、など）を読み取り、
-同じトンマナに合う配色を、来店ポイントを貯めるスタンプカードアプリのUI設定として提案してください。
+同じトンマナに合う配色を、来店ポイントを貯めるスタンプカードアプリのUI設定として、
+以下の6つの「役割」ごとに1色ずつ提案してください。
+
+- mainColor: ${ROLE_DESCRIPTIONS.mainColor}
+- accentColor: ${ROLE_DESCRIPTIONS.accentColor}
+- bodyBg: ${ROLE_DESCRIPTIONS.bodyBg}
+- cardBg: ${ROLE_DESCRIPTIONS.cardBg}
+- textColor: ${ROLE_DESCRIPTIONS.textColor}
+- noticeColor: ${ROLE_DESCRIPTIONS.noticeColor}
 
 必ず守ってほしいこと：
 - すべて16進数カラーコード（例: #ffffff）で回答する
-- 背景色とその上に乗る文字色は、コントラスト比 4.5:1 以上を目安にし、必ず読みやすい組み合わせにする
+- mainColor と accentColor は、はっきり区別できる別の色にする（両方とも暗い色同士、似た濃さの色同士にはしない）
+- bodyBg と cardBg も、重なったときにカードの輪郭が分かる程度に区別できる色にする
 - 上で示した「実際に検出されたカラーコード」を優先的に活用し、サイトと無関係な色を創作しない
 - 検出された色だけでは組み合わせが成立しない場合（似た色しかない等）のみ、業態の印象から補う色を追加してよい`;
 }
@@ -319,9 +449,13 @@ function contrastRatio(hex1, hex2) {
 }
 
 function pickReadableColor(bgHex) {
-  const bgLum = relativeLuminance(hexToRgb(bgHex));
-  // 背景が明るければ黒文字、暗ければ白文字を選ぶ
-  return bgLum > 0.5 ? '#000000' : '#ffffff';
+  // 背景色に対して、黒文字・白文字のどちらがより高いコントラスト比を得られるかで選ぶ。
+  // 輝度0.5を境にした単純な閾値だと、ゴールドのような中間的な色で
+  // 「本当はより読みやすい方」と逆の文字色を選んでしまうことがあるため、
+  // 実際にコントラスト比を両方計算して比較する。
+  const blackContrast = contrastRatio(bgHex, '#000000');
+  const whiteContrast = contrastRatio(bgHex, '#ffffff');
+  return blackContrast >= whiteContrast ? '#000000' : '#ffffff';
 }
 
 function jsonResponse(obj, status) {
