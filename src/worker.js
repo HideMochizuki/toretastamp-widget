@@ -83,7 +83,7 @@ const ROLE_TO_FIELDS = {
 // role の色の「上に乗る文字色」。初期値は白を仮置きし、enforceContrast() で
 // 読みにくければ黒へ補正する（＝自前で判断せず、既存のコントラスト補正に任せる）。
 const TEXT_ON_ROLE_FIELDS = {
-  mainColor: ['cfg-header-text-c', 'cfg-txt', 'cfg-btn1-txt', 'cfg-pgbtn-txt-c', 'cfg-pgbtn-org-txt-c'],
+  mainColor: ['cfg-header-text-c', 'cfg-txt', 'cfg-btn1-txt', 'cfg-btn1-icon-c', 'cfg-pgbtn-txt-c', 'cfg-pgbtn-org-txt-c'],
 };
 
 // 背景色とセットで読みやすさ（コントラスト）を保証すべき組み合わせ
@@ -91,6 +91,7 @@ const CONTRAST_PAIRS = [
   ['cfg-header-bg', 'cfg-header-text-c'],
   ['cfg-bg', 'cfg-txt'],
   ['cfg-btn1-bg', 'cfg-btn1-txt'],
+  ['cfg-btn1-bg', 'cfg-btn1-icon-c'],
   ['cfg-pgbtn-bg-c', 'cfg-pgbtn-txt-c'],
   ['cfg-pgbtn-org-bg-c', 'cfg-pgbtn-org-txt-c'],
   ['cfg-btn2-bg', 'cfg-btn2-txt'],
@@ -154,8 +155,22 @@ async function handleAnalyzeSite(request, env) {
 
   const colorCandidates = extractColorCandidates(html + '\n' + cssText);
 
+  // ロゴ画像を1枚見つけられれば取得し、Geminiへの入力に画像としてそのまま添える。
+  // テキスト（HTML/CSS）だけでは、ロゴ画像の中にしか存在しない色（写真やアイコンの色）は
+  // 原理的に拾えないため、画像そのものを判断材料に加える。
+  let logoImage = null;
+  const logoImageUrl = extractLogoImageCandidate(html, targetUrl);
+  if (logoImageUrl) {
+    logoImage = await fetchImageAsBase64(logoImageUrl);
+  }
+
   const schema = buildResponseSchema();
-  const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), cssText, colorCandidates);
+  const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), cssText, colorCandidates, !!logoImage);
+
+  const parts = [{ text: prompt }];
+  if (logoImage) {
+    parts.push({ inline_data: { mime_type: logoImage.mimeType, data: logoImage.base64 } });
+  }
 
   let roles;
   try {
@@ -165,7 +180,7 @@ async function handleAnalyzeSite(request, env) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: {
             responseMimeType: 'application/json',
             responseSchema: schema,
@@ -279,8 +294,12 @@ async function fetchSiteMaterial(targetUrl) {
 // サイトと無関係な色を創作してしまうのを防ぐ。
 // 頻度の高い側（構造色候補）と低い側（アクセント候補）を別枠で返すことで、
 // 出現回数の少ないアクセントカラーが上位N件の足切りで消えてしまうのを防ぐ。
+//
+// 注意：`(?<!&)` で「&」の直後は除外している。HTMLの数値文字参照（例: &#038; は「&」の意味）は
+// 3桁・6桁とも偶然すべて0-9の数字だけになりやすく、16進カラーコードと誤認識してしまうため
+// （実例：つぼ八公式サイトの `&#038;` を `#003388` という実在しない色として検出してしまった）。
 function extractColorCandidates(text) {
-  const matches = text.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g) || [];
+  const matches = text.match(/(?<!&)#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g) || [];
   const freq = new Map();
   matches.forEach((raw) => {
     const color = normalizeHex(raw);
@@ -355,6 +374,85 @@ function buildResizedImageUrl(originalUrl, width, height) {
   return `https://wsrv.nl/?url=${encoded}&w=${width}&h=${height}&fit=cover&output=jpg`;
 }
 
+// ロゴ画像を1枚探す。Geminiの画像入力はラスター形式（png/jpeg/webp等）のみ対応で
+// SVGは渡せないため、SVGは除外する。
+// 1. alt・src・class に "logo" を含む <img> タグを優先
+// 2. 無ければ <link rel="icon"> / rel="apple-touch-icon"> を探し、sizes指定が最大のものを使う
+//    （favicon.ico のような曖昧な拡張子は対象外。きちんと image/png 等と分かるものだけ使う）
+function extractLogoImageCandidate(html, baseUrl) {
+  const imgTagRegex = /<img\b[^>]*>/gi;
+  const srcRegex = /\b(?:src|data-src)=["']([^"']+)["']/i;
+  const isRasterImage = (src) => /\.(?:png|jpe?g|webp)(\?|$)/i.test(src);
+
+  const imgTags = html.match(imgTagRegex) || [];
+  for (const tag of imgTags) {
+    if (!/logo/i.test(tag)) continue;
+    const srcMatch = tag.match(srcRegex);
+    if (!srcMatch) continue;
+    const src = srcMatch[1];
+    if (!isRasterImage(src)) continue; // SVGなどは対象外
+    try {
+      return new URL(src, baseUrl).toString();
+    } catch (e) {
+      continue;
+    }
+  }
+
+  // フォールバック：favicon / apple-touch-icon から、宣言サイズが最大のものを選ぶ
+  const linkTagRegex = /<link\b[^>]*rel=["'](?:icon|apple-touch-icon)["'][^>]*>/gi;
+  const hrefRegex = /\bhref=["']([^"']+)["']/i;
+  const sizesRegex = /\bsizes=["'](\d+)x\d+["']/i;
+
+  const linkTags = html.match(linkTagRegex) || [];
+  let best = null;
+  for (const tag of linkTags) {
+    const hrefMatch = tag.match(hrefRegex);
+    if (!hrefMatch) continue;
+    const src = hrefMatch[1];
+    if (!isRasterImage(src)) continue;
+
+    const sizeMatch = tag.match(sizesRegex);
+    const size = sizeMatch ? parseInt(sizeMatch[1], 10) : 0;
+    if (!best || size > best.size) {
+      try {
+        best = { url: new URL(src, baseUrl).toString(), size };
+      } catch (e) {
+        continue;
+      }
+    }
+  }
+
+  return best ? best.url : null;
+}
+
+// 画像を取得してGeminiのinline_data用にBase64エンコードする。
+// Workers環境にはNodeのBufferが無いため、Uint8Arrayをchunk単位でbtoaにかける。
+// 取得失敗・非対応形式・大きすぎる画像は null を返し、呼び出し側はテキストのみで解析を続行する。
+const MAX_LOGO_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
+async function fetchImageAsBase64(url) {
+  try {
+    const res = await fetch(url, { headers: FETCH_HEADERS });
+    if (!res.ok) return null;
+
+    const contentType = (res.headers.get('content-type') || '').split(';')[0].trim();
+    if (!/^image\/(png|jpeg|webp)$/.test(contentType)) return null;
+
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength === 0 || buf.byteLength > MAX_LOGO_IMAGE_BYTES) return null;
+
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+
+    return { base64: btoa(binary), mimeType: contentType };
+  } catch (e) {
+    return null;
+  }
+}
+
 function buildResponseSchema() {
   const properties = {};
   ROLE_FIELDS.forEach((role) => {
@@ -370,7 +468,7 @@ function buildResponseSchema() {
   };
 }
 
-function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates) {
+function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates, hasLogoImage) {
   const { structural, accent } = colorCandidates;
   let colorHint;
   if (structural.length || accent.length) {
@@ -386,6 +484,10 @@ function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates) {
     colorHint = '色の検出はできませんでした。業態の一般的な印象から妥当な配色を提案してください。';
   }
 
+  const logoHint = hasLogoImage
+    ? '\n\nこのメッセージにはロゴ画像も添付しています。ロゴはHTML/CSSのテキストには出てこない色（写真の色・ロゴマークそのものの色）を含んでいることがあるので、必ず参考にしてください。ロゴで使われている色と、HTML/CSSから検出された色が食い違う場合は、ロゴの色の方を優先してください（ロゴはそのブランドを最も直接的に表す要素のため）。'
+    : '';
+
   return `あなたは飲食店の公式サイトのデザインを分析し、配色のトンマナを抽出する専門家です。
 
 対象サイト: ${targetUrl}
@@ -398,7 +500,7 @@ ${htmlExcerpt}
 ${cssText ? cssText.slice(0, MAX_CSS_CHARS_PER_FILE * MAX_CSS_FILES) : '(取得できませんでした)'}
 --- CSS抜粋ここまで ---
 
-${colorHint}
+${colorHint}${logoHint}
 
 このサイトの配色・雰囲気（高級感がある／カジュアル／和風／ポップ、など）を読み取り、
 同じトンマナに合う配色を、来店ポイントを貯めるスタンプカードアプリのUI設定として、
@@ -413,7 +515,7 @@ ${colorHint}
 必ず守ってほしいこと：
 - すべて16進数カラーコード（例: #ffffff）で回答する
 - bodyBg と cardBg は、重なったときにカードの輪郭が分かる程度に区別できる色にする
-- 上で示した「実際に検出されたカラーコード」を優先的に活用し、サイトと無関係な色を創作しない
+- 上で示した「実際に検出されたカラーコード」（および添付したロゴ画像があればその色）を優先的に活用し、サイトと無関係な色を創作しない
 - 検出された色だけでは組み合わせが成立しない場合（似た色しかない等）のみ、業態の印象から補う色を追加してよい`;
 }
 
