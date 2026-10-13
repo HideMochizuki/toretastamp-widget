@@ -91,6 +91,9 @@
   .highlight-delta.up { color: #16a34a; }
   .highlight-delta.down { color: #dc2626; }
   .highlight-delta.flat { color: #94a3b8; }
+  .report-section-divider { display: flex; align-items: center; gap: 12px; margin: 36px 0 8px; }
+  .report-section-divider::before, .report-section-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+  .report-section-divider-label { font-size: 0.85rem; font-weight: bold; color: #b45309; white-space: nowrap; }
   .rank-tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
   .rank-tile {
     background: #fff; border: 1px solid var(--border-color); border-radius: 14px;
@@ -464,23 +467,6 @@
       </div>
 
       <div class="card-wrapper">
-        <h2 class="card-title"><span class="card-title-text">登録店舗と実利用店舗のギャップ<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
-        <div class="card">
-          <div class="card-sub-title">会員ごとに「スタンプ押下が一番多い店舗」を実利用店舗とみなし、初回登録した店舗と比較します（例：A店で登録したが、実際はB店でよく利用している、など）</div>
-          <div class="status-line" id="store-gap-status"></div>
-          <table class="data-table" id="store-gap-table"></table>
-
-          <div class="card-sub-title" style="margin-top: 20px;">他店舗で利用している会員の詳細（LINE ID抽出）</div>
-          <div class="inline-controls no-print">
-            <label>登録店舗</label>
-            <select id="store-gap-detail-select"><option value="">全店舗</option></select>
-            <button class="action-btn primary" id="store-gap-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
-          </div>
-          <table class="data-table" id="store-gap-detail-table"></table>
-        </div>
-      </div>
-
-      <div class="card-wrapper">
         <h2 class="card-title"><span class="card-title-text">1人あたり平均スタンプ押下数（新規/既存）<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
         <div class="card">
           <div class="card-sub-title">月ごとに、その月が初回来店月（＝初めてスタンプを押した月）の会員（新規）とそれ以前から来店している会員（既存）を分けて、1人あたりのスタンプ押下数を集計します（トレタCS部の顧客向けレポートと同じ定義）</div>
@@ -503,6 +489,18 @@
       </div>
 
       <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">優良顧客ランキング<span class="scope-tag fixed">📌固定（常に全期間・全店舗）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">生涯のスタンプ押下数（来店回数の目安）が多い会員の上位ランキングです。お礼キャンペーンや優待の対象選定などにご利用ください（下の「要対応」セクションの逆で、特にアクションが必要なわけではなく、良い状態を確認するためのカードです）。</div>
+          <div class="inline-controls no-print">
+            <button class="action-btn primary" id="top-members-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+            <button class="action-btn secondary" id="top-members-lineid-csv-btn" disabled><i class="fa fa-download"></i> LINE IDのみダウンロード</button>
+          </div>
+          <table class="data-table" id="top-members-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
         <h2 class="card-title"><span class="card-title-text">チケット有効性（現在時点）<span class="scope-tag fixed">📌固定（常に「今」の状態）</span></span></h2>
         <div class="card">
           <div class="tile-row" id="ticket-tile-row"></div>
@@ -515,84 +513,6 @@
         <div class="card">
           <div class="card-sub-title">発行・利用は選択期間内の件数、有効・失効はその日時点でのスナップショットです</div>
           <div id="ticket-trend-chart"></div>
-        </div>
-      </div>
-
-      <div class="card-wrapper no-print">
-        <h2 class="card-title"><span class="card-title-text">チケット有効期限が近い会員（LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
-        <div class="card">
-          <div class="card-sub-title">「有効」なチケットのうち、指定日数以内に失効するものを抽出します</div>
-          <div class="inline-controls">
-            <label>残り日数</label>
-            <div class="quick-btns">
-              <button type="button" class="quick-btn" data-input="expiry-days" data-value="7">7日</button>
-              <button type="button" class="quick-btn" data-input="expiry-days" data-value="14">14日</button>
-              <button type="button" class="quick-btn" data-input="expiry-days" data-value="30">30日</button>
-            </div>
-            <span class="option-sep">または</span>
-            <input type="number" id="expiry-days" value="7" min="1" class="effect-window-input">
-            <span class="range-sep">日以内</span>
-            <button class="action-btn secondary" id="expiry-extract-btn"><i class="fa fa-search"></i> 抽出</button>
-            <button class="action-btn primary" id="expiry-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
-            <button class="action-btn secondary" id="expiry-lineid-csv-btn" disabled><i class="fa fa-download"></i> LINE IDのみダウンロード</button>
-          </div>
-          <div class="status-line" id="expiry-status"></div>
-          <table class="data-table" id="expiry-table"></table>
-        </div>
-      </div>
-
-      <div class="card-wrapper no-print">
-        <h2 class="card-title"><span class="card-title-text">スタンプ失効が近い会員（LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
-        <div class="card">
-          <div class="card-sub-title">「スタンプ帳設定」で「スタンプ有効期限」を登録したスタンプ帳のうち、指定日数以内に失効する会員を抽出します（まだ失効していない会員のみ）</div>
-          <div class="inline-controls">
-            <label>残り日数</label>
-            <div class="quick-btns">
-              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="7">7日</button>
-              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="14">14日</button>
-              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="30">30日</button>
-            </div>
-            <span class="option-sep">または</span>
-            <input type="number" id="stamp-expiry-days" value="7" min="1" class="effect-window-input">
-            <span class="range-sep">日以内</span>
-            <button class="action-btn secondary" id="stamp-expiry-extract-btn"><i class="fa fa-search"></i> 抽出</button>
-            <button class="action-btn primary" id="stamp-expiry-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
-            <button class="action-btn secondary" id="stamp-expiry-lineid-csv-btn" disabled><i class="fa fa-download"></i> LINE IDのみダウンロード</button>
-          </div>
-          <div class="status-line" id="stamp-expiry-status"></div>
-          <table class="data-table" id="stamp-expiry-table"></table>
-        </div>
-      </div>
-
-      <div class="card-wrapper no-print">
-        <h2 class="card-title"><span class="card-title-text">離脱予兆（休眠しそうな常連客の抽出／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
-        <div class="card">
-          <div class="card-sub-title">以前は頻繁に来店していたのに、最近来店していない会員を抽出します（来店回数・最終来店日はブランド全体でカウント）</div>
-          <div class="inline-controls">
-            <label>対象とする来店回数</label>
-            <div class="quick-btns">
-              <button type="button" class="quick-btn" data-input="lapsed-min-visits" data-value="3">3回以上</button>
-              <button type="button" class="quick-btn active" data-input="lapsed-min-visits" data-value="5">5回以上</button>
-              <button type="button" class="quick-btn" data-input="lapsed-min-visits" data-value="10">10回以上</button>
-            </div>
-            <span class="option-sep">または</span>
-            <input type="number" id="lapsed-min-visits" value="5" min="1" class="effect-window-input">
-          </div>
-          <div class="inline-controls">
-            <label>未来店日数</label>
-            <div class="quick-btns">
-              <button type="button" class="quick-btn" data-input="lapsed-days" data-value="30">30日</button>
-              <button type="button" class="quick-btn active" data-input="lapsed-days" data-value="60">60日</button>
-              <button type="button" class="quick-btn" data-input="lapsed-days" data-value="90">90日</button>
-            </div>
-            <span class="option-sep">または</span>
-            <input type="number" id="lapsed-days" value="60" min="1" class="effect-window-input">
-            <span class="range-sep">日以上来店なし</span>
-            <button class="action-btn secondary" id="lapsed-extract-btn"><i class="fa fa-search"></i> 抽出</button>
-            <button class="action-btn primary" id="lapsed-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
-          </div>
-          <div class="status-line" id="lapsed-status"></div>
-          <table class="data-table" id="lapsed-table"></table>
         </div>
       </div>
 
@@ -631,6 +551,103 @@
             <span class="range-sep">日以内</span>
           </div>
           <table class="data-table" id="effect-table"></table>
+        </div>
+      </div>
+
+      <div class="report-section-divider"><span class="report-section-divider-label">⚠️ 要対応（アクションが必要な会員・データ）</span></div>
+
+      <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">登録店舗と実利用店舗のギャップ<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">会員ごとに「スタンプ押下が一番多い店舗」を実利用店舗とみなし、初回登録した店舗と比較します（例：A店で登録したが、実際はB店でよく利用している、など）</div>
+          <div class="status-line" id="store-gap-status"></div>
+          <table class="data-table" id="store-gap-table"></table>
+
+          <div class="card-sub-title" style="margin-top: 20px;">他店舗で利用している会員の詳細（LINE ID抽出）</div>
+          <div class="inline-controls no-print">
+            <label>登録店舗</label>
+            <select id="store-gap-detail-select"><option value="">全店舗</option></select>
+            <button class="action-btn primary" id="store-gap-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+          </div>
+          <table class="data-table" id="store-gap-detail-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">チケット利用を後押しできる会員（有効期限が近い／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">「有効」なチケットのうち、指定日数以内に失効するものを抽出します。利用を後押しするご案内（リマインドメッセージなど）の対象にご活用ください。</div>
+          <div class="inline-controls">
+            <label>残り日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="expiry-days" data-value="7">7日</button>
+              <button type="button" class="quick-btn" data-input="expiry-days" data-value="14">14日</button>
+              <button type="button" class="quick-btn" data-input="expiry-days" data-value="30">30日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="expiry-days" value="7" min="1" class="effect-window-input">
+            <span class="range-sep">日以内</span>
+            <button class="action-btn secondary" id="expiry-extract-btn"><i class="fa fa-search"></i> 抽出</button>
+            <button class="action-btn primary" id="expiry-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+            <button class="action-btn secondary" id="expiry-lineid-csv-btn" disabled><i class="fa fa-download"></i> LINE IDのみダウンロード</button>
+          </div>
+          <div class="status-line" id="expiry-status"></div>
+          <table class="data-table" id="expiry-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">来店を後押しできる会員（スタンプ失効が近い／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">「スタンプ帳設定」で「スタンプ有効期限」を登録したスタンプ帳のうち、指定日数以内に失効する会員を抽出します（まだ失効していない会員のみ）。来店を後押しするご案内の対象にご活用ください。</div>
+          <div class="inline-controls">
+            <label>残り日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="7">7日</button>
+              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="14">14日</button>
+              <button type="button" class="quick-btn" data-input="stamp-expiry-days" data-value="30">30日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="stamp-expiry-days" value="7" min="1" class="effect-window-input">
+            <span class="range-sep">日以内</span>
+            <button class="action-btn secondary" id="stamp-expiry-extract-btn"><i class="fa fa-search"></i> 抽出</button>
+            <button class="action-btn primary" id="stamp-expiry-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+            <button class="action-btn secondary" id="stamp-expiry-lineid-csv-btn" disabled><i class="fa fa-download"></i> LINE IDのみダウンロード</button>
+          </div>
+          <div class="status-line" id="stamp-expiry-status"></div>
+          <table class="data-table" id="stamp-expiry-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper no-print">
+        <h2 class="card-title"><span class="card-title-text">再来店アプローチ対象（休眠ぎみの常連客／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">以前は頻繁に来店していた常連客のうち、最近来店していない会員を抽出します（来店回数・最終来店日はブランド全体でカウント）。再来店を促すご案内（クーポン配布など）の対象にご活用ください。</div>
+          <div class="inline-controls">
+            <label>対象とする来店回数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="lapsed-min-visits" data-value="3">3回以上</button>
+              <button type="button" class="quick-btn active" data-input="lapsed-min-visits" data-value="5">5回以上</button>
+              <button type="button" class="quick-btn" data-input="lapsed-min-visits" data-value="10">10回以上</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="lapsed-min-visits" value="5" min="1" class="effect-window-input">
+          </div>
+          <div class="inline-controls">
+            <label>未来店日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="lapsed-days" data-value="30">30日</button>
+              <button type="button" class="quick-btn active" data-input="lapsed-days" data-value="60">60日</button>
+              <button type="button" class="quick-btn" data-input="lapsed-days" data-value="90">90日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="lapsed-days" value="60" min="1" class="effect-window-input">
+            <span class="range-sep">日以上来店なし</span>
+            <button class="action-btn secondary" id="lapsed-extract-btn"><i class="fa fa-search"></i> 抽出</button>
+            <button class="action-btn primary" id="lapsed-csv-btn" disabled><i class="fa fa-download"></i> CSVダウンロード</button>
+          </div>
+          <div class="status-line" id="lapsed-status"></div>
+          <table class="data-table" id="lapsed-table"></table>
         </div>
       </div>
     </div>
@@ -1193,6 +1210,7 @@ function renderReport() {
 
   renderMemberStoreTable();
   renderStoreRepeatTable();
+  renderTopMembersTable();
   renderStoreGapCard();
   renderFunnel();
   renderTrendChart();
@@ -1955,6 +1973,60 @@ function renderStoreRepeatTable() {
   });
 }
 
+const TOP_MEMBERS_COUNT = 20;
+let lastTopMembers = [];
+
+// 「離脱予兆」の逆で、生涯のスタンプ押下数が多い優良顧客を見せる前向きなカード。
+// 期間・店舗で絞り込まず常に全期間・全店舗の累計で順位付けする(店舗別のリピート来店傾向と同じ考え方)。
+function renderTopMembersTable() {
+  const el = document.getElementById('top-members-table');
+  const topMembersCsvBtn = document.getElementById('top-members-csv-btn');
+  const topMembersLineIdCsvBtn = document.getElementById('top-members-lineid-csv-btn');
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+
+  const ranked = Dashboard.Aggregate.rankTopMembers(currentClient.merged.stampPushes, TOP_MEMBERS_COUNT);
+  lastTopMembers = ranked.map(m => ({ ...m, lineId: members[m.memberId] ? members[m.memberId].lineId : null }));
+
+  if (!lastTopMembers.length) {
+    el.innerHTML = '<tr><td>データなし</td></tr>';
+    topMembersCsvBtn.disabled = true;
+    topMembersLineIdCsvBtn.disabled = true;
+    return;
+  }
+
+  el.innerHTML = `
+    <tr><th>順位</th><th>会員ID</th><th>LINE ID</th><th>生涯スタンプ押下数</th><th>初回来店日</th><th>最終来店日</th></tr>
+    ${lastTopMembers.map((m, i) => `<tr>
+      <td>${i + 1}</td>
+      <td>${escapeHtml(m.memberId)}</td>
+      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${m.pushCount.toLocaleString()}</td>
+      <td>${formatLocalDate(m.firstPushAt)}</td>
+      <td>${formatLocalDate(m.lastPushAt)}</td>
+    </tr>`).join('')}`;
+  topMembersCsvBtn.disabled = false;
+  topMembersLineIdCsvBtn.disabled = !lastTopMembers.some(m => m.lineId);
+}
+
+document.getElementById('top-members-csv-btn').addEventListener('click', () => {
+  if (!lastTopMembers.length) return;
+  downloadCsv(
+    `優良顧客ランキング_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['順位', '会員ID', 'LINE ID', '生涯スタンプ押下数', '初回来店日', '最終来店日'],
+    lastTopMembers.map((m, i) => [i + 1, m.memberId, m.lineId || '', m.pushCount, formatLocalDate(m.firstPushAt), formatLocalDate(m.lastPushAt)])
+  );
+});
+
+document.getElementById('top-members-lineid-csv-btn').addEventListener('click', () => {
+  const lineIds = Array.from(new Set(lastTopMembers.map(m => m.lineId).filter(Boolean)));
+  if (!lineIds.length) return;
+  downloadCsv(
+    `優良顧客ランキング_LINEID_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    ['LINE ID'],
+    lineIds.map(id => [id])
+  );
+});
+
 function renderStoreGapCard() {
   const ms = currentClient.memberSummary;
   const statusEl = document.getElementById('store-gap-status');
@@ -2239,7 +2311,7 @@ document.getElementById('lapsed-extract-btn').addEventListener('click', () => {
 lapsedCsvBtn.addEventListener('click', () => {
   if (!lastLapsedRegulars.length) return;
   downloadCsv(
-    `離脱予兆_${currentClient.name}_${toInputDate(new Date())}.csv`,
+    `再来店アプローチ対象_${currentClient.name}_${toInputDate(new Date())}.csv`,
     ['会員ID', 'LINE ID', '来店回数(累計)', '最終来店日', '未来店日数'],
     lastLapsedRegulars.map(m => [m.memberId, m.lineId || '', m.pushCount, formatLocalDate(m.lastPushAt), m.daysSinceLastVisit])
   );
