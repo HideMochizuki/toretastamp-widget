@@ -5115,16 +5115,24 @@ fileInput.onchange = (e) => {
             // 正しいJSONかチェック
             const data = JSON.parse(jsonStr);
 
-            // 簡易チェック（saved_menu_itemsがあるか確認）
-            if (!data.saved_menu_items) {
+            // 簡易チェック（cfg-*系のキーが1つでもあるか確認）
+            // ※以前は saved_menu_items の有無で判定していたが、AIトンマナ解析結果のように
+            // 　色設定だけを含む部分的なファイルも正常なファイルとして扱えるようにする。
+            const hasAnyCfgKey = Object.keys(data).some((k) => k.startsWith('cfg-'));
+            if (!hasAnyCfgKey) {
                 alert("無効なファイル形式です。");
                 return;
             }
 
-            if (confirm("現在の設定を上書きして、ファイルを読み込みますか？")) {
-                // LocalStorageに上書き保存
-                localStorage.setItem('generator_backup', JSON.stringify(data));
-                
+            if (confirm("現在の設定に読み込んだ内容を反映しますか？\n（ファイルに含まれていない項目は今の設定のまま維持されます）")) {
+                // 既存の設定に、読み込んだ内容を上書きマージして保存する。
+                // ※丸ごと置き換えると、AIトンマナ解析結果のような部分的な設定ファイルを
+                // 　読み込んだ際に、フッターメニューやフォント・画像など
+                // 　ファイルに含まれていない項目まで消えてしまうため。
+                const current = JSON.parse(localStorage.getItem('generator_backup') || '{}');
+                const merged = { ...current, ...data };
+                localStorage.setItem('generator_backup', JSON.stringify(merged));
+
                 // 画面を再読み込みして反映（これが一番確実です）
                 location.reload();
             }
