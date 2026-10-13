@@ -1999,7 +1999,7 @@ function renderTopMembersTable() {
     ${lastTopMembers.map((m, i) => `<tr>
       <td>${i + 1}</td>
       <td>${escapeHtml(m.memberId)}</td>
-      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${escapeHtml(m.lineId ? maskLineId(m.lineId) : '(不明)')}</td>
       <td>${m.pushCount.toLocaleString()}</td>
       <td>${formatLocalDate(m.firstPushAt)}</td>
       <td>${formatLocalDate(m.lastPushAt)}</td>
@@ -2088,7 +2088,7 @@ function renderStoreGapDetail() {
     <tr><th>会員ID</th><th>LINE ID</th><th>登録店舗</th><th>実利用店舗</th><th>実利用店舗での押下数</th></tr>
     ${lastStoreGapDifferent.slice(0, 200).map(m => `<tr>
       <td>${escapeHtml(m.memberId)}</td>
-      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${escapeHtml(m.lineId ? maskLineId(m.lineId) : '(不明)')}</td>
       <td>${escapeHtml(m.registeredStoreKey.split(':').slice(1).join(':') || m.registeredStoreKey)}</td>
       <td>${escapeHtml(m.actualStoreKey.split(':').slice(1).join(':') || m.actualStoreKey)}</td>
       <td>${m.actualPushCount.toLocaleString()}</td>
@@ -2173,7 +2173,7 @@ document.getElementById('expiry-extract-btn').addEventListener('click', () => {
     ${lastExpiringTickets.map(t => `<tr>
       <td>${escapeHtml(t.ticketName || '(名称未設定)')}</td>
       <td>${escapeHtml(t.memberId || '-')}</td>
-      <td>${escapeHtml(t.lineId || '(不明)')}</td>
+      <td>${escapeHtml(t.lineId ? maskLineId(t.lineId) : '(不明)')}</td>
       <td>${escapeHtml(t.storeKey ? t.storeKey.split(':').slice(1).join(':') : '-')}</td>
       <td>${t.daysRemaining}</td>
       <td>${formatLocalDate(t.expiryDate)}</td>
@@ -2241,7 +2241,7 @@ document.getElementById('stamp-expiry-extract-btn').addEventListener('click', ()
     ${lastExpiringStamps.map(m => `<tr>
       <td>${escapeHtml(m.page)}</td>
       <td>${escapeHtml(m.memberId)}</td>
-      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${escapeHtml(m.lineId ? maskLineId(m.lineId) : '(不明)')}</td>
       <td>${formatLocalDate(m.lastPushAt)}</td>
       <td>${m.daysRemaining}</td>
       <td>${formatLocalDate(m.expiresAt)}</td>
@@ -2300,7 +2300,7 @@ document.getElementById('lapsed-extract-btn').addEventListener('click', () => {
     <tr><th>会員ID</th><th>LINE ID</th><th>来店回数(累計)</th><th>最終来店日</th><th>未来店日数</th></tr>
     ${lastLapsedRegulars.map(m => `<tr>
       <td>${escapeHtml(m.memberId)}</td>
-      <td>${escapeHtml(m.lineId || '(不明)')}</td>
+      <td>${escapeHtml(m.lineId ? maskLineId(m.lineId) : '(不明)')}</td>
       <td>${m.pushCount.toLocaleString()}</td>
       <td>${formatLocalDate(m.lastPushAt)}</td>
       <td>${m.daysSinceLastVisit.toLocaleString()}</td>
@@ -2329,6 +2329,15 @@ function formatLocalDate(iso) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 画面表示・PDF(印刷)ではLINE IDを一部伏せる(中間をマスク)。実際に配信・連絡に使う場面は
+// 「LINE IDのみダウンロード」のCSVを使う想定のため、CSV側はマスクせずフルのIDを出す。
+function maskLineId(lineId) {
+  if (!lineId) return '';
+  const s = String(lineId);
+  if (s.length <= 8) return s.slice(0, 2) + '...' + s.slice(-2);
+  return s.slice(0, 5) + '...' + s.slice(-4);
 }
 </script>
 </body>
