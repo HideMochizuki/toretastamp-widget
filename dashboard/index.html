@@ -90,6 +90,13 @@
   .tile .tile-delta.flat { color: #94a3b8; }
   .tile.accent { background: #f0fdf4; border-color: #bbf7d0; }
   .tile[data-tooltip] { position: relative; cursor: help; }
+  .help-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+    background: #f1f5f9; color: #64748b; font-size: 0.72rem; font-weight: bold;
+    cursor: help; margin-left: 8px; position: relative; vertical-align: middle;
+  }
+  .help-icon:hover { background: #e2e8f0; color: #334155; }
   .highlight-item {
     display: flex; align-items: center; gap: 12px; padding: 12px 4px;
     border-bottom: 1px solid #f1f5f9; font-size: 0.9rem;
@@ -117,14 +124,16 @@
   .rank-tile-num .rank-tile-unit { font-size: 0.9rem; font-weight: normal; color: #64748b; margin-left: 2px; }
   .rank-tile-active { font-size: 0.72rem; color: #16a34a; margin-top: 6px; }
   .rank-tile-top { background: #fffbeb; border-color: #fde68a; }
-  .tile[data-tooltip]:hover::after {
+  .tile[data-tooltip]:hover::after,
+  .help-icon[data-tooltip]:hover::after {
     content: attr(data-tooltip);
     position: absolute; bottom: 100%; left: 0; transform: translateY(-8px);
     background: #1e293b; color: #fff; font-size: 0.75rem; font-weight: normal; line-height: 1.5;
     padding: 8px 10px; border-radius: 6px; white-space: normal; width: 240px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.18); z-index: 20;
   }
-  .tile[data-tooltip]:hover::before {
+  .tile[data-tooltip]:hover::before,
+  .help-icon[data-tooltip]:hover::before {
     content: ''; position: absolute; bottom: 100%; left: 16px; transform: translateY(-2px);
     border: 5px solid transparent; border-top-color: #1e293b; z-index: 20;
   }
@@ -481,7 +490,7 @@
       </div>
 
       <div class="card-wrapper">
-        <h2 class="card-title"><span class="card-title-text">会員登録された店舗<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
+        <h2 class="card-title"><span class="card-title-text">会員登録された店舗<span class="scope-tag fixed">📌固定（常に全期間）</span><span class="help-icon" data-tooltip="会員登録した「入り口」によって決まります。お店に設置されたスタンプ用QRコードから初めて登録すると、QRコードに店舗の情報が組み込まれているため店舗が分かります。一方、リッチメニューなど店舗を問わない共通リンク（スタンプ帳一覧やチケット一覧など）から初めてログインして登録した場合は、店舗の情報が無いため「店舗未設定」になります。">?</span></span></h2>
         <div class="card"><table class="data-table" id="member-store-table"></table></div>
       </div>
 
@@ -593,7 +602,7 @@
       </div>
 
       <div class="card-wrapper no-print">
-        <h2 class="card-title"><span class="card-title-text">チケット利用を後押しできる会員（有効期限が近い／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
+        <h2 class="card-title"><span class="card-title-text">チケット利用を後押しできる会員（有効期限が近い／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span><span class="help-icon" data-tooltip="「有効」の判定は「チケット設定」で登録した有効期限ルールに基づきます。ルール未登録のチケットは対象外です。LINE IDが「(不明)」の会員は、LINE連携前に登録した等の理由で配信対象にできません。">?</span></span></h2>
         <div class="card">
           <div class="card-sub-title">「有効」なチケットのうち、指定日数以内に失効するものを抽出します。利用を後押しするご案内（リマインドメッセージなど）の対象にご活用ください。</div>
           <div class="inline-controls">

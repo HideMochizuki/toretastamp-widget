@@ -110,9 +110,12 @@ window.Dashboard.Charts = (function () {
     svg.appendChild(el('path', { d: linePath.join(' '), fill: 'none', stroke: COLOR_DARK, 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
 
     // 各点にドットを打つ(最後の点だけでなく全点。波線のにぎやかさを出す)
-    points.forEach((p, i) => {
-      svg.appendChild(el('circle', { cx: xAt(i), cy: yAt(p.value), r: 3.5, fill: COLOR_DARK, stroke: '#fff', 'stroke-width': 1.5 }));
-    });
+    // ただし点の間隔が狭いと丸同士が重なって潰れるため、間隔が十分あるときだけ描画する
+    if (xStep >= 8 || points.length === 1) {
+      points.forEach((p, i) => {
+        svg.appendChild(el('circle', { cx: xAt(i), cy: yAt(p.value), r: 3.5, fill: COLOR_DARK, stroke: '#fff', 'stroke-width': 1.5 }));
+      });
+    }
 
     const crosshair = el('line', { x1: 0, x2: 0, y1: padT, y2: padT + plotH, stroke: AXIS, 'stroke-width': 1, style: 'display:none;' });
     svg.appendChild(crosshair);
@@ -375,9 +378,9 @@ window.Dashboard.Charts = (function () {
       svg.appendChild(t);
     });
 
-    // 系列が多いと点が密集して見づらくなるため、ドットは3系列以下の時だけ全点に打つ
-    // (多系列の時は従来通り最後の点だけ)。
-    const showAllDots = series.length <= 3;
+    // 系列が多い、または点の間隔が狭い(日数が多い)と点が密集して見づらくなるため、
+    // 3系列以下 かつ 間隔が十分あるときだけ全点に丸を打つ(それ以外は最後の点だけ)。
+    const showAllDots = series.length <= 3 && xStep >= 8;
     series.forEach(s => {
       const linePath = ['M', xAt(0), yAt(s.points[0].value)];
       s.points.forEach((p, i) => { if (i > 0) linePath.push('L', xAt(i), yAt(p.value)); });
