@@ -21,6 +21,16 @@ const MIN_CONTRAST_RATIO = 4.5;
 const HEADER_IMAGE_WIDTH = 500;
 const HEADER_IMAGE_HEIGHT = 250;
 
+// フッター固定メニューの標準構成。サイトごとに変える必要がないため固定値とし、
+// URL（href）は空のまま、項目の種類（class）とラベルだけを設定する。
+const DEFAULT_MENU_ITEMS = [
+  { class: 'home', label: 'ホーム', href: '', ext: false, aclass: '' },
+  { class: 'stamp', label: 'スタンプ帳', href: '', ext: false, aclass: '' },
+  { class: 'ticket', label: 'チケット', href: '', ext: false, aclass: '' },
+  { class: 'history', label: '履歴', href: '', ext: false, aclass: '' },
+  { class: 'reservation', label: '予約', href: '', ext: false, aclass: '' },
+];
+
 // --- Gemini に判断させる「役割」は6つだけに絞る ---------------------------------
 // 以前は cfg-* の18項目それぞれを独立にGeminiへ判断させていたが、
 // 「ヘッダー背景」「フッターメニュー背景」「チケットタイトル文字色」のように
@@ -31,8 +41,7 @@ const HEADER_IMAGE_HEIGHT = 250;
 // 　・同じ役割を持つ項目同士は常に同じ値になる（ブレない・矛盾しない）
 // 　・結果的に以前よりカバーする項目数が増える
 const ROLE_DESCRIPTIONS = {
-  mainColor: 'サイトで最も特徴的な、ブランドを象徴するメインカラー。ヘッダー・主要ボタン・見出しなど広い範囲で使われる色。',
-  accentColor: '「NEW」バッジやQRコード読み取りボタンなど、あえて少数箇所にしか使わず目立たせるためのアクセントカラー。メインカラーとは別の色にすること。',
+  mainColor: 'サイトで最も特徴的な、ブランドを象徴するメインカラー。ヘッダー・主要ボタン・見出し・QRコード読み取りボタンなど、実際にクリックできる操作ボタン全般に使われる色。',
   bodyBg: 'ページ全体の土台となる背景色。白に近いごく薄いグレーなど、落ち着いた色。',
   cardBg: 'その上に乗る、個々のカード・リスト・チケットなどの表面色。白またはそれに近い色が自然。',
   textColor: '本文の基本的な文字色。黒に近い色。',
@@ -41,6 +50,10 @@ const ROLE_DESCRIPTIONS = {
 const ROLE_FIELDS = Object.keys(ROLE_DESCRIPTIONS);
 
 // role -> その値をそのままコピーする cfg-* 項目（背景・文字色として同じ値を使う箇所）
+// ※以前は「QR読み取り等の強調ボタンはアクセントカラー（バッジに使う差し色）にする」設計だったが、
+// 　実際のブランドCSSを調べたところ .c-btn--blue 等のクリック可能なボタン類は
+// 　例外なくメインカラーで統一されており、差し色はバッジのような非操作要素にしか
+// 　使われていなかった。そのため操作ボタン系はすべてメインカラーに統一する。
 const ROLE_TO_FIELDS = {
   mainColor: [
     'cfg-header-bg',
@@ -51,8 +64,9 @@ const ROLE_TO_FIELDS = {
     'cfg-h3-color',
     'cfg-btn2-txt', // セカンダリボタンの文字色＝メインカラー
     'cfg-btn2-icon-c',
+    'cfg-pgbtn-bg-c', // 通常ボタン（「トップへ戻る」等）の背景
+    'cfg-pgbtn-org-bg-c', // QR読み取り・チケット利用などの強調ボタンの背景
   ],
-  accentColor: ['cfg-pgbtn-org-bg-c'], // QR読み取り等、強調ボタンの背景
   bodyBg: ['cfg-body-bg', 'cfg-user-bg'],
   cardBg: [
     'cfg-btn-area-bg',
@@ -69,8 +83,7 @@ const ROLE_TO_FIELDS = {
 // role の色の「上に乗る文字色」。初期値は白を仮置きし、enforceContrast() で
 // 読みにくければ黒へ補正する（＝自前で判断せず、既存のコントラスト補正に任せる）。
 const TEXT_ON_ROLE_FIELDS = {
-  mainColor: ['cfg-header-text-c', 'cfg-txt', 'cfg-btn1-txt'],
-  accentColor: ['cfg-pgbtn-org-txt-c'],
+  mainColor: ['cfg-header-text-c', 'cfg-txt', 'cfg-btn1-txt', 'cfg-pgbtn-txt-c', 'cfg-pgbtn-org-txt-c'],
 };
 
 // 背景色とセットで読みやすさ（コントラスト）を保証すべき組み合わせ
@@ -78,6 +91,7 @@ const CONTRAST_PAIRS = [
   ['cfg-header-bg', 'cfg-header-text-c'],
   ['cfg-bg', 'cfg-txt'],
   ['cfg-btn1-bg', 'cfg-btn1-txt'],
+  ['cfg-pgbtn-bg-c', 'cfg-pgbtn-txt-c'],
   ['cfg-pgbtn-org-bg-c', 'cfg-pgbtn-org-txt-c'],
   ['cfg-btn2-bg', 'cfg-btn2-txt'],
   ['cfg-list-bg', 'cfg-list-txt'],
@@ -197,10 +211,11 @@ async function handleAnalyzeSite(request, env) {
   // 背景色と文字色のコントラストが低い場合は、読みやすい色に自動補正する
   enforceContrast(settings);
 
-  // 注意：ここで saved_menu_items を補完しないこと。
-  // index.html 側のインポート機能は、ファイルに saved_menu_items が含まれていると
-  // 中身が空配列であってもフッターメニューを空に上書きしてしまう（generator/script.js）。
-  // このAPIは色のトンマナしか推定していないので、メニュー構成には一切触れない。
+  // フッター固定メニュー：サイトごとに変わるものではなく固定の標準構成でよいとのことなので、
+  // URL（href）は空のまま、項目の種類だけ標準の5つを毎回設定する。
+  // ※ generator/script.js 側のインポートは既にマージ方式に直しているので、
+  // 　この項目だけを上書きしても他の設定（フォント・画像など）は消えない。
+  settings['saved_menu_items'] = DEFAULT_MENU_ITEMS;
 
   ALL_COLOR_FIELDS.forEach((field) => {
     if (settings[field]) {
@@ -387,10 +402,9 @@ ${colorHint}
 
 このサイトの配色・雰囲気（高級感がある／カジュアル／和風／ポップ、など）を読み取り、
 同じトンマナに合う配色を、来店ポイントを貯めるスタンプカードアプリのUI設定として、
-以下の6つの「役割」ごとに1色ずつ提案してください。
+以下の5つの「役割」ごとに1色ずつ提案してください。
 
 - mainColor: ${ROLE_DESCRIPTIONS.mainColor}
-- accentColor: ${ROLE_DESCRIPTIONS.accentColor}
 - bodyBg: ${ROLE_DESCRIPTIONS.bodyBg}
 - cardBg: ${ROLE_DESCRIPTIONS.cardBg}
 - textColor: ${ROLE_DESCRIPTIONS.textColor}
@@ -398,8 +412,7 @@ ${colorHint}
 
 必ず守ってほしいこと：
 - すべて16進数カラーコード（例: #ffffff）で回答する
-- mainColor と accentColor は、はっきり区別できる別の色にする（両方とも暗い色同士、似た濃さの色同士にはしない）
-- bodyBg と cardBg も、重なったときにカードの輪郭が分かる程度に区別できる色にする
+- bodyBg と cardBg は、重なったときにカードの輪郭が分かる程度に区別できる色にする
 - 上で示した「実際に検出されたカラーコード」を優先的に活用し、サイトと無関係な色を創作しない
 - 検出された色だけでは組み合わせが成立しない場合（似た色しかない等）のみ、業態の印象から補う色を追加してよい`;
 }
