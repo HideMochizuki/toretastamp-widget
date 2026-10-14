@@ -231,14 +231,6 @@ async function handleAnalyzeSite(request, env) {
     return jsonResponse({ error: 'Gemini呼び出し中に予期しないエラーが発生しました: ' + e.message }, 500);
   }
 
-  // mainColorが背景色（bodyBg・cardBg）と見分けがつかないほど近いと、
-  // メインカラーで塗ったボタン類（cfg-pgbtn-bg-c等）が背景に溶けて消えてしまう。
-  // bodyBgとcardBgはお互い区別するようプロンプトで指示しているが、mainColorとの
-  // 区別までは指示していなかったため、実際にこの事故が起きた（黄色一色のサイト等）。
-  // 文字色のように黒/白へ逃げるわけにはいかない（ブランドカラーの意味が無くなるため）ので、
-  // 明度を大きくずらして最低限の視認性だけ確保する。
-  ensureMainColorDistinctFromBackgrounds(roles);
-
   // role（6項目）から、実際の cfg-* 項目へ機械的に展開する。
   // 同じ役割を参照する項目は必ず同じ値になるので、項目間の矛盾・ブレが起きない。
   const settings = {};
@@ -274,6 +266,11 @@ async function handleAnalyzeSite(request, env) {
     // お知らせ表示の文字色は、サイトの見出し(タイトル)で実際に使われている色に揃える
     settings['cfg-notice-color'] = headingColor;
   }
+
+  // メインカラーが明るい色（例：鮮やかな黄色）の場合、ページの背景（bodyBg・cardBg）の
+  // 上にメインカラーで塗ったボタンを置くと、背景に溶けて見えなくなることがある。
+  // mainColor自体（ヘッダー等）は変えず、該当するボタンの塗りだけ黒/白に反転する。
+  invertFillsThatCollideWithBackground(settings, [settings['cfg-body-bg'], settings['cfg-btn-area-bg']]);
 
   // 背景色と文字色のコントラストが低い場合は、読みやすい色に自動補正する
   enforceContrast(settings);
@@ -723,31 +720,25 @@ function pickReadableColor(bgHex) {
   return blackContrast >= whiteContrast ? '#000000' : '#ffffff';
 }
 
-// hex1 を hex2 の方向へ ratio（0〜1）だけ混ぜる。
-function mixColor(hex1, hex2, ratio) {
-  const a = hexToRgb(hex1);
-  const b = hexToRgb(hex2);
-  const mix = (x, y) => Math.round(x * (1 - ratio) + y * ratio);
-  const toHex = (v) => v.toString(16).padStart(2, '0');
-  return '#' + toHex(mix(a.r, b.r)) + toHex(mix(a.g, b.g)) + toHex(mix(a.b, b.b));
-}
+// mainColor自体（ヘッダー・フッター等）はブランドカラーそのものなので書き換えない。
+// ただし cfg-btn1-bg・cfg-pgbtn-bg-c・cfg-pgbtn-org-bg-c は「ページの背景（bodyBg・cardBg）の
+// 上に乗るボタンの塗り」として使われる箇所で、mainColor自体が薄い色（例：明るい黄色）だと
+// 背景に溶けて見えなくなる。その場合は、その塗りだけを黒 or 白に反転する
+// （mainColorの色味を壊さず、ヘッダー等は従来通りブランドカラーのまま）。
+// 反転後の文字色・アイコン色は、この後に走る enforceContrast() が既存のCONTRAST_PAIRSに
+// 従って自動的に黒/白へ補正するので、ここでは塗りの反転だけ行えばよい。
+const MIN_FILL_CONTRAST = 1.8; // 文字色基準の4.5より緩い、塗りが「背景と同じ色」に見えない程度の閾値
+const FILL_FIELDS_ON_BACKGROUND = ['cfg-btn1-bg', 'cfg-pgbtn-bg-c', 'cfg-pgbtn-org-bg-c'];
+function invertFillsThatCollideWithBackground(settings, backgrounds) {
+  FILL_FIELDS_ON_BACKGROUND.forEach((field) => {
+    const fillColor = settings[field];
+    if (!isHexColor(fillColor)) return;
 
-// mainColorは「ボタンの塗り」として使われる（cfg-pgbtn-bg-c等）ため、文字色のように
-// 黒/白へ逃げるとブランドカラーの意味が無くなってしまう。そこで、背景色
-// （bodyBg・cardBg）と見分けがつかないほど近い場合だけ、明度を大きくずらして
-// 最低限の視認性を確保する（ブランドカラーの系統自体は維持する）。
-const MIN_FILL_CONTRAST = 1.8; // 文字色基準の4.5より緩い、塗りが「同じ色」に見えない程度の閾値
-function ensureMainColorDistinctFromBackgrounds(roles) {
-  if (!isHexColor(roles.mainColor)) return;
-
-  const collides = [roles.bodyBg, roles.cardBg].some(
-    (bg) => isHexColor(bg) && contrastRatio(roles.mainColor, bg) < MIN_FILL_CONTRAST
-  );
-  if (!collides) return;
-
-  const mainLum = relativeLuminance(hexToRgb(roles.mainColor));
-  // 明るい色なら黒に寄せて暗く、暗い色なら白に寄せて明るくする
-  roles.mainColor = mixColor(roles.mainColor, mainLum > 0.5 ? '#000000' : '#ffffff', 0.55);
+    const collides = backgrounds.some((bg) => isHexColor(bg) && contrastRatio(fillColor, bg) < MIN_FILL_CONTRAST);
+    if (collides) {
+      settings[field] = pickReadableColor(fillColor);
+    }
+  });
 }
 
 function jsonResponse(obj, status) {
