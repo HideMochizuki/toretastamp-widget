@@ -15,6 +15,12 @@ const MAX_CSS_CHARS_PER_FILE = 8000;
 // 単純な頻度上位N件の足切りだと真っ先に漏れてしまうため。
 const MAX_STRUCTURAL_CANDIDATES = 20;
 const MAX_ACCENT_CANDIDATES = 40;
+// 「構造色」と呼べるのは、最低でもこの回数以上使われている色だけ。単純に上位N件という
+// 順位だけで区切ると、色数が少ないサイト（例：ほぼ黒/白/グレーのみ）では、たった1回しか
+// 出てこない色まで「上位20件」に収まってしまい、構造色（＝よく使われている色）として
+// 誤って扱われてしまう事故があった（実例：出現1回だけの`#99895c`がメインカラーとして
+// 採用されてしまった）。
+const MIN_STRUCTURAL_FREQUENCY = 3;
 const MIN_CONTRAST_RATIO = 4.5;
 
 // ヘッダーのメイン画像として使うサイズ（generator側の「スライダー画像サイズ」既定値に合わせる）
@@ -468,11 +474,15 @@ function extractColorCandidates(text) {
 
   const sorted = Array.from(freq.entries()).sort((a, b) => b[1] - a[1]);
 
+  // 「上位N件」という順位だけでなく、最低出現回数（MIN_STRUCTURAL_FREQUENCY）も
+  // 満たすものだけを構造色とする。これにより、色数が少ないサイトで出現1〜2回の
+  // レアな色が紛れ込むのを防ぐ（そうした色はaccent側に回る）。
+  const structuralEntries = sorted.filter(([, count]) => count >= MIN_STRUCTURAL_FREQUENCY);
+  const accentEntries = sorted.filter(([, count]) => count < MIN_STRUCTURAL_FREQUENCY);
+
   return {
-    structural: sorted.slice(0, MAX_STRUCTURAL_CANDIDATES).map(([color]) => color),
-    accent: sorted
-      .slice(MAX_STRUCTURAL_CANDIDATES, MAX_STRUCTURAL_CANDIDATES + MAX_ACCENT_CANDIDATES)
-      .map(([color]) => color),
+    structural: structuralEntries.slice(0, MAX_STRUCTURAL_CANDIDATES).map(([color]) => color),
+    accent: accentEntries.slice(0, MAX_ACCENT_CANDIDATES).map(([color]) => color),
   };
 }
 
@@ -812,6 +822,7 @@ ${colorHint}${logoHint}
 - すべて16進数カラーコード（例: #ffffff）で回答する
 - bodyBg と cardBg は、重なったときにカードの輪郭が分かる程度に区別できる色にする
 - 上で示した「実際に検出されたカラーコード」（および添付したロゴ画像があればその色）を優先的に活用し、サイトと無関係な色を創作しない
+- とくにmainColorは、必ず【高頻度で検出された色＝構造色の候補】の中から選んでください。【低頻度で検出された色＝アクセントカラーの候補】は出現回数が1〜2回程度のことが多く、サイト全体の基調とは言えないことが多いです。今回の4つの役割にはアクセント用の枠が無いため、低頻度の色をmainColorに採用しないでください
 - 検出された色だけでは組み合わせが成立しない場合（似た色しかない等）のみ、業態の印象から補う色を追加してよい`;
 }
 
