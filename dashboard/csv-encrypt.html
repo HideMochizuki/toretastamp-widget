@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSV暗号化ツール | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { flex-direction: column; max-width: 900px; margin: 0 auto; width: 100%; padding: 30px; }
+  .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .status-line.error { color: #dc2626; }
+  .status-line.success { color: #16a34a; font-weight: bold; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+    border: 2px solid #cbd5e1; border-top-color: var(--primary-color); border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
+    border: none; border-radius: 4px; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.primary { background: var(--primary-color); }
+  .form-row { margin-top: 16px; }
+  .form-row label { display: block; font-size: 0.78rem; font-weight: bold; color: #475569; margin-bottom: 6px; }
+  .form-row input[type="file"], .form-row input[type="password"] {
+    width: 100%; max-width: 420px; height: 38px; padding: 0 10px; border: 1px solid #cbd5e1;
+    border-radius: 4px; box-sizing: border-box; font-size: 0.85rem;
+  }
+  .form-row input[type="file"] { padding: 6px 10px; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item"><i class="fa fa-chart-line"></i> ホーム</a>
+      <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
+      <a href="stamp-pages.html" class="nav-item"><i class="fa fa-stamp"></i> スタンプ帳設定</a>
+      <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
+      <a href="test-members.html" class="nav-item"><i class="fa fa-user-slash"></i> テスト会員設定</a>
+      <a href="suspicious-access.html" class="nav-item"><i class="fa fa-triangle-exclamation"></i> 不正アクセス検証</a>
+      <a href="csv-encrypt.html" class="nav-item active"><i class="fa fa-lock"></i> CSV暗号化ツール</a>
+      <a href="help.html" class="nav-item"><i class="fa fa-circle-question"></i> 使い方</a>
+    </nav>
+  </div>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">CSV暗号化ツール</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        管理画面からダウンロードした「すべてのログ」「会員一覧」のCSVは、<strong>暗号化（.csv.enc）してから</strong>
+        クライアントフォルダに置いてください。暗号化していないCSVは、ホーム等の読み込み時にエラーとして弾かれ、集計されません。
+      </div>
+      <div class="warn">
+        ⚠️ パスワードはこのツール・ダッシュボードのどこにも保存されません。<strong>忘れると二度と復号できません。</strong>
+        必ず控えてから進めてください。
+      </div>
+      <div id="support-check"></div>
+
+      <div class="form-row">
+        <label>① 暗号化するCSVファイル</label>
+        <input type="file" id="csv-file-input" accept=".csv">
+      </div>
+      <div class="form-row">
+        <label>② パスワード（このファイル専用）</label>
+        <input type="password" id="encrypt-password" autocomplete="new-password">
+      </div>
+      <div class="form-row">
+        <label>③ パスワード（確認用）</label>
+        <input type="password" id="encrypt-password-confirm" autocomplete="new-password">
+      </div>
+
+      <button class="action-btn primary" id="encrypt-btn" style="margin-top: 20px;" disabled>
+        <i class="fa fa-lock"></i> 暗号化してダウンロード
+      </button>
+      <div class="status-line" id="encrypt-status"></div>
+    </div>
+  </div>
+
+  <div class="card-wrapper">
+    <h2 class="card-title">使い方</h2>
+    <div class="card">
+      <ol style="font-size: 0.85rem; color: #334155; line-height: 1.9; padding-left: 20px;">
+        <li>管理画面から「すべてのログ」または「会員一覧」のCSVをいつも通りダウンロードする</li>
+        <li>このページで①にそのCSVファイルを選び、②③にパスワードを入力する（ファイルごとに毎回違うパスワードを決めてください）</li>
+        <li>「暗号化してダウンロード」を押すと、<code>元のファイル名.csv.enc</code> が書き出される</li>
+        <li><strong>元の平文CSVは削除し</strong>、書き出された <code>.csv.enc</code> だけをクライアントフォルダに置く</li>
+        <li>ホーム等で読み込むと、このファイルのパスワードを尋ねられるので入力する（その場で復号するだけで、どこにも保存されません）</li>
+      </ol>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="js/io/crypto.js"></script>
+<script>
+const fileInput = document.getElementById('csv-file-input');
+const pwInput = document.getElementById('encrypt-password');
+const pwConfirmInput = document.getElementById('encrypt-password-confirm');
+const encryptBtn = document.getElementById('encrypt-btn');
+const statusEl = document.getElementById('encrypt-status');
+
+if (!window.crypto || !window.crypto.subtle) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザ・接続では暗号化機能（Web Crypto API）が使えません。https（またはlocalhost）でアクセスしてください。</div>';
+}
+
+function updateButtonState() {
+  encryptBtn.disabled = !(
+    fileInput.files[0] &&
+    pwInput.value.length >= 8 &&
+    pwInput.value === pwConfirmInput.value
+  );
+}
+[fileInput, pwInput, pwConfirmInput].forEach(el => el.addEventListener('input', updateButtonState));
+
+encryptBtn.addEventListener('click', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (pwInput.value !== pwConfirmInput.value) {
+    statusEl.className = 'status-line error';
+    statusEl.textContent = 'パスワードが一致しません。';
+    return;
+  }
+  if (pwInput.value.length < 8) {
+    statusEl.className = 'status-line error';
+    statusEl.textContent = 'パスワードは8文字以上にしてください。';
+    return;
+  }
+
+  statusEl.className = 'status-line';
+  statusEl.innerHTML = '<span class="spinner"></span>暗号化中...';
+  try {
+    // 管理画面からのCSVエクスポートはShift-JISを前提にしている(他ページの読み込みと同じ想定)。
+    // 暗号化コンテナの中身はUTF-8のテキストとして保持するので、復号後はどのページでも同じ文字列として扱える。
+    const buffer = await file.arrayBuffer();
+    const text = new TextDecoder('shift_jis').decode(buffer);
+    const encrypted = await Dashboard.Crypto.encryptText(text, pwInput.value);
+
+    const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name + '.enc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    statusEl.className = 'status-line success';
+    statusEl.textContent = `「${file.name}.enc」を書き出しました。元のCSVは削除し、暗号化ファイルだけをクライアントフォルダに置いてください。`;
+    fileInput.value = '';
+    pwInput.value = '';
+    pwConfirmInput.value = '';
+    updateButtonState();
+  } catch (e) {
+    statusEl.className = 'status-line error';
+    statusEl.textContent = 'エラー: ' + e.message;
+  }
+});
+</script>
+<script src="js/ui.js"></script>
+</body>
+</html>
