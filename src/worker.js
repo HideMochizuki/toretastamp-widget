@@ -263,8 +263,10 @@ async function handleAnalyzeSite(request, env) {
 
   const headingColor = extractHeadingColorHint(html + '\n' + cssText);
   if (headingColor) {
-    // お知らせ表示の文字色は、サイトの見出し(タイトル)で実際に使われている色に揃える
+    // お知らせ表示の文字色・共通見出し(.titleh3)は、サイトの見出し(タイトル)で
+    // 実際に使われている色に揃える（メインカラーとは別の色になっている実例があったため）
     settings['cfg-notice-color'] = headingColor;
+    settings['cfg-h3-color'] = headingColor;
   }
 
   // ヘッダー・フッターの背景も、メインカラーからの一律判断より、
@@ -307,6 +309,13 @@ async function handleAnalyzeSite(request, env) {
     return item;
   });
   settings['saved_menu_items'] = menuItems;
+
+  // SNS設定：公式サイトにX/Instagram/Facebookへのリンクがあれば自動で設定する。
+  // 見つからない場合はキー自体を設定しない（既存のSNS設定をマージインポートで消さないため）。
+  const snsItems = extractSnsLinks(html);
+  if (snsItems.length) {
+    settings['saved_sns_items'] = snsItems;
+  }
 
   ALL_COLOR_FIELDS.forEach((field) => {
     if (settings[field]) {
@@ -490,11 +499,29 @@ function extractBodyStyleHints(text) {
   return { bgColor, fontFamily };
 }
 
-// h1 → h2 → h3 の順に、タグ単体セレクタのCSSルールを探し、最初に見つかった文字色を返す。
-// 見出し（タイトル）に実際に使われている色を、お知らせ表示の文字色の手がかりとして使うため。
+// 「お知らせ/ニュース一覧の記事タイトル」によくあるクラス名パターン。h1-h3のような
+// タグ自体には色指定が無く、クラスベースで装飾しているサイトのためのフォールバック。
+// index_news のようにホームページの簡易一覧を指すクラスを、news_list のような
+// 専用一覧ページのクラスより優先する（トレタスタンプの「お知らせ」欄は前者に近い簡易表示のため）。
+const NOTICE_TITLE_SELECTOR_PATTERNS = [
+  (s) => /(?:index|top|home)[-_][a-z]*(?:news|info|notice|topic)/i.test(s) && /(?:ttl|title)/i.test(s),
+  (s) => /(?:news|info|notice|topic)[-_][a-z_]*(?:ttl|title)/i.test(s),
+];
+
+// h1 → h2 → h3 → お知らせ系クラス名パターン、の順にCSSルールを探し、
+// 最初に見つかった文字色を返す。見出し（タイトル）に実際に使われている色を、
+// お知らせ表示の文字色の手がかりとして使うため。
 function extractHeadingColorHint(text) {
   for (const tag of ['h1', 'h2', 'h3']) {
     const declBodies = findCssRuleBodies(text, (s) => new RegExp(`^${tag}$`, 'i').test(s));
+    if (!declBodies.length) continue;
+    const colorValue = extractDeclValue(declBodies, 'color');
+    if (!colorValue) continue;
+    const hexMatch = colorValue.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/);
+    if (hexMatch) return normalizeHex(hexMatch[0]);
+  }
+  for (const test of NOTICE_TITLE_SELECTOR_PATTERNS) {
+    const declBodies = findCssRuleBodies(text, test);
     if (!declBodies.length) continue;
     const colorValue = extractDeclValue(declBodies, 'color');
     if (!colorValue) continue;
@@ -564,6 +591,32 @@ function extractHeaderImageCandidate(html, baseUrl) {
 function buildResizedImageUrl(originalUrl, width, height) {
   const encoded = encodeURIComponent(originalUrl);
   return `https://wsrv.nl/?url=${encoded}&w=${width}&h=${height}&fit=cover&output=jpg`;
+}
+
+// 公式サイトのリンクから、対応しているSNS（X・Instagram・Facebook）のアカウントURLを探す。
+// generator側の「SNS設定」は最大4個までのため、見つかった順に最大4個まで、
+// 種類ごとに最初の1件を採用する（同じSNSへのリンクが複数あっても1つに絞る）。
+const SNS_TYPE_PATTERNS = [
+  { type: 'instagram', regex: /instagram\.com/i },
+  { type: 'x', regex: /(?:\/\/|\.)(?:twitter|x)\.com(?:[/"'?#]|$)/i },
+  { type: 'facebook', regex: /(?:\/\/|\.)facebook\.com(?:[/"'?#]|$)/i },
+];
+
+function extractSnsLinks(html) {
+  const hrefRegex = /<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi;
+  const found = new Map();
+  let m;
+  while ((m = hrefRegex.exec(html)) !== null) {
+    const href = m[1];
+    for (const { type, regex } of SNS_TYPE_PATTERNS) {
+      if (!found.has(type) && regex.test(href)) {
+        found.set(type, href);
+      }
+    }
+  }
+  return Array.from(found.entries())
+    .slice(0, 4)
+    .map(([type, href]) => ({ type, href, otherUrl: '', ext: true }));
 }
 
 // ロゴ画像を1枚探す。Geminiの画像入力はラスター形式（png/jpeg/webp等）のみ対応で
