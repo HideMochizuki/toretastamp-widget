@@ -201,6 +201,22 @@ window.Dashboard.Sync = (function () {
         continue;
       }
 
+      // 暗号化ルールの判定は、鮮度チェック(isFresh)より必ず先に行う。暗号化ルール導入"前"に
+      // 一度読み込み成功してキャッシュされた平文CSVは、ファイル自体を差し替えない限りsize/lastModifiedが
+      // 変わらないため、鮮度チェックを先にやると「fresh」と判定されてこのチェックまで到達せず、
+      // 古い(暗号化されていない時代の)集計結果を黙って使い続けてしまう。
+      if (!isEncryptedFileName(entry.name)) {
+        warnings.push(
+          `「${entry.name}」は暗号化されていないため読み込みを中止しました。` +
+          `「CSV暗号化ツール」でパスワードを掛けてから（.csv.enc として）配置し直してください。`
+        );
+        if (cache.accessLogFiles[monthKey]) {
+          delete cache.accessLogFiles[monthKey];
+          cacheChanged = true;
+        }
+        continue;
+      }
+
       const file = await entry.handle.getFile();
       if (isFresh(cache.accessLogFiles[monthKey], file)) continue;
 
@@ -231,6 +247,19 @@ window.Dashboard.Sync = (function () {
 
     if (memberListEntries.length) {
       for (const entry of memberListEntries) {
+        // (アクセスログと同じ理由で)暗号化チェックは鮮度チェックより先に行う。
+        if (!isEncryptedFileName(entry.name)) {
+          warnings.push(
+            `「${entry.name}」は暗号化されていないため読み込みを中止しました。` +
+            `「CSV暗号化ツール」でパスワードを掛けてから（.csv.enc として）配置し直してください。`
+          );
+          if (cache.memberListFiles[entry.name]) {
+            delete cache.memberListFiles[entry.name];
+            cacheChanged = true;
+          }
+          continue;
+        }
+
         const file = await entry.handle.getFile();
         if (isFresh(cache.memberListFiles[entry.name], file)) continue;
 

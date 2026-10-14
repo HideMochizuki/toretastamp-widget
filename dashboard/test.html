@@ -49,6 +49,9 @@
 <script src="js/compare.js"></script>
 <script src="js/business-hours.js"></script>
 <script src="js/io/crypto.js"></script>
+<script src="js/password-modal.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/sync.js"></script>
 <script>
 const tests = [];
 function test(name, fn) { tests.push({ name, fn }); }
@@ -830,6 +833,45 @@ test('crypto: 間違ったパスワードでは復号に失敗する(例外を�
 test('crypto: 平文(非暗号化)のテキストはコンテナと判定されない', () => {
   const plainBuffer = new TextEncoder().encode('会員ID,日時\nm1,2026-10-05\n').buffer;
   assertEqual(Dashboard.Crypto.isEncryptedContainer(plainBuffer), false, '平文CSVは暗号化コンテナではない');
+});
+
+// --- sync (暗号化ルールとキャッシュの回帰テスト) ---
+// 実際に起きた不具合: 暗号化ルール導入"前"に一度読み込んで成功していた平文CSVは、
+// size/lastModifiedが変わらない限り「鮮度チェック(isFresh)」が先に素通りしてしまい、
+// 暗号化チェックまで処理が到達しないまま古い集計をそのまま使い続けてしまっていた。
+test('sync: 暗号化ルール導入前のキャッシュがあっても、平文CSVは鮮度に関わらず読み込みを拒否し古いキャッシュを捨てる(回帰テスト)', async () => {
+  const plainHandle = { getFile: async () => ({ size: 10, lastModified: 1000 }) };
+  const entries = [{ name: 'すべてのログ2026-10.csv', handle: plainHandle, kind: 'file' }];
+
+  const emptyAggregate = {
+    total: {}, byBrand: {}, byStore: {}, byStampPage: {}, byStoreStampPage: {},
+    stampPushes: [], ticketIssued: [], ticketUsed: [], pageViews: [], attributedVisits: [], messagesSent: {},
+    dateRange: { min: null, max: null },
+  };
+  // 暗号化ルール導入"前"に作られたキャッシュを模擬する(平文ファイルのsize/lastModifiedとぴったり
+  // 一致させて、isFresh()が true を返す=鮮度チェックだけなら素通りする状態を再現する)。
+  const staleCache = {
+    schemaVersion: 12,
+    accessLogFiles: { '2026-10': { fileName: 'すべてのログ2026-10.csv', size: 10, lastModified: 1000, aggregate: emptyAggregate } },
+    memberListFiles: {},
+  };
+
+  const originalFS = { ...Dashboard.FS };
+  Dashboard.FS.listEntries = async () => entries;
+  Dashboard.FS.getOrCreateSubdirectory = async () => ({ __fake: true });
+  Dashboard.FS.readJsonFile = async (dir, name) => (name === 'summary.json' ? staleCache : null);
+  Dashboard.FS.writeJsonFile = async () => {};
+  Dashboard.FS.readFileBuffer = async () => {
+    throw new Error('暗号化チェックで弾かれるべきで、ファイルの中身まで読みに行ってはいけない');
+  };
+
+  try {
+    const result = await Dashboard.Sync.syncClientFolder({ name: 'テスト店' });
+    assertEqual(result.months, [], '暗号化されていないため、古いキャッシュごと除外される(素通りしない)');
+    assertTrue(result.warnings.some(w => w.includes('暗号化されていない')), '暗号化されていない旨の警告が出る');
+  } finally {
+    Object.assign(Dashboard.FS, originalFS);
+  }
 });
 
 // --- effect ---
