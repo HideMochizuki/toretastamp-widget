@@ -43,7 +43,7 @@ window.Dashboard.Util = (function () {
   function parseMonthFromFileName(fileName) {
     const m = fileName.match(/すべてのログ(\d{4})-(\d{1,2})/);
     if (m) return `${m[1]}-${pad2(Number(m[2]))}`;
-    if (/^すべてのログ\.csv$/i.test(fileName)) return 'all';
+    if (/^すべてのログ\.csv(\.enc)?$/i.test(fileName)) return 'all';
     return null;
   }
 

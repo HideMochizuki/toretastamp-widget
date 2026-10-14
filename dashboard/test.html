@@ -48,6 +48,7 @@
 <script src="js/effect.js"></script>
 <script src="js/compare.js"></script>
 <script src="js/business-hours.js"></script>
+<script src="js/io/crypto.js"></script>
 <script>
 const tests = [];
 function test(name, fn) { tests.push({ name, fn }); }
@@ -806,6 +807,31 @@ test('findRetouchViolations: 再タッチ許可時間が未設定のスタンプ
   assertEqual(unconfiguredPages, ['未設定カード'], '未設定ページとして集計される');
 });
 
+// --- crypto (CSV暗号化) ---
+test('crypto: 正しいパスワードなら暗号化→復号で元のテキストに戻る', async () => {
+  const original = '会員ID,日時\nm1,2026-10-05 10:00:00\n';
+  const encrypted = await Dashboard.Crypto.encryptText(original, 'correct-horse-battery-staple');
+  assertTrue(Dashboard.Crypto.isEncryptedContainer(encrypted), '暗号化コンテナと判定できる');
+  const decrypted = await Dashboard.Crypto.decryptBuffer(encrypted, 'correct-horse-battery-staple');
+  assertEqual(decrypted, original, '復号結果が元のテキストと一致する');
+});
+
+test('crypto: 間違ったパスワードでは復号に失敗する(例外を投げる)', async () => {
+  const encrypted = await Dashboard.Crypto.encryptText('secret data', 'password-A');
+  let threw = false;
+  try {
+    await Dashboard.Crypto.decryptBuffer(encrypted, 'password-B');
+  } catch (e) {
+    threw = true;
+  }
+  assertTrue(threw, '違うパスワードでは例外が投げられる');
+});
+
+test('crypto: 平文(非暗号化)のテキストはコンテナと判定されない', () => {
+  const plainBuffer = new TextEncoder().encode('会員ID,日時\nm1,2026-10-05\n').buffer;
+  assertEqual(Dashboard.Crypto.isEncryptedContainer(plainBuffer), false, '平文CSVは暗号化コンテナではない');
+});
+
 // --- effect ---
 test('effect: 配信後N日以内のタグ付きスタンプ押下だけを反応としてカウントする', () => {
   const messagesSent = { 'MSG1': { id: 'MSG1', subject: 'テスト配信', sentAt: '2026-10-01T11:00:00.000Z', recipientCount: 100 } };
@@ -845,15 +871,18 @@ function renderResults(results) {
   document.getElementById('summary').style.color = passCount === results.length ? '#16a34a' : '#dc2626';
 }
 
-document.getElementById('run-btn').addEventListener('click', () => {
-  const results = tests.map(t => {
+document.getElementById('run-btn').addEventListener('click', async () => {
+  const results = [];
+  // 暗号化(Web Crypto)など非同期のテストがあるため、ここはawaitして順番に実行する
+  // (同期関数をawaitしても害はないので、既存のテストはそのまま動く)。
+  for (const t of tests) {
     try {
-      t.fn();
-      return { name: t.name, pass: true };
+      await t.fn();
+      results.push({ name: t.name, pass: true });
     } catch (e) {
-      return { name: t.name, pass: false, detail: e.message };
+      results.push({ name: t.name, pass: false, detail: e.message });
     }
-  });
+  }
   renderResults(results);
 });
 </script>

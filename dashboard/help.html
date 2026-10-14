@@ -38,6 +38,7 @@
       <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
       <a href="test-members.html" class="nav-item"><i class="fa fa-user-slash"></i> テスト会員設定</a>
       <a href="suspicious-access.html" class="nav-item"><i class="fa fa-triangle-exclamation"></i> 不正アクセス検証</a>
+      <a href="csv-encrypt.html" class="nav-item"><i class="fa fa-lock"></i> CSV暗号化ツール</a>
       <a href="help.html" class="nav-item active"><i class="fa fa-circle-question"></i> 使い方</a>
     </nav>
   </div>
@@ -101,6 +102,14 @@
             ネガティブな情報のため、あえてホームのレポートには含めていません。
           </td>
         </tr>
+        <tr>
+          <td><i class="fa fa-lock"></i> CSV暗号化ツール</td>
+          <td>
+            「すべてのログ」「会員一覧」のCSVにパスワードを掛けて <code>.csv.enc</code> として書き出します。
+            <strong>暗号化していない生のCSVは、他のページでの読み込み時にエラーとして弾かれ、集計されません。</strong>
+            詳しくは下の「ログファイルの置き方」を参照してください。
+          </td>
+        </tr>
       </table>
     </div>
   </div>
@@ -108,36 +117,41 @@
   <div class="card-wrapper">
     <h2 class="card-title">ログファイルの置き方</h2>
     <div class="card">
-      <div class="card-sub-title">「①フォルダを選択」で選ぶフォルダの中は、クライアント（ブランド）ごとにサブフォルダを分けて、その中にログファイルを置きます</div>
+      <div class="warn">
+        ⚠️ <strong>セキュリティ方針として、CSVは暗号化（.csv.enc）したものしか読み込めません。</strong>
+        管理画面からダウンロードした生のCSVは、まず「CSV暗号化ツール」でパスワードを掛けてから配置してください。
+        暗号化していないCSVを検出すると、読み込みを中止してその旨をエラー表示します。
+      </div>
+      <div class="card-sub-title">「①フォルダを選択」で選ぶフォルダの中は、クライアント（ブランド）ごとにサブフォルダを分けて、その中にログファイル（暗号化済み）を置きます</div>
 
-      <div class="folder-tree">トレタスタンプ解析/            ← これを「①フォルダを選択」で選ぶ
+      <div class="folder-tree">トレタスタンプ解析/                 ← これを「①フォルダを選択」で選ぶ
 ├── クライアントA/
-│   ├── すべてのログ2026-07.csv
-│   ├── すべてのログ2026-08.csv
-│   ├── すべてのログ2026-09.csv
-│   ├── すべてのログ2026-10.csv
-│   └── 会員一覧.csv
+│   ├── すべてのログ2026-07.csv.enc
+│   ├── すべてのログ2026-08.csv.enc
+│   ├── すべてのログ2026-09.csv.enc
+│   ├── すべてのログ2026-10.csv.enc
+│   └── 会員一覧.csv.enc
 └── クライアントB/
-    ├── すべてのログ.csv        ← 個店向け：全期間を1ファイルでDL
-    └── 会員一覧.csv</div>
+    ├── すべてのログ.csv.enc        ← 個店向け：全期間を1ファイルでDL
+    └── 会員一覧.csv.enc</div>
 
       <h3 style="margin-top: 24px; font-size: 0.95rem;">アクセスログ（すべてのログ）</h3>
-      <div class="card-sub-title" style="margin-bottom: 0;">管理画面からダウンロードしたまま、<strong>ファイル名を変えずに</strong>置いてください</div>
+      <div class="card-sub-title" style="margin-bottom: 0;">管理画面からダウンロードしたら、まず「CSV暗号化ツール」で暗号化し、<strong>元のファイル名はそのまま（末尾に.encが付くだけ）</strong>にして置いてください</div>
       <table class="data-table">
         <tr><th>置き方</th><th>ファイル名の例</th><th>向いているクライアント</th></tr>
-        <tr><td>月単位でDL</td><td><code>すべてのログ2026-10.csv</code></td><td>会員数が多く、ログが膨大なクライアント</td></tr>
-        <tr><td>全期間を1ファイルでDL</td><td><code>すべてのログ.csv</code>（年月の数字なし）</td><td>会員数がまだ少ない個店など、1回のDLで足りるクライアント</td></tr>
+        <tr><td>月単位でDL</td><td><code>すべてのログ2026-10.csv.enc</code></td><td>会員数が多く、ログが膨大なクライアント</td></tr>
+        <tr><td>全期間を1ファイルでDL</td><td><code>すべてのログ.csv.enc</code>（年月の数字なし）</td><td>会員数がまだ少ない個店など、1回のDLで足りるクライアント</td></tr>
       </table>
       <div class="warn">⚠️ この2つを同じフォルダに両方置かないでください。期間が重なっていると件数が二重に集計されます（両方検出すると画面に警告が出ます）。</div>
 
       <h3 style="margin-top: 24px; font-size: 0.95rem;">会員一覧</h3>
       <table class="data-table">
         <tr><th>置き方</th><th>ファイル名の例</th></tr>
-        <tr><td>1ファイルで足りる場合</td><td><code>会員一覧.csv</code></td></tr>
-        <tr><td>会員数が多く、1ファイルでは重い場合</td><td><code>会員一覧.csv</code> + <code>会員一覧2.csv</code> + <code>会員一覧3.csv</code> ...</td></tr>
+        <tr><td>1ファイルで足りる場合</td><td><code>会員一覧.csv.enc</code></td></tr>
+        <tr><td>会員数が多く、1ファイルでは重い場合</td><td><code>会員一覧.csv.enc</code> + <code>会員一覧2.csv.enc</code> + <code>会員一覧3.csv.enc</code> ...</td></tr>
       </table>
       <div class="card-sub-title" style="margin-bottom: 0; margin-top: 10px;">
-        「<strong>会員一覧</strong>」で始まる名前のCSVは、何ファイルあっても自動的に全部まとめて読み込みます。
+        「<strong>会員一覧</strong>」で始まる名前のCSV（暗号化済み）は、何ファイルあっても自動的に全部まとめて読み込みます。
         数字の付け方に厳密なルールはなく、「会員一覧」で始まっていればファイル名は自由です
         （同じ会員IDが複数ファイルに重複して入っていても、二重にはカウントされません）。
       </div>

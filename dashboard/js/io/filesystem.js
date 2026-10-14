@@ -90,6 +90,13 @@ window.Dashboard.FS = (function () {
     return { text, size: file.size, lastModified: file.lastModified };
   }
 
+  // 文字コードを決め打ちせずに生のバイト列がほしい場合(暗号化ファイルかどうかの判定・復号処理)に使う。
+  async function readFileBuffer(fileHandle) {
+    const file = await fileHandle.getFile();
+    const buffer = await file.arrayBuffer();
+    return { buffer, size: file.size, lastModified: file.lastModified };
+  }
+
   async function readJsonFile(dirHandle, name) {
     try {
       const fileHandle = await dirHandle.getFileHandle(name);
@@ -118,6 +125,7 @@ window.Dashboard.FS = (function () {
     listEntries,
     getOrCreateSubdirectory,
     readFileText,
+    readFileBuffer,
     readJsonFile,
     writeJsonFile,
   };

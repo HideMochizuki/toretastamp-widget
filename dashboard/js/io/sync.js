@@ -24,14 +24,50 @@ window.Dashboard.Sync = (function () {
   // v12: stampPushes各行に stampPage(スタンプページ名称) を付与(スタンプ帳の保有状況カードで使用)。
   const CACHE_SCHEMA_VERSION = 12;
 
+  // セキュリティ方針により、CSVは暗号化(.csv.enc、「CSV暗号化ツール」で作成)したものしか
+  // 読み込みを許可しない。平文の.csvはここではファイル自体は検出するが、実際の読み込み(後述の
+  // readCsvTextOrWarn)で弾いて警告を出す(「見なかったことにする」のではなく、理由を明示して止める)。
   function isAccessLogFile(name) {
-    return /^すべてのログ/.test(name) && /\.csv$/i.test(name);
+    return /^すべてのログ/.test(name) && /\.csv(\.enc)?$/i.test(name);
   }
 
   // 会員数が多いクライアントは、会員一覧を複数ファイルに分けてDLすることがある
   // (例: 会員一覧.csv, 会員一覧2.csv, ...)。「会員一覧」で始まるCSVは全部対象にする。
   function isMemberListFile(name) {
-    return /^会員一覧/.test(name) && /\.csv$/i.test(name);
+    return /^会員一覧/.test(name) && /\.csv(\.enc)?$/i.test(name);
+  }
+
+  function isEncryptedFileName(name) {
+    return /\.csv\.enc$/i.test(name);
+  }
+
+  // CSV(アクセスログ・会員一覧)を読み込む。暗号化(.csv.enc)されていなければ読み込みを拒否して
+  // warningsに積む(null を返す。呼び出し側はnullなら集計をスキップする)。
+  // 暗号化ファイルはパスワードを尋ね、復号できるまで(またはキャンセルされるまで)リトライさせる。
+  async function readCsvTextOrWarn(entry, warnings) {
+    const { buffer } = await FS.readFileBuffer(entry.handle);
+
+    if (!isEncryptedFileName(entry.name) || !Dashboard.Crypto.isEncryptedContainer(buffer)) {
+      warnings.push(
+        `「${entry.name}」は暗号化されていないため読み込みを中止しました。` +
+        `「CSV暗号化ツール」でパスワードを掛けてから（.csv.enc として）配置し直してください。`
+      );
+      return null;
+    }
+
+    let errorMessage = '';
+    for (;;) {
+      const password = await Dashboard.PasswordModal.ask(`「${entry.name}」のパスワードを入力してください`, errorMessage);
+      if (password === null) {
+        warnings.push(`「${entry.name}」はパスワード入力がキャンセルされたため読み込んでいません。`);
+        return null;
+      }
+      try {
+        return await Dashboard.Crypto.decryptBuffer(buffer, password);
+      } catch (e) {
+        errorMessage = 'パスワードが違うようです。もう一度入力してください。';
+      }
+    }
   }
 
   function isFresh(cacheEntry, file) {
@@ -168,7 +204,8 @@ window.Dashboard.Sync = (function () {
       const file = await entry.handle.getFile();
       if (isFresh(cache.accessLogFiles[monthKey], file)) continue;
 
-      const { text } = await FS.readFileText(entry.handle, 'shift_jis');
+      const text = await readCsvTextOrWarn(entry, warnings);
+      if (text === null) continue;
       const rows = Csv.toObjects(text);
       const filteredRows = excludedMemberIds.size ? rows.filter(r => !excludedMemberIds.has(r['会員ID'])) : rows;
       const aggregate = Agg.aggregateAccessLogRows(filteredRows);
@@ -197,7 +234,8 @@ window.Dashboard.Sync = (function () {
         const file = await entry.handle.getFile();
         if (isFresh(cache.memberListFiles[entry.name], file)) continue;
 
-        const { text } = await FS.readFileText(entry.handle, 'shift_jis');
+        const text = await readCsvTextOrWarn(entry, warnings);
+        if (text === null) continue;
         const rows = Csv.toObjects(text);
         const filteredRows = excludedMemberIds.size ? rows.filter(r => !excludedMemberIds.has(r['会員ID'])) : rows;
         cache.memberListFiles[entry.name] = {
