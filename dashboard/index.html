@@ -564,6 +564,25 @@
       </div>
 
       <div class="card-wrapper">
+        <h2 class="card-title"><span class="card-title-text">スタンプ帳別の効果検証（アクティブ率）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span><span class="help-icon" data-tooltip="登録会員数は、そのスタンプ帳で1回でも押したことがある会員の累計です。アクティブ会員数は、そのうち指定日数以内にも押している会員です。登録者が多くてもアクティブ率が低い場合、「始めたきり続いていない」スタンプ帳である可能性があります。">?</span></span></h2>
+        <div class="card">
+          <div class="card-sub-title">押下数・登録数だけでは分からない「定着度」を見ます。スタンプ帳ごとに、登録した会員のうちどれだけが今も使い続けているかを表示します。</div>
+          <div class="inline-controls no-print">
+            <label>アクティブ判定日数</label>
+            <div class="quick-btns">
+              <button type="button" class="quick-btn" data-input="stamp-active-window" data-value="14">14日</button>
+              <button type="button" class="quick-btn" data-input="stamp-active-window" data-value="30">30日</button>
+              <button type="button" class="quick-btn" data-input="stamp-active-window" data-value="60">60日</button>
+            </div>
+            <span class="option-sep">または</span>
+            <input type="number" id="stamp-active-window" value="30" min="1" class="effect-window-input">
+            <span class="range-sep">日以内に押していればアクティブ</span>
+          </div>
+          <table class="data-table" id="stamp-active-rate-table"></table>
+        </div>
+      </div>
+
+      <div class="card-wrapper">
         <h2 class="card-title"><span class="card-title-text">メッセージ効果検証<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
         <div class="card">
           <div class="inline-controls no-print">
@@ -727,6 +746,7 @@ const compareFrom = document.getElementById('compare-from');
 const compareTo = document.getElementById('compare-to');
 const effectWindowInput = document.getElementById('effect-window');
 const funnelWindowInput = document.getElementById('funnel-window');
+const stampActiveWindowInput = document.getElementById('stamp-active-window');
 const expiryDaysInput = document.getElementById('expiry-days');
 const expiryCsvBtn = document.getElementById('expiry-csv-btn');
 const expiryLineIdCsvBtn = document.getElementById('expiry-lineid-csv-btn');
@@ -749,7 +769,7 @@ function wireQuickButtonGroup(inputId) {
   input.addEventListener('input', syncActive);
   syncActive();
 }
-['expiry-days', 'stamp-expiry-days', 'funnel-window', 'effect-window', 'stamp-trend-days', 'lapsed-min-visits', 'lapsed-days'].forEach(wireQuickButtonGroup);
+['expiry-days', 'stamp-expiry-days', 'funnel-window', 'effect-window', 'stamp-trend-days', 'lapsed-min-visits', 'lapsed-days', 'stamp-active-window'].forEach(wireQuickButtonGroup);
 
 // 期間プリセット(①今日〜全期間)。「今日」の基準はPC時計の実日付ではなく、
 // 取り込み済みログの最終日(=最新のデータがある日)。エクスポートが数日前のことも多く、
@@ -882,6 +902,7 @@ function buildDailyCountMap(records, { storeKey, page } = {}) {
 }
 
 funnelWindowInput.addEventListener('input', () => { if (currentClient) renderFunnel(); });
+stampActiveWindowInput.addEventListener('input', () => { if (currentClient) renderStampActiveRateTable(); });
 effectWindowInput.addEventListener('input', () => { if (currentClient) renderEffectTable(); });
 document.getElementById('stamp-trend-days').addEventListener('input', () => { if (currentClient) renderStampTrendChart(); });
 
@@ -1258,6 +1279,7 @@ function renderReport() {
   renderTopMembersTable();
   renderStoreGapCard();
   renderFunnel();
+  renderStampActiveRateTable();
   renderTrendChart();
   renderRegistrationChart();
   renderActiveRateChart();
@@ -1282,12 +1304,16 @@ function renderReport() {
 
   const ticketRows = Object.entries(validity.byTicketNo).sort((a, b) => (b[1].active) - (a[1].active));
   document.getElementById('ticket-table').innerHTML = `
-    <tr><th>チケット名称</th><th>チケット番号</th><th>発行数</th><th>利用数</th><th>有効</th><th>失効/使用済み</th><th>未設定</th></tr>
-    ${ticketRows.map(([no, info]) => `<tr>
+    <tr><th>チケット名称</th><th>チケット番号</th><th>発行数</th><th>利用数</th><th>利用率</th><th>有効</th><th>失効/使用済み</th><th>未設定</th></tr>
+    ${ticketRows.map(([no, info]) => {
+      const rate = info.issued > 0 ? (info.used / info.issued) * 100 : null;
+      return `<tr>
       <td>${escapeHtml(info.name || '(名称未設定)')}</td><td>${escapeHtml(no)}</td>
       <td>${info.issued.toLocaleString()}</td><td>${info.used.toLocaleString()}</td>
+      <td>${rate !== null ? rate.toFixed(1) + '%' : '-'}</td>
       <td>${info.active.toLocaleString()}</td><td>${info.inactive.toLocaleString()}</td><td>${info.unconfigured.toLocaleString()}</td>
-    </tr>`).join('')}`;
+    </tr>`;
+    }).join('')}`;
 
   renderEffectTable();
 }
@@ -2164,6 +2190,27 @@ function renderFunnel() {
     { label: '転換率', num: result.rate !== null ? (result.rate * 100).toFixed(1) + '%' : '-',
       tooltip: 'スタンプページを表示した人のうち、指定日数以内に来店（スタンプ押下）した人の割合です。' },
   ].map(renderTile).join('');
+}
+
+function renderStampActiveRateTable() {
+  const windowDays = Number(stampActiveWindowInput.value) || 30;
+  const result = Dashboard.Aggregate.calcStampPageActiveRate(
+    currentClient.merged.stampPushes, new Date(), windowDays
+  );
+  const rows = Object.entries(result).sort((a, b) => b[1].memberCount - a[1].memberCount);
+  const el = document.getElementById('stamp-active-rate-table');
+  if (!rows.length) {
+    el.innerHTML = '<tr><td>データがありません</td></tr>';
+    return;
+  }
+  el.innerHTML = `
+    <tr><th>スタンプ帳</th><th>登録会員数</th><th>アクティブ会員数（${windowDays}日以内）</th><th>アクティブ率</th></tr>
+    ${rows.map(([page, info]) => `<tr>
+      <td>${escapeHtml(page)}</td>
+      <td>${info.memberCount.toLocaleString()}</td>
+      <td>${info.activeCount.toLocaleString()}</td>
+      <td>${info.activeRate !== null ? (info.activeRate * 100).toFixed(1) + '%' : '-'}</td>
+    </tr>`).join('')}`;
 }
 
 function renderEffectTable() {
