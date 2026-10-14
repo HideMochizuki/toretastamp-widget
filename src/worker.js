@@ -147,10 +147,11 @@ async function handleAnalyzeSite(request, env) {
     );
   }
 
-  let targetUrl;
+  let targetUrl, reservationUrl;
   try {
     const body = await request.json();
     targetUrl = body.url;
+    reservationUrl = typeof body.reservationUrl === 'string' ? body.reservationUrl.trim() : '';
   } catch (e) {
     return jsonResponse({ error: 'リクエストの形式が不正です' }, 400);
   }
@@ -239,11 +240,17 @@ async function handleAnalyzeSite(request, env) {
   // 背景色と文字色のコントラストが低い場合は、読みやすい色に自動補正する
   enforceContrast(settings);
 
-  // フッター固定メニュー：サイトごとに変わるものではなく固定の標準構成でよいとのことなので、
-  // URL（href）は空のまま、項目の種類だけ標準の5つを毎回設定する。
+  // フッター固定メニュー：項目の種類は標準の5つで固定（サイトごとに変える必要が無いため）。
+  // 「予約」だけは外部の予約ページという性質上、サイト解析からは分からないので、
+  // ホーム画面で別途入力してもらった予約URLをそのまま href に使う（未入力なら空のまま）。
   // ※ generator/script.js 側のインポートは既にマージ方式に直しているので、
   // 　この項目だけを上書きしても他の設定（フォント・画像など）は消えない。
-  settings['saved_menu_items'] = DEFAULT_MENU_ITEMS;
+  const menuItems = DEFAULT_MENU_ITEMS.map((item) =>
+    item.class === 'reservation' && reservationUrl
+      ? { ...item, href: reservationUrl, ext: true } // 外部予約サイトなので新しいタブで開く
+      : item
+  );
+  settings['saved_menu_items'] = menuItems;
 
   ALL_COLOR_FIELDS.forEach((field) => {
     if (settings[field]) {
