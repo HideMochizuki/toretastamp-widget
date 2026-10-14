@@ -82,6 +82,16 @@
                     </div>
 
                     <div class="form-row">
+                        <div class="form-label-side">店舗ベースURL</div>
+                        <div class="form-input-side">
+                            <input type="text" class="data-input" id="shop-base-url" placeholder="https://fbc.toreta-stamp.com/XXXX/YYYYYYYY/" oninput="applyShopBaseUrl()">
+                            <div style="color: #64748b; font-size: 11px; margin-top: 5px;">
+                                ※ここに入力すると、下の2つのURLに自動で反映されます（相対パスは全店舗共通のため）
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-label-side">Base URL（スタンプ帳一覧ページ）</div>
                         <div class="form-input-side">
                             <input type="text" class="data-input" id="base-url" placeholder="https://fbc.toreta-stamp.com/.../mypage/stamp" oninput="saveData()">
@@ -439,10 +449,22 @@ fileInput.onchange = (e) => {
     fileInput.value = '';
 };
 
+// 店舗ベースURL入力時に、相対パスが全店舗共通の2つのURL（スタンプ帳一覧／プロフィール）へ
+// 自動反映する。末尾のスラッシュの有無はどちらでも受け付ける。
+function applyShopBaseUrl() {
+    const raw = document.getElementById('shop-base-url').value.trim();
+    if (!raw) return;
+    const base = raw.endsWith('/') ? raw : raw + '/';
+
+    document.getElementById('base-url').value = base + 'mypage/stamp';
+    document.getElementById('change-url').value = base + 'change/';
+    saveData();
+}
+
 // --- 2. データの保存 ---
 function saveData() {
     if (isInitializing) return;
-    
+
     const rows = [];
     document.querySelectorAll('#rank-tbody tr').forEach(row => {
         rows.push({
@@ -459,6 +481,7 @@ function saveData() {
             normalId: document.getElementById('normal-id').value,
             platinumId: document.getElementById('platinum-id').value,
             totalNum: document.getElementById('total-num').value,
+            shopBaseUrl: document.getElementById('shop-base-url').value,
             baseUrl: document.getElementById('base-url').value,
             changeUrl: document.getElementById('change-url').value,
             questionUrl: document.getElementById('question-url').value,
@@ -482,6 +505,7 @@ function loadData() {
                 document.getElementById('normal-id').value = data.basic.normalId || '';
                 document.getElementById('platinum-id').value = data.basic.platinumId || '';
                 document.getElementById('total-num').value = data.basic.totalNum || '';
+                document.getElementById('shop-base-url').value = data.basic.shopBaseUrl || '';
                 document.getElementById('base-url').value = data.basic.baseUrl || '';
                 document.getElementById('change-url').value = data.basic.changeUrl || '';
                 document.getElementById('question-url').value = data.basic.questionUrl || '';
