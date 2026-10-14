@@ -177,7 +177,10 @@ async function handleAnalyzeSite(request, env) {
     return jsonResponse({ error: 'サイトの取得中にエラーが発生しました: ' + e.message }, 400);
   }
 
-  const colorCandidates = extractColorCandidates(html + '\n' + cssText);
+  // 一時的な状態（:hover・.open等）のCSSルールは、色抽出の対象から除外する
+  // （一時状態の色を定常的なブランドカラーと誤認してしまう事故があったため）。
+  const cssTextForAnalysis = stripStateRules(cssText);
+  const colorCandidates = extractColorCandidates(html + '\n' + cssTextForAnalysis);
 
   // ロゴ画像を1枚見つけられれば取得し、Geminiへの入力に画像としてそのまま添える。
   // テキスト（HTML/CSS）だけでは、ロゴ画像の中にしか存在しない色（写真やアイコンの色）は
@@ -189,7 +192,9 @@ async function handleAnalyzeSite(request, env) {
   }
 
   const schema = buildResponseSchema();
-  const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), cssText, colorCandidates, !!logoImage);
+  // rgb()/rgba()表記も合わせて取り除く。私たちの色抽出（16進数のみ対象）はこの表記を
+  // そもそも拾わないので、Geminiにだけその表記が見える非対称を無くすため。
+  const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), stripRgbFunctions(cssTextForAnalysis), colorCandidates, !!logoImage);
 
   const parts = [{ text: prompt }];
   if (logoImage) {
@@ -317,6 +322,13 @@ async function handleAnalyzeSite(request, env) {
     settings['saved_sns_items'] = snsItems;
   }
 
+  // SNSアイコンの色：既定の配置場所（ヘッダー右側）に合わせて、ヘッダー背景に対して
+  // 読みやすい方（白 or 黒）を選ぶ。この項目は <select> で "#FFFFFF"/"#000000" の
+  // 大文字表記しか選択肢に無いため、toUpperCase() して渡す。
+  if (isHexColor(settings['cfg-header-bg'])) {
+    settings['cfg-sns-c-val'] = pickReadableColor(settings['cfg-header-bg']).toUpperCase();
+  }
+
   ALL_COLOR_FIELDS.forEach((field) => {
     if (settings[field]) {
       settings[field + '-val'] = settings[field];
@@ -405,6 +417,28 @@ async function fetchSiteMaterial(targetUrl) {
   }
 
   return { html, cssText };
+}
+
+// :hover・:focus・.open・.active のような「操作中だけ表示される一時的な状態」を表す
+// セレクタのCSSルールを取り除く。こうした一時状態の色は定常的なブランドカラーではないのに、
+// プロンプトにCSSの生テキストをそのまま渡しているため、Geminiが読み取って
+// 「ブランドカラーだ」と誤認してしまう事故があった（実例：ハンバーガーメニューを開いた時だけの
+// 半透明の赤 `rgba(158,0,0,0.95)` が、お知らせの文字色として採用されてしまった）。
+// Geminiに渡すCSS抜粋を作る直前にだけ適用し、他の抽出（body/見出し色等）には使わない
+// （それらは選択は末尾一致などで既に厳密なので、この問題の影響を受けていない）。
+const STATE_SELECTOR_PATTERN = /:hover|:focus|:active|:visited|\.open\b|\.active\b|\.disabled\b|\.show\b|\.expanded\b|\.toggled\b|\.selected\b/i;
+function stripStateRules(cssText) {
+  return cssText.replace(/([^{}]+)\{([^{}]*)\}/g, (full, selector) => (STATE_SELECTOR_PATTERN.test(selector) ? '' : full));
+}
+
+// rgb()/rgba() のCSS関数表記そのものを取り除く。私たちの色抽出（16進数のみを対象）は
+// そもそもこの表記を拾わないが、プロンプトにはCSSの生テキストをそのまま渡しているため、
+// Geminiだけがこの表記を読めてしまう非対称があった。rgba()は半透明（背景により見え方が
+// 変わる）ことが多く、不透明の単色として扱うと誤解を招きやすい
+// （実例：同じサイトの別箇所 `.new-news{background-color: rgba(158,0,0,0.85)}` という
+// 半透明の装飾が、お知らせの文字色としてそのまま採用されてしまった）。
+function stripRgbFunctions(cssText) {
+  return cssText.replace(/rgba?\([^)]*\)/gi, '');
 }
 
 // HTML・CSSの中から実際に使われているカラーコードを拾い出し、
