@@ -638,6 +638,34 @@ window.Dashboard.Aggregate = (function () {
     return result;
   }
 
+  // スタンプ帳ごとに「1回でも押したことがある会員数」のうち、
+  // 直近activeDays日以内にも押している会員(=アクティブ)の割合を計算する。
+  // 「登録されただけで、実際には使われなくなっていないか」を見る指標（押下数や発行数とは別の軸）。
+  function calcStampPageActiveRate(stampPushes, asOfDate, activeDays) {
+    const asOf = asOfDate || new Date();
+    const activeWindow = activeDays || 30;
+
+    const lastPushByPageMember = {};
+    for (const p of stampPushes) {
+      if (!p.memberId || !p.stampPage) continue;
+      const lastByMember = lastPushByPageMember[p.stampPage] = lastPushByPageMember[p.stampPage] || {};
+      const at = new Date(p.at);
+      if (!lastByMember[p.memberId] || at > lastByMember[p.memberId]) lastByMember[p.memberId] = at;
+    }
+
+    const result = {};
+    for (const [page, lastByMember] of Object.entries(lastPushByPageMember)) {
+      const memberIds = Object.keys(lastByMember);
+      const activeCount = memberIds.filter(id => U.diffDays(lastByMember[id], asOf) <= activeWindow).length;
+      result[page] = {
+        memberCount: memberIds.length,
+        activeCount,
+        activeRate: memberIds.length > 0 ? activeCount / memberIds.length : null,
+      };
+    }
+    return result;
+  }
+
   // 「スタンプ帳設定」の「スタンプ有効期限」をもとに、まもなくスタンプが失効する会員を抽出する。
   // type='last_push': 最終押下日+days(来店のたびに延びる、よくある「休眠で失効」のパターン)。
   // type='first_push'かつperPage=false: 生涯で最初の押下日+days(1回きりの期限、延長されない)。
@@ -949,6 +977,7 @@ window.Dashboard.Aggregate = (function () {
     findLapsedRegulars,
     calcStampCardProgress,
     calcMemberRankDistribution,
+    calcStampPageActiveRate,
     listStampExpiringSoon,
     findRetouchViolations,
   };
