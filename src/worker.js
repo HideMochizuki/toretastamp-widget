@@ -53,7 +53,6 @@ const ROLE_DESCRIPTIONS = {
   bodyBg: 'ページ全体の土台となる背景色。白に近いごく薄いグレーなど、落ち着いた色。',
   cardBg: 'その上に乗る、個々のカード・リスト・チケットなどの表面色。白またはそれに近い色が自然。',
   textColor: '本文の基本的な文字色。黒に近い色。',
-  noticeColor: 'お知らせ・注意書きの文字色。警告として目立つ、独立した色でよい。',
 };
 const ROLE_FIELDS = Object.keys(ROLE_DESCRIPTIONS);
 
@@ -86,8 +85,14 @@ const ROLE_TO_FIELDS = {
     'cfg-user-card-bg',
     'cfg-btn2-bg', // セカンダリボタンの背景＝カードと同じ白系
   ],
-  textColor: ['cfg-list-txt'],
-  noticeColor: ['cfg-notice-color'],
+  // cfg-notice-color（お知らせの文字色）も、以前は独立した「役割」としてGeminiに自由に
+  // 選ばせていたが、実例を重ねた結果、明確な根拠（見出しタグやクラス名での指定）が
+  // 無い限り、ほとんどのサイトで単なる本文色（黒に近い色）だった。独立した役割のままだと
+  // 「警告として目立つ色でよい」という説明に引っ張られ、ロゴの色（ブランドとは無関係な
+  // 文脈の色）を安易に流用してしまう事故が繰り返し起きたため、デフォルトはtextColorに
+  // 揃え、実際のCSSから見出し色が検出できた場合だけ上書きする方式にした
+  // （下の extractHeadingColorHint の呼び出し箇所を参照）。
+  textColor: ['cfg-list-txt', 'cfg-notice-color'],
 };
 
 // role の色の「上に乗る文字色」。初期値は白を仮置きし、enforceContrast() で
@@ -250,8 +255,6 @@ async function handleAnalyzeSite(request, env) {
       settings[field] = '#ffffff';
     });
   });
-  if (roles.noticeColor) settings['cfg-notice-color'] = roles.noticeColor;
-
   // 「全体の推測」であるGeminiの判断より、サイトのCSSに literal に書かれている値の方が
   // 確実なので、body / 見出し(h1-h3) のルールが見つかった場合はそちらで上書きする。
   const bodyStyleHints = extractBodyStyleHints(html + '\n' + cssText);
@@ -773,7 +776,7 @@ function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates, hasLogoIm
   const hasStrongTextEvidence = structural.length + accent.length >= 8;
   const logoHint = hasLogoImage
     ? hasStrongTextEvidence
-      ? '\n\nこのメッセージにはロゴ画像も添付しています。ただし、このサイトのHTML/CSSからは十分な数の色の手がかりが見つかっているので、配色の主役（mainColor等）は基本的にそちらを優先してください。ロゴマークの色は、ブランドシンボルとして使われているだけで、実際にクリックできる操作要素（ボタン等）の色とは限りません。ロゴの色がHTML/CSSの手がかりと大きく食い違う場合、ロゴの色は見出しの一部やチケットタイトルなど、ごく限られた箇所の差し色として検討する程度に留め、ヘッダー背景やボタンなど広い面積・操作要素には無理に広げないでください。'
+      ? '\n\nこのメッセージにはロゴ画像も添付しています。ただし、このサイトのHTML/CSSからは十分な数の色の手がかりが見つかっているので、mainColor・bodyBg・cardBg・textColorはすべて基本的にそちらを優先してください。ロゴマークの色は、ブランドシンボルとして使われているだけで、実際にクリックできる操作要素（ボタン等）や本文の色とは限りません。ロゴの色がHTML/CSSの手がかりと大きく食い違う場合、無理にどこかの役割に当てはめようとせず、HTML/CSSの手がかりの方を優先してください（特にtextColorは「黒に近い色」が基本なので、ロゴが鮮やかな色でもtextColorをその色にしないでください）。'
       : '\n\nこのメッセージにはロゴ画像も添付しています。このサイトのHTML/CSSからは十分な色の手がかりが見つかっていないため、ロゴで使われている色（写真の色・ロゴマークそのものの色）を積極的に参考にしてください。'
     : '';
 
@@ -793,13 +796,12 @@ ${colorHint}${logoHint}
 
 このサイトの配色・雰囲気（高級感がある／カジュアル／和風／ポップ、など）を読み取り、
 同じトンマナに合う配色を、来店ポイントを貯めるスタンプカードアプリのUI設定として、
-以下の5つの「役割」ごとに1色ずつ提案してください。
+以下の4つの「役割」ごとに1色ずつ提案してください。
 
 - mainColor: ${ROLE_DESCRIPTIONS.mainColor}
 - bodyBg: ${ROLE_DESCRIPTIONS.bodyBg}
 - cardBg: ${ROLE_DESCRIPTIONS.cardBg}
 - textColor: ${ROLE_DESCRIPTIONS.textColor}
-- noticeColor: ${ROLE_DESCRIPTIONS.noticeColor}
 
 必ず守ってほしいこと：
 - すべて16進数カラーコード（例: #ffffff）で回答する
