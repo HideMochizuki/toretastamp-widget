@@ -64,6 +64,13 @@
                     </div>
 
                     <div style="margin-top: 10px;">
+                        <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">このスタンプ帳自体のベースURL（任意）</label>
+                        <input type="text" id="ai-shop-base-url" placeholder="https://xxx.toreta-stamp.com/XXXX/YYYYYYYY/" class="data-input-area"
+                               style="width: 100%; height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
+                        <p style="font-size: 10px; color: #94a3b8; margin-top: 4px;">※解析対象の公式HPとは別物です。入力すると、フッター固定メニューの「ホーム」「スタンプ帳」「チケット」「履歴」のリンク先を自動で設定します（相対パスは全店舗共通のため）。</p>
+                    </div>
+
+                    <div style="margin-top: 10px;">
                         <label style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">予約URL（外部・任意）</label>
                         <input type="text" id="ai-reservation-url" placeholder="https://.../reserve のような外部の予約ページURL" class="data-input-area"
                                style="width: 100%; height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;">
@@ -193,11 +200,13 @@ document.getElementById('refresh-btn').addEventListener('click', () => {
 // ===== AIでトンマナを解析する =====
 const aiAnalyzeBtn = document.getElementById('ai-analyze-btn');
 const aiSiteUrlInput = document.getElementById('ai-site-url');
+const aiShopBaseUrlInput = document.getElementById('ai-shop-base-url');
 const aiReservationUrlInput = document.getElementById('ai-reservation-url');
 const aiAnalyzeStatus = document.getElementById('ai-analyze-status');
 
 aiAnalyzeBtn.addEventListener('click', async () => {
     const targetUrl = aiSiteUrlInput.value.trim();
+    const shopBaseUrl = aiShopBaseUrlInput.value.trim();
     const reservationUrl = aiReservationUrlInput.value.trim();
     if (!targetUrl) {
         aiAnalyzeStatus.textContent = 'URLを入力してください。';
@@ -214,7 +223,7 @@ aiAnalyzeBtn.addEventListener('click', async () => {
         const res = await fetch('/api/analyze-site', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: targetUrl, reservationUrl })
+            body: JSON.stringify({ url: targetUrl, shopBaseUrl, reservationUrl })
         });
         const data = await res.json();
 
