@@ -411,7 +411,12 @@ async function fetchSiteMaterial(targetUrl) {
       const cssRes = await fetch(cssUrl, { headers: FETCH_HEADERS });
       if (cssRes.ok) {
         const cssContent = await cssRes.text();
-        cssText += `\n/* ${cssUrl} */\n` + cssContent.slice(0, MAX_CSS_CHARS_PER_FILE);
+        // ここでは切り詰めない（全文を保持する）。以前は1ファイルごとに先頭8000文字へ
+        // 切り詰めていたが、実際のテーマCSSで `.footer{...}` のような重要なルールが
+        // 8000文字目より後ろにあり、丸ごと読み落とす事故があった（dragon-t2.com）。
+        // 自前の色抽出（body/見出し/ヘッダー/フッター等）は全文を見る必要があるため、
+        // 文字数の都合はGeminiへのプロンプトを組み立てる側（buildPrompt内）でのみ考慮する。
+        cssText += `\n/* ${cssUrl} */\n` + cssContent;
         fetchedCount++;
       }
     } catch (e) {
