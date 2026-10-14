@@ -21,8 +21,7 @@ const MIN_CONTRAST_RATIO = 4.5;
 const HEADER_IMAGE_WIDTH = 500;
 const HEADER_IMAGE_HEIGHT = 250;
 
-// フッター固定メニューの標準構成。サイトごとに変える必要がないため固定値とし、
-// URL（href）は空のまま、項目の種類（class）とラベルだけを設定する。
+// フッター固定メニューの標準構成。項目の種類（class）とラベルはサイトごとに変える必要がないため固定値とする。
 const DEFAULT_MENU_ITEMS = [
   { class: 'home', label: 'ホーム', href: '', ext: false, aclass: '' },
   { class: 'stamp', label: 'スタンプ帳', href: '', ext: false, aclass: '' },
@@ -30,6 +29,15 @@ const DEFAULT_MENU_ITEMS = [
   { class: 'history', label: '履歴', href: '', ext: false, aclass: '' },
   { class: 'reservation', label: '予約', href: '', ext: false, aclass: '' },
 ];
+
+// トレタスタンプの各ページの相対パス（全店舗共通。shops.md参照）。
+// 店舗ベースURLが分かれば、ここから home/stamp/ticket/history の href を機械的に組み立てられる。
+const SHOP_PAGE_PATHS = {
+  home: '',
+  stamp: 'mypage/stamp',
+  ticket: 'mypage/coupon',
+  history: 'mypage/stamp_history/',
+};
 
 // --- Gemini に判断させる「役割」は6つだけに絞る ---------------------------------
 // 以前は cfg-* の18項目それぞれを独立にGeminiへ判断させていたが、
@@ -147,10 +155,12 @@ async function handleAnalyzeSite(request, env) {
     );
   }
 
-  let targetUrl, reservationUrl;
+  let targetUrl, shopBaseUrl, reservationUrl;
   try {
     const body = await request.json();
     targetUrl = body.url;
+    // 解析対象の公式HPとは別物。トレタスタンプ自体のURL（例: https://xxx.toreta-stamp.com/XXXX/YYYYYYYY/）。
+    shopBaseUrl = typeof body.shopBaseUrl === 'string' ? body.shopBaseUrl.trim() : '';
     reservationUrl = typeof body.reservationUrl === 'string' ? body.reservationUrl.trim() : '';
   } catch (e) {
     return jsonResponse({ error: 'リクエストの形式が不正です' }, 400);
@@ -241,15 +251,21 @@ async function handleAnalyzeSite(request, env) {
   enforceContrast(settings);
 
   // フッター固定メニュー：項目の種類は標準の5つで固定（サイトごとに変える必要が無いため）。
-  // 「予約」だけは外部の予約ページという性質上、サイト解析からは分からないので、
-  // ホーム画面で別途入力してもらった予約URLをそのまま href に使う（未入力なら空のまま）。
+  // home/stamp/ticket/history は、店舗ベースURL（解析対象の公式HPとは別物）が分かれば
+  // 相対パスが全店舗共通なので自動で組み立てられる。「予約」だけは外部の予約ページという
+  // 性質上、別途入力してもらった予約URLをそのまま href に使う（どちらも未入力なら空のまま）。
   // ※ generator/script.js 側のインポートは既にマージ方式に直しているので、
   // 　この項目だけを上書きしても他の設定（フォント・画像など）は消えない。
-  const menuItems = DEFAULT_MENU_ITEMS.map((item) =>
-    item.class === 'reservation' && reservationUrl
-      ? { ...item, href: reservationUrl, ext: true } // 外部予約サイトなので新しいタブで開く
-      : item
-  );
+  const normalizedShopBaseUrl = shopBaseUrl ? (shopBaseUrl.endsWith('/') ? shopBaseUrl : shopBaseUrl + '/') : '';
+  const menuItems = DEFAULT_MENU_ITEMS.map((item) => {
+    if (item.class === 'reservation' && reservationUrl) {
+      return { ...item, href: reservationUrl, ext: true }; // 外部予約サイトなので新しいタブで開く
+    }
+    if (normalizedShopBaseUrl && SHOP_PAGE_PATHS[item.class] !== undefined) {
+      return { ...item, href: normalizedShopBaseUrl + SHOP_PAGE_PATHS[item.class] };
+    }
+    return item;
+  });
   settings['saved_menu_items'] = menuItems;
 
   ALL_COLOR_FIELDS.forEach((field) => {
