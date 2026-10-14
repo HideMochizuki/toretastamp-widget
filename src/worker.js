@@ -67,10 +67,12 @@ const ROLE_TO_FIELDS = {
     'cfg-pgbtn-bg-c', // 通常ボタン（「トップへ戻る」等）の背景
     'cfg-pgbtn-org-bg-c', // QR読み取り・チケット利用などの強調ボタンの背景
   ],
-  bodyBg: ['cfg-body-bg', 'cfg-user-bg'],
+  // cfg-list-bg（フッターリストメニュー＝ハンバーガー時のドロワー背景）は
+  // 個々のカードというより画面全体を覆うパネルなので、カードの表面色ではなく
+  // ページ全体の土台色（bodyBg）と揃える。
+  bodyBg: ['cfg-body-bg', 'cfg-user-bg', 'cfg-list-bg'],
   cardBg: [
     'cfg-btn-area-bg',
-    'cfg-list-bg',
     'cfg-ticket-bg',
     'cfg-std-bg-c',
     'cfg-user-card-bg',
@@ -83,12 +85,22 @@ const ROLE_TO_FIELDS = {
 // role の色の「上に乗る文字色」。初期値は白を仮置きし、enforceContrast() で
 // 読みにくければ黒へ補正する（＝自前で判断せず、既存のコントラスト補正に任せる）。
 const TEXT_ON_ROLE_FIELDS = {
-  mainColor: ['cfg-header-text-c', 'cfg-txt', 'cfg-btn1-txt', 'cfg-btn1-icon-c', 'cfg-pgbtn-txt-c', 'cfg-pgbtn-org-txt-c'],
+  mainColor: [
+    'cfg-header-text-c',
+    'cfg-txt',
+    'cfg-btn1-txt',
+    'cfg-btn1-icon-c',
+    'cfg-pgbtn-txt-c',
+    'cfg-pgbtn-org-txt-c',
+    'cfg-ham-line-c', // ハンバーガーメニューの線の色（通常時）＝ヘッダー背景の上に乗る
+  ],
+  bodyBg: ['cfg-ham-line-active-c'], // ハンバーガーメニューの線の色（開いている時）＝リスト背景（=bodyBg）の上に乗る
 };
 
 // 背景色とセットで読みやすさ（コントラスト）を保証すべき組み合わせ
 const CONTRAST_PAIRS = [
   ['cfg-header-bg', 'cfg-header-text-c'],
+  ['cfg-header-bg', 'cfg-ham-line-c'],
   ['cfg-bg', 'cfg-txt'],
   ['cfg-btn1-bg', 'cfg-btn1-txt'],
   ['cfg-btn1-bg', 'cfg-btn1-icon-c'],
@@ -96,6 +108,7 @@ const CONTRAST_PAIRS = [
   ['cfg-pgbtn-org-bg-c', 'cfg-pgbtn-org-txt-c'],
   ['cfg-btn2-bg', 'cfg-btn2-txt'],
   ['cfg-list-bg', 'cfg-list-txt'],
+  ['cfg-list-bg', 'cfg-ham-line-active-c'],
   ['cfg-ticket-bg', 'cfg-ticket-title-c'],
   ['cfg-body-bg', 'cfg-h3-color'],
   ['cfg-body-bg', 'cfg-notice-color'],
@@ -250,7 +263,23 @@ async function handleAnalyzeSite(request, env) {
     settings['header-pattern'] = 'B';
   }
 
+  // フッターリストメニューの表示形式：公式サイト側にハンバーガーメニュー（スマホ等で
+  // 開閉するメニュー）があれば、ジェネレーター側も同じ構成（パターンB）に寄せる。
+  if (detectHamburgerMenu(html)) {
+    settings['list-pattern'] = 'B';
+  }
+
   return jsonResponse(settings, 200);
+}
+
+// 公式サイトのHTMLに、ハンバーガーメニューを示す典型的なクラス名・属性があるかを調べる。
+// 完全な判定はできないので、あくまで目安。見つからなくても「無い」と断定はできないが、
+// 見つかった場合は高い確度で「ある」と言える。
+const HAMBURGER_MENU_PATTERN =
+  /hamburger|humberger|nav-?toggle|menu-?toggle|drawer-?(toggle|menu|btn)|offcanvas|nav-?drawer|sp-?menu|gnav-?btn|header__menu|menu-?trigger|menu-?icon|icon-?menu/i;
+
+function detectHamburgerMenu(html) {
+  return HAMBURGER_MENU_PATTERN.test(html);
 }
 
 // サイト本体のHTMLに加えて、外部CSSファイルも取得して解析材料にする
