@@ -247,6 +247,26 @@ async function handleAnalyzeSite(request, env) {
   });
   if (roles.noticeColor) settings['cfg-notice-color'] = roles.noticeColor;
 
+  // 「全体の推測」であるGeminiの判断より、サイトのCSSに literal に書かれている値の方が
+  // 確実なので、body / 見出し(h1-h3) のルールが見つかった場合はそちらで上書きする。
+  const bodyStyleHints = extractBodyStyleHints(html + '\n' + cssText);
+  if (bodyStyleHints.bgColor) {
+    // bodyBg役割の全フィールド（cfg-body-bg・cfg-user-bg・cfg-list-bg）を実際の値で揃える
+    ROLE_TO_FIELDS.bodyBg.forEach((field) => {
+      settings[field] = bodyStyleHints.bgColor;
+    });
+  }
+  if (bodyStyleHints.fontFamily) {
+    // select側はそのままデフォルトにしておき、custom側（優先される）に実際のフォント指定を入れる
+    settings['cfg-font-family-custom'] = bodyStyleHints.fontFamily;
+  }
+
+  const headingColor = extractHeadingColorHint(html + '\n' + cssText);
+  if (headingColor) {
+    // お知らせ表示の文字色は、サイトの見出し(タイトル)で実際に使われている色に揃える
+    settings['cfg-notice-color'] = headingColor;
+  }
+
   // 背景色と文字色のコントラストが低い場合は、読みやすい色に自動補正する
   enforceContrast(settings);
 
@@ -375,6 +395,76 @@ function normalizeHex(hex) {
     h = '#' + h.slice(1).split('').map((c) => c + c).join('');
   }
   return h;
+}
+
+// HTML/CSSのテキストから「セレクタ, 宣言ブロック」のペアを順に探し、selectorTestを満たす
+// ルールの宣言ブロックを**全て**集めて返す（出現順）。@media等のat-rule内部は正しく解釈
+// できないため対象外（body/見出しの基本スタイルは通常トップレベルで宣言されるため実用上は問題ない）。
+//
+// 1つのタグに対して複数のルールが存在するのが普通（例: CSSリセットの `body{margin:0;...}` と、
+// 実際のテーマの `body{font-family:...}` は別ルール）なので、最初に見つかった1件だけを見ると
+// 目的のプロパティが無いルールに当たって何も取れないことがある。そのため全ルールを集めたうえで、
+// 後方（＝CSSの優先順位としても後勝ち）から目的のプロパティを探す。
+function findCssRuleBodies(cssText, selectorTest) {
+  const ruleRegex = /([^{}]+)\{([^{}]*)\}/g;
+  const bodies = [];
+  let m;
+  while ((m = ruleRegex.exec(cssText)) !== null) {
+    const selectors = m[1].split(',').map((s) => s.trim());
+    if (selectors.some(selectorTest)) {
+      bodies.push(m[2]);
+    }
+  }
+  return bodies;
+}
+
+// 宣言ブロックの配列から「プロパティ名: 値」を1つ取り出す。複数ブロックがある場合は
+// 後方（CSSの優先順位としても後勝ち）から探し、最初に見つかった値を返す。
+// ハイフン付きの別プロパティ（例: background-color から color だけを誤って拾う）を防ぐため、
+// 直前が「;」か宣言の先頭であることを確認する。
+function extractDeclValue(declBodies, propName) {
+  const regex = new RegExp('(?:^|;)\\s*' + propName + '\\s*:\\s*([^;]+)', 'i');
+  for (let i = declBodies.length - 1; i >= 0; i--) {
+    const m = declBodies[i].match(regex);
+    if (m) return m[1].trim();
+  }
+  return null;
+}
+
+// body（html,bodyのような組み合わせ含む）のCSSルールから、実際に指定されている
+// 背景色・フォントファミリーを取り出す。Geminiの推測に頼らず literal な値を優先するため。
+function extractBodyStyleHints(text) {
+  // 背景色は html 側に書かれていることもあるため html/body 両方を対象にする。
+  // フォントは通常 body 側で指定されるので body のみを対象にする。
+  const bodyDeclBodies = findCssRuleBodies(text, (s) => /^body$/i.test(s));
+  const htmlOrBodyDeclBodies = findCssRuleBodies(text, (s) => /^(?:html|body)$/i.test(s));
+  if (!htmlOrBodyDeclBodies.length) return { bgColor: null, fontFamily: null };
+
+  let bgColor = null;
+  const bgValue = extractDeclValue(htmlOrBodyDeclBodies, 'background(?:-color)?');
+  if (bgValue) {
+    const hexMatch = bgValue.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/);
+    if (hexMatch) bgColor = normalizeHex(hexMatch[0]);
+  }
+
+  const fontValue = extractDeclValue(bodyDeclBodies, 'font-family');
+  const fontFamily = fontValue ? fontValue.replace(/!important/gi, '').trim() : null;
+
+  return { bgColor, fontFamily };
+}
+
+// h1 → h2 → h3 の順に、タグ単体セレクタのCSSルールを探し、最初に見つかった文字色を返す。
+// 見出し（タイトル）に実際に使われている色を、お知らせ表示の文字色の手がかりとして使うため。
+function extractHeadingColorHint(text) {
+  for (const tag of ['h1', 'h2', 'h3']) {
+    const declBodies = findCssRuleBodies(text, (s) => new RegExp(`^${tag}$`, 'i').test(s));
+    if (!declBodies.length) continue;
+    const colorValue = extractDeclValue(declBodies, 'color');
+    if (!colorValue) continue;
+    const hexMatch = colorValue.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/);
+    if (hexMatch) return normalizeHex(hexMatch[0]);
+  }
+  return null;
 }
 
 // 公式サイトの <img> タグから、ヘッダースライダーに使えそうな画像を1枚選ぶ。
