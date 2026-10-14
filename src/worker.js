@@ -78,17 +78,13 @@ const ROLE_TO_FIELDS = {
   // cfg-list-bg（フッターリストメニュー＝ハンバーガー時のドロワー背景）は
   // 個々のカードというより画面全体を覆うパネルなので、カードの表面色ではなく
   // ページ全体の土台色（bodyBg）と揃える。
-  // cfg-btn2-bg（セカンダリボタンの背景）も同様にbodyBg側に寄せる。cardBgにすると
-  // 台座（cfg-btn-area-bg＝cardBg）と完全に同じ色になり、枠線も無いボタンが
-  // 背景に溶けて消えてしまうため（bodyBgとcardBgはプロンプト側で
-  // 「重なったときに輪郭が分かる程度に区別できる色にする」よう指示済みなので、
-  // その差分をそのままボタンの視認性確保に利用する）。
-  bodyBg: ['cfg-body-bg', 'cfg-user-bg', 'cfg-list-bg', 'cfg-btn2-bg'],
+  bodyBg: ['cfg-body-bg', 'cfg-user-bg', 'cfg-list-bg'],
   cardBg: [
     'cfg-btn-area-bg',
     'cfg-ticket-bg',
     'cfg-std-bg-c',
     'cfg-user-card-bg',
+    'cfg-btn2-bg', // セカンダリボタンの背景＝カードと同じ白系
   ],
   textColor: ['cfg-list-txt'],
   noticeColor: ['cfg-notice-color'],
@@ -234,6 +230,14 @@ async function handleAnalyzeSite(request, env) {
   } catch (e) {
     return jsonResponse({ error: 'Gemini呼び出し中に予期しないエラーが発生しました: ' + e.message }, 500);
   }
+
+  // mainColorが背景色（bodyBg・cardBg）と見分けがつかないほど近いと、
+  // メインカラーで塗ったボタン類（cfg-pgbtn-bg-c等）が背景に溶けて消えてしまう。
+  // bodyBgとcardBgはお互い区別するようプロンプトで指示しているが、mainColorとの
+  // 区別までは指示していなかったため、実際にこの事故が起きた（黄色一色のサイト等）。
+  // 文字色のように黒/白へ逃げるわけにはいかない（ブランドカラーの意味が無くなるため）ので、
+  // 明度を大きくずらして最低限の視認性だけ確保する。
+  ensureMainColorDistinctFromBackgrounds(roles);
 
   // role（6項目）から、実際の cfg-* 項目へ機械的に展開する。
   // 同じ役割を参照する項目は必ず同じ値になるので、項目間の矛盾・ブレが起きない。
@@ -717,6 +721,33 @@ function pickReadableColor(bgHex) {
   const blackContrast = contrastRatio(bgHex, '#000000');
   const whiteContrast = contrastRatio(bgHex, '#ffffff');
   return blackContrast >= whiteContrast ? '#000000' : '#ffffff';
+}
+
+// hex1 を hex2 の方向へ ratio（0〜1）だけ混ぜる。
+function mixColor(hex1, hex2, ratio) {
+  const a = hexToRgb(hex1);
+  const b = hexToRgb(hex2);
+  const mix = (x, y) => Math.round(x * (1 - ratio) + y * ratio);
+  const toHex = (v) => v.toString(16).padStart(2, '0');
+  return '#' + toHex(mix(a.r, b.r)) + toHex(mix(a.g, b.g)) + toHex(mix(a.b, b.b));
+}
+
+// mainColorは「ボタンの塗り」として使われる（cfg-pgbtn-bg-c等）ため、文字色のように
+// 黒/白へ逃げるとブランドカラーの意味が無くなってしまう。そこで、背景色
+// （bodyBg・cardBg）と見分けがつかないほど近い場合だけ、明度を大きくずらして
+// 最低限の視認性を確保する（ブランドカラーの系統自体は維持する）。
+const MIN_FILL_CONTRAST = 1.8; // 文字色基準の4.5より緩い、塗りが「同じ色」に見えない程度の閾値
+function ensureMainColorDistinctFromBackgrounds(roles) {
+  if (!isHexColor(roles.mainColor)) return;
+
+  const collides = [roles.bodyBg, roles.cardBg].some(
+    (bg) => isHexColor(bg) && contrastRatio(roles.mainColor, bg) < MIN_FILL_CONTRAST
+  );
+  if (!collides) return;
+
+  const mainLum = relativeLuminance(hexToRgb(roles.mainColor));
+  // 明るい色なら黒に寄せて暗く、暗い色なら白に寄せて明るくする
+  roles.mainColor = mixColor(roles.mainColor, mainLum > 0.5 ? '#000000' : '#ffffff', 0.55);
 }
 
 function jsonResponse(obj, status) {
