@@ -78,13 +78,17 @@ const ROLE_TO_FIELDS = {
   // cfg-list-bg（フッターリストメニュー＝ハンバーガー時のドロワー背景）は
   // 個々のカードというより画面全体を覆うパネルなので、カードの表面色ではなく
   // ページ全体の土台色（bodyBg）と揃える。
-  bodyBg: ['cfg-body-bg', 'cfg-user-bg', 'cfg-list-bg'],
+  // cfg-btn2-bg（セカンダリボタンの背景）も同様にbodyBg側に寄せる。cardBgにすると
+  // 台座（cfg-btn-area-bg＝cardBg）と完全に同じ色になり、枠線も無いボタンが
+  // 背景に溶けて消えてしまうため（bodyBgとcardBgはプロンプト側で
+  // 「重なったときに輪郭が分かる程度に区別できる色にする」よう指示済みなので、
+  // その差分をそのままボタンの視認性確保に利用する）。
+  bodyBg: ['cfg-body-bg', 'cfg-user-bg', 'cfg-list-bg', 'cfg-btn2-bg'],
   cardBg: [
     'cfg-btn-area-bg',
     'cfg-ticket-bg',
     'cfg-std-bg-c',
     'cfg-user-card-bg',
-    'cfg-btn2-bg', // セカンダリボタンの背景＝カードと同じ白系
   ],
   textColor: ['cfg-list-txt'],
   noticeColor: ['cfg-notice-color'],
