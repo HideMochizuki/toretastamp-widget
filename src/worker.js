@@ -267,6 +267,21 @@ async function handleAnalyzeSite(request, env) {
     settings['cfg-notice-color'] = headingColor;
   }
 
+  // ヘッダー・フッターの背景も、メインカラーからの一律判断より、
+  // 実際のCSS（.header / .footer 等）に書かれている値があればそちらを優先する
+  // （例：dragon-t2.comはヘッダーが白、フッターが黒と、ヘッダーとフッターで
+  // 　色が分かれており、メインカラー1色で揃える前提が成立しなかった）。
+  const combinedForElementHints = html + '\n' + cssText;
+  const headerBgHint = extractElementBgHint(combinedForElementHints, (s) => /(?:^|\s)\.?header(?:\.[a-z0-9_-]+)*$/i.test(s));
+  if (headerBgHint) {
+    settings['cfg-header-bg'] = headerBgHint;
+    settings['cfg-mock-header-bg'] = headerBgHint;
+  }
+  const footerBgHint = extractElementBgHint(combinedForElementHints, (s) => /(?:^|\s)\.?footer(?:\.[a-z0-9_-]+)*$/i.test(s));
+  if (footerBgHint) {
+    settings['cfg-bg'] = footerBgHint;
+  }
+
   // メインカラーが明るい色（例：鮮やかな黄色）の場合、ページの背景（bodyBg・cardBg）の
   // 上にメインカラーで塗ったボタンを置くと、背景に溶けて見えなくなることがある。
   // mainColor自体（ヘッダー等）は変えず、該当するボタンの塗りだけ黒/白に反転する。
@@ -332,6 +347,15 @@ function detectHamburgerMenu(html) {
 
 // サイト本体のHTMLに加えて、外部CSSファイルも取得して解析材料にする
 // （色指定は <link rel="stylesheet"> の先に書かれていることが多いため）
+// 汎用プラグイン・ライブラリ・Webフォント配信CSSのパターン。これらは大抵ブランドの配色を
+// 含まない（スライダーの矢印デザイン、フォントの@font-face定義など）ため、取得の優先順位を
+// 下げる。先頭から機械的にN件取得する方式だと、こうしたファイルが本物のテーマCSSより先に
+// 並んでいる場合に、肝心のテーマCSSを一度も読まずに終わってしまうことがあるため
+// （実例：dragon-t2.com は5個中3個がswiper/slickのプラグインCSSで、本当のテーマCSSである
+// 　common.css/index.cssが4・5番目だった）。
+const VENDOR_CSS_PATTERN =
+  /swiper|slick|flatpickr|fancybox|dflip|owl[.-]?carousel|select2|lightbox|font-?awesome|jquery-?ui|bootstrap|wp-block|honeypot|pagenavi|tiny-slider|glide\.(?:core|theme)|splide|animate\.css|normalize\.css|reset\.css|typekit|fonts\.googleapis|fonts\.gstatic/i;
+
 async function fetchSiteMaterial(targetUrl) {
   const siteRes = await fetch(targetUrl, { headers: FETCH_HEADERS, redirect: 'follow' });
   if (!siteRes.ok) {
@@ -343,9 +367,17 @@ async function fetchSiteMaterial(targetUrl) {
   const hrefRegex = /href=["']([^"']+)["']/i;
   const linkTags = html.match(linkTagRegex) || [];
 
+  // テーマ固有らしいCSSを先に、汎用プラグイン/フォントCSSを後に回す（出現順はそれぞれ維持）。
+  const themeLikeTags = [];
+  const vendorLikeTags = [];
+  linkTags.forEach((tag) => {
+    (VENDOR_CSS_PATTERN.test(tag) ? vendorLikeTags : themeLikeTags).push(tag);
+  });
+  const orderedLinkTags = [...themeLikeTags, ...vendorLikeTags];
+
   let cssText = '';
   let fetchedCount = 0;
-  for (const linkTag of linkTags) {
+  for (const linkTag of orderedLinkTags) {
     if (fetchedCount >= MAX_CSS_FILES) break;
     const hrefMatch = linkTag.match(hrefRegex);
     if (!hrefMatch) continue;
@@ -470,6 +502,19 @@ function extractHeadingColorHint(text) {
     if (hexMatch) return normalizeHex(hexMatch[0]);
   }
   return null;
+}
+
+// selectorTestを満たすCSSルール（例：.header, .footer）から背景色を取り出す。
+// ヘッダー/フッターはメインカラー1色に揃わない実例があった（例：dragon-t2.comは
+// ヘッダーが白・フッターが黒と分かれていた）ため、「全部メインカラーで揃える」という
+// 前提に頼らず、実際にそのセレクタへ指定されている値を優先的に使う。
+function extractElementBgHint(text, selectorTest) {
+  const declBodies = findCssRuleBodies(text, selectorTest);
+  if (!declBodies.length) return null;
+  const bgValue = extractDeclValue(declBodies, 'background(?:-color)?');
+  if (!bgValue) return null;
+  const hexMatch = bgValue.match(/#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/);
+  return hexMatch ? normalizeHex(hexMatch[0]) : null;
 }
 
 // 公式サイトの <img> タグから、ヘッダースライダーに使えそうな画像を1枚選ぶ。
@@ -631,8 +676,18 @@ function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates, hasLogoIm
     colorHint = '色の検出はできませんでした。業態の一般的な印象から妥当な配色を提案してください。';
   }
 
+  // サイト本体のCSSから十分な色の手がかりが取れているかどうかで、ロゴ画像の扱いを変える。
+  // 手がかりが乏しい場合（例：つぼ八のように理論上の配色情報がテキストに存在しないサイト）は
+  // ロゴの色を積極的に使うべきだが、手がかりが豊富な場合（例：dragon-t2.comのように黒/白/グレー中心の
+  // テーマCSSが別途ちゃんと存在するサイト）にロゴの色を無条件に優先すると、実際には
+  // ボタン等の操作要素には使われていない「ロゴだけの色」をUI全体に広げてしまう事故が起きた。
+  // ロゴマークの色は、ブランドシンボルとして使われているだけで、実際の操作要素（ボタン等）の
+  // 色とは限らないため、サイト本体の手がかりが十分にある場合はそちらを優先する。
+  const hasStrongTextEvidence = structural.length + accent.length >= 8;
   const logoHint = hasLogoImage
-    ? '\n\nこのメッセージにはロゴ画像も添付しています。ロゴはHTML/CSSのテキストには出てこない色（写真の色・ロゴマークそのものの色）を含んでいることがあるので、必ず参考にしてください。ロゴで使われている色と、HTML/CSSから検出された色が食い違う場合は、ロゴの色の方を優先してください（ロゴはそのブランドを最も直接的に表す要素のため）。'
+    ? hasStrongTextEvidence
+      ? '\n\nこのメッセージにはロゴ画像も添付しています。ただし、このサイトのHTML/CSSからは十分な数の色の手がかりが見つかっているので、配色の主役（mainColor等）は基本的にそちらを優先してください。ロゴマークの色は、ブランドシンボルとして使われているだけで、実際にクリックできる操作要素（ボタン等）の色とは限りません。ロゴの色がHTML/CSSの手がかりと大きく食い違う場合、ロゴの色は見出しの一部やチケットタイトルなど、ごく限られた箇所の差し色として検討する程度に留め、ヘッダー背景やボタンなど広い面積・操作要素には無理に広げないでください。'
+      : '\n\nこのメッセージにはロゴ画像も添付しています。このサイトのHTML/CSSからは十分な色の手がかりが見つかっていないため、ロゴで使われている色（写真の色・ロゴマークそのものの色）を積極的に参考にしてください。'
     : '';
 
   return `あなたは飲食店の公式サイトのデザインを分析し、配色のトンマナを抽出する専門家です。
