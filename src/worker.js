@@ -7,8 +7,13 @@
 const GEMINI_MODEL = 'gemini-flash-latest';
 const FETCH_HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; ToretaStampTonmanaBot/1.0)' };
 const MAX_HTML_CHARS = 20000;
-const MAX_CSS_FILES = 3;
-const MAX_CSS_CHARS_PER_FILE = 8000;
+// サイトによってはスタイルシートが8個以上あり、本体の見た目を左右する実際のCSS
+// （例：hyakurakuso.comの contents.css / sp_contents.css）が4番目以降に来ることがある。
+// 3ファイルでは足りず読み落とす事故が繰り返し起きたため、ある程度余裕を持たせる。
+// Geminiへのプロンプトの文字数は別定数（MAX_PROMPT_CSS_CHARS）で独立して制御する
+// （ファイル取得数を増やしてもプロンプトが際限なく膨らまないようにするため）。
+const MAX_CSS_FILES = 6;
+const MAX_PROMPT_CSS_CHARS = 24000;
 // 出現頻度の高い色（構造色＝背景・ヘッダーなど広い面積に使われがち）と、
 // 頻度の低い色（アクセント候補＝バッジ等あえて少数箇所にしか使わない色）を
 // 別枠で確保する。アクセントカラーは定義上「使用頻度が低い」のが当たり前なので、
@@ -296,6 +301,14 @@ async function handleAnalyzeSite(request, env) {
   const footerBgHint = extractElementBgHint(combinedForElementHints, (s) => /(?:^|\s)\.?footer(?:\.[a-z0-9_-]+)*$/i.test(s));
   if (footerBgHint) {
     settings['cfg-bg'] = footerBgHint;
+  }
+
+  // QR読み取り・チケット利用などの強調ボタンも、サイトに「ご予約はこちら」
+  // 「お問い合わせ」のような実際のアクションボタンがあれば、その色を直接使う
+  // （実例：hyakurakuso.comの `.btn_yoyaku` のゴールド #ceb32b）。
+  const actionButtonColor = extractActionButtonColorHint(combinedForElementHints);
+  if (actionButtonColor) {
+    settings['cfg-pgbtn-org-bg-c'] = actionButtonColor;
   }
 
   // メインカラーが明るい色（例：鮮やかな黄色）の場合、ページの背景（bodyBg・cardBg）の
@@ -596,6 +609,26 @@ function extractElementBgHint(text, selectorTest) {
   return hexMatch ? normalizeHex(hexMatch[0]) : null;
 }
 
+// 「ご予約はこちら」「お問い合わせ」のような、実際のアクションボタンのクラス名によくある
+// パターン。cfg-pgbtn-org-bg-c（QR読み取り・チケット利用などの強調ボタン）は役割として
+// これらに近いため、見つかればメインカラーより優先してそのまま使う
+// （実例：hyakurakuso.comの `.btn_yoyaku{background-color:#CEB32B}`）。
+// 予約系を問い合わせ系より先に試す（スタンプカードアプリの文脈では予約の方が近いため）。
+const ACTION_BUTTON_SELECTOR_PATTERNS = [
+  (s) => /\b(?:btn|button)[-_]?(?:yoyaku|reserve|reservation)\b/i.test(s),
+  (s) => /\b(?:yoyaku|reserve|reservation)[-_]?(?:btn|button)\b/i.test(s),
+  (s) => /\b(?:btn|button)[-_]?(?:toiawase|contact|inquiry)\b/i.test(s),
+  (s) => /\b(?:toiawase|contact|inquiry)[-_]?(?:btn|button)\b/i.test(s),
+];
+
+function extractActionButtonColorHint(text) {
+  for (const test of ACTION_BUTTON_SELECTOR_PATTERNS) {
+    const color = extractElementBgHint(text, test);
+    if (color) return color;
+  }
+  return null;
+}
+
 // 公式サイトの <img> タグから、ヘッダースライダーに使えそうな画像を1枚選ぶ。
 // ロゴ・アイコン・SVG等は除外し、「お知らせ/トピックス/カルーセル」らしいパス、
 // なるべく横幅の大きい画像を優先する。
@@ -804,7 +837,7 @@ ${htmlExcerpt}
 --- HTML抜粋ここまで ---
 
 --- 関連CSS抜粋 ---
-${cssText ? cssText.slice(0, MAX_CSS_CHARS_PER_FILE * MAX_CSS_FILES) : '(取得できませんでした)'}
+${cssText ? cssText.slice(0, MAX_PROMPT_CSS_CHARS) : '(取得できませんでした)'}
 --- CSS抜粋ここまで ---
 
 ${colorHint}${logoHint}
