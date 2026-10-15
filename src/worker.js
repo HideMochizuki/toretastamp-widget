@@ -77,7 +77,11 @@ const ROLE_TO_FIELDS = {
     'cfg-header-bg',
     'cfg-mock-header-bg',
     'cfg-btn1-bg',
-    'cfg-bg', // フッター固定メニューの背景色
+    // cfg-bg（フッター固定メニューの背景色）はここに含めない。
+    // 「予約」のような強調ボタンが実サイトのゴールド等の強い色になった場合、
+    // フッター全体まで同じ色にすると、その強調ボタンの特別感がかえって薄れてしまう。
+    // 実サイトに .footer の指定があればそれを最優先し（下のfooterBgHint）、
+    // 無ければ安全な既定値（白）にする。
     'cfg-ticket-title-c',
     'cfg-h3-color',
     'cfg-btn2-txt', // セカンダリボタンの文字色＝メインカラー
@@ -140,10 +144,12 @@ const CONTRAST_PAIRS = [
 
 // 各色は <input type="color"> 本体と、同期表示用の `-val` テキスト欄の
 // 両方に同じ値を入れないと、再読み込み後に表示がずれるため複製する。対象は全色項目。
+// cfg-bg（フッター固定メニュー背景）はROLE_TO_FIELDSに属さず個別に設定するため、ここに明示的に含める。
 const ALL_COLOR_FIELDS = Array.from(
   new Set([
     ...Object.values(ROLE_TO_FIELDS).flat(),
     ...Object.values(TEXT_ON_ROLE_FIELDS).flat(),
+    'cfg-bg',
   ])
 );
 
@@ -192,6 +198,13 @@ async function handleAnalyzeSite(request, env) {
   } catch (e) {
     return jsonResponse({ error: 'サイトの取得中にエラーが発生しました: ' + e.message }, 400);
   }
+
+  // WordPress本体が自動挿入する「テーマ固有ではない」inline <style>ブロックを取り除く。
+  // これらはテーマの実際の配色とは無関係なWordPressの既定値であり、構造色として混ざると
+  // 誤認の元になる（実例：hyakurakuso.comで `classic-theme-styles-inline-css` 内の
+  // `.wp-block-button__link{background-color:#32373c}` という単なるWordPressの既定ボタン色が、
+  // 構造色候補に混ざりメインカラーとして採用されてしまった）。
+  html = stripWpBoilerplateStyles(html);
 
   // 一時的な状態（:hover・.open等）のCSSルールは、色抽出の対象から除外する
   // （一時状態の色を定常的なブランドカラーと誤認してしまう事故があったため）。
@@ -298,10 +311,10 @@ async function handleAnalyzeSite(request, env) {
     settings['cfg-header-bg'] = headerBgHint;
     settings['cfg-mock-header-bg'] = headerBgHint;
   }
+  // cfg-bg（フッター固定メニュー背景）はmainColor役割に含めていないので、
+  // 実サイトの .footer から見つかればその値、見つからなければ安全な既定値（白）にする。
   const footerBgHint = extractElementBgHint(combinedForElementHints, (s) => /(?:^|\s)\.?footer(?:\.[a-z0-9_-]+)*$/i.test(s));
-  if (footerBgHint) {
-    settings['cfg-bg'] = footerBgHint;
-  }
+  settings['cfg-bg'] = footerBgHint || '#ffffff';
 
   // QR読み取り・チケット利用などの強調ボタンも、サイトに「ご予約はこちら」
   // 「お問い合わせ」のような実際のアクションボタンがあれば、その色を直接使う
@@ -466,6 +479,19 @@ function stripStateRules(cssText) {
 // 半透明の装飾が、お知らせの文字色としてそのまま採用されてしまった）。
 function stripRgbFunctions(cssText) {
   return cssText.replace(/rgba?\([^)]*\)/gi, '');
+}
+
+// WordPress本体が自動挿入する「テーマ固有ではない」inline <style id="...">ブロックを除去する。
+// classic-theme-styles-inline-css（.wp-block-button__link等の既定ボタン色）や
+// global-styles-inline-css（Gutenbergのプリセットカラーパレット）は、WordPress自体が
+// 出力する共通の既定値であり、そのテーマ・ブランド固有の配色ではない。これらを色の手がかりに
+// 混ぜると、無関係な既定色がメインカラー候補として紛れ込む事故になる
+// （実例：hyakurakuso.comの `#32373c` はWordPressの既定ボタン色に過ぎなかった）。
+const WP_BOILERPLATE_STYLE_ID_PATTERN = /classic-theme-styles-inline-css|global-styles-inline-css/i;
+function stripWpBoilerplateStyles(html) {
+  return html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (full, attrs) =>
+    WP_BOILERPLATE_STYLE_ID_PATTERN.test(attrs) ? '' : full
+  );
 }
 
 // HTML・CSSの中から実際に使われているカラーコードを拾い出し、
