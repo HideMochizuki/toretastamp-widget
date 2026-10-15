@@ -109,9 +109,6 @@
   .highlight-delta.up { color: #16a34a; }
   .highlight-delta.down { color: #dc2626; }
   .highlight-delta.flat { color: #94a3b8; }
-  .report-section-divider { display: flex; align-items: center; gap: 12px; margin: 36px 0 8px; }
-  .report-section-divider::before, .report-section-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
-  .report-section-divider-label { font-size: 0.85rem; font-weight: bold; color: #b45309; white-space: nowrap; }
   .rank-tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
   .rank-tile {
     background: #fff; border: 1px solid var(--border-color); border-radius: 14px;
@@ -205,6 +202,39 @@
     html, body { height: auto !important; overflow: visible !important; }
     .app-container { display: block !important; height: auto !important; overflow: visible !important; }
     .main-wrapper { height: auto !important; overflow: visible !important; }
+  }
+  .layout-toolbar { display: flex; justify-content: flex-end; margin: 14px 0 0; }
+  .layout-panel-overlay {
+    /* header.generator が z-index:1000 なので、それより必ず上に来るようにする
+       (共通スタイル側のモーダル類が9999〜10001を使っているため、それより更に上にしておく) */
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.35); z-index: 10100;
+    display: flex; justify-content: flex-end;
+  }
+  .layout-panel {
+    width: 380px; max-width: 90vw; height: 100%; background: #fff; box-shadow: -4px 0 24px rgba(0,0,0,0.18);
+    padding: 22px; box-sizing: border-box; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .layout-panel-header { display: flex; align-items: center; justify-content: space-between; }
+  .layout-panel-header h3 { margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; color: #1e293b; }
+  .layout-panel-close { background: none; border: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: #94a3b8; padding: 0; }
+  .layout-panel-close:hover { color: #475569; }
+  .layout-panel-sub { font-size: 0.78rem; color: #64748b; margin-top: -4px; }
+  .layout-panel-fixed-note { font-size: 0.75rem; color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px; }
+  .layout-panel-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .layout-panel-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid #e2e8f0; border-radius: 6px;
+    background: #fff; cursor: grab; font-size: 0.85rem; color: #334155;
+  }
+  .layout-panel-item.dragging { opacity: 0.4; }
+  .layout-panel-item.drag-over { border-color: var(--primary-color); background: #f7fcef; }
+  .layout-panel-item.hidden-card { opacity: 0.5; }
+  .layout-panel-item .drag-handle { color: #94a3b8; font-size: 1rem; }
+  .layout-panel-item label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .layout-panel-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--primary-color); cursor: pointer; }
+  .layout-panel-reset {
+    align-self: flex-start; background: none; border: none; color: #475569; text-decoration: underline;
+    font-size: 0.8rem; cursor: pointer; padding: 0; margin-top: 4px;
   }
 </style>
 </head>
@@ -353,6 +383,23 @@
       </div>
     </div>
 
+    <div class="layout-toolbar no-print" id="layout-toolbar" style="display:none;">
+      <button class="action-btn secondary" id="customize-layout-btn"><i class="fa fa-sliders"></i> レポートをカスタマイズ</button>
+    </div>
+
+    <div class="layout-panel-overlay no-print" id="layout-panel-overlay" style="display:none;">
+      <div class="layout-panel">
+        <div class="layout-panel-header">
+          <h3><i class="fa fa-sliders"></i> レポートをカスタマイズ</h3>
+          <button type="button" class="layout-panel-close" id="layout-panel-close">&times;</button>
+        </div>
+        <div class="layout-panel-sub">チェックで表示/非表示、ドラッグで並び替えができます（この端末のブラウザだけに保存されます）</div>
+        <div class="layout-panel-fixed-note">📌 「今月のハイライト」「主要指標」「会員登録者数の推移」「アクティブ率の推移」は常に上部に固定表示されます</div>
+        <ul class="layout-panel-list" id="layout-panel-list"></ul>
+        <button type="button" class="layout-panel-reset" id="layout-panel-reset">デフォルトの並び順に戻す</button>
+      </div>
+    </div>
+
     <div id="report-area" style="display:none;">
       <div id="print-summary"></div>
 
@@ -407,7 +454,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-member-attrs">
         <h2 class="card-title"><span class="card-title-text">会員属性サマリー<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">会員一覧に都道府県・性別・生年月・流入経路などのプロフィール項目が入っている場合に表示します（事業者によっては取得していない項目もあります）</div>
@@ -416,7 +463,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-trend">
         <h2 class="card-title"><span class="card-title-text">期間ごとの推移<span class="scope-tag linked">🔗連動</span></span></h2>
         <div class="card">
           <div class="inline-controls no-print">
@@ -433,7 +480,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-stamp-page-breakdown">
         <h2 class="card-title"><span class="card-title-text">スタンプ帳ごとの押下数<span class="scope-tag linked">🔗連動</span></span></h2>
         <div class="card">
           <div class="card-sub-title">※ チケット発行は、同じ会員・同じ分のスタンプ押下から推定しています（ログに直接記録なし、4ヶ月分の実データで99.9〜100%一致を確認済み）。チケット利用・LINEログインはこの推定も効かないため含まれません（全体合計は主要指標を参照）</div>
@@ -441,7 +488,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-stamp-trend">
         <h2 class="card-title"><span class="card-title-text">スタンプ押下数の推移（全体/スタンプ帳別）<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
         <div class="card">
           <div class="card-sub-title">スタンプ帳の種類が多い場合は、押下数が多い上位5種類＋その他で表示します</div>
@@ -473,7 +520,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-stamp-card-progress">
         <h2 class="card-title"><span class="card-title-text">スタンプ帳の保有状況・ステータスランク<span class="scope-tag fixed">📌固定（常に全期間・全店舗）</span></span></h2>
         <div class="card">
           <div class="card-sub-title" id="stamp-card-progress-status">
@@ -485,7 +532,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-store-breakdown">
         <h2 class="card-title"><span class="card-title-text">店舗別内訳<span class="scope-tag linked">🔗連動</span></span></h2>
         <div class="card">
           <div class="card-sub-title">※ チケット利用はログに店舗・スタンプページの情報が無いため、この内訳には含まれません（全体合計は主要指標を参照）</div>
@@ -493,12 +540,12 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-member-store">
         <h2 class="card-title"><span class="card-title-text">会員登録された店舗<span class="scope-tag fixed">📌固定（常に全期間）</span><span class="help-icon" data-tooltip="会員登録した「入り口」によって決まります。お店に設置されたスタンプ用QRコードから初めて登録すると、QRコードに店舗の情報が組み込まれているため店舗が分かります。一方、リッチメニューなど店舗を問わない共通リンク（スタンプ帳一覧やチケット一覧など）から初めてログインして登録した場合は、店舗の情報が無いため「店舗未設定」になります。">?</span></span></h2>
         <div class="card"><table class="data-table" id="member-store-table"></table></div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-cohort">
         <h2 class="card-title"><span class="card-title-text">1人あたり平均スタンプ押下数（新規/既存）<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
         <div class="card">
           <div class="card-sub-title">月ごとに、その月が初回来店月（＝初めてスタンプを押した月）の会員（新規）とそれ以前から来店している会員（既存）を分けて、1人あたりのスタンプ押下数を集計します（トレタCS部の顧客向けレポートと同じ定義）</div>
@@ -512,7 +559,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-store-repeat">
         <h2 class="card-title"><span class="card-title-text">店舗別のリピート来店傾向<span class="scope-tag fixed">📌固定（常に全期間・全店舗）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">会員の生涯の来店パターンを見る指標のため、期間では絞り込まず常に全期間で計算します（短い期間で切ると大半が1回になり、数字が意味を持たなくなるため）。複数店舗を利用する会員は、利用した店舗それぞれでカウントされます。</div>
@@ -520,7 +567,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-top-members">
         <h2 class="card-title"><span class="card-title-text">優良顧客ランキング<span class="scope-tag fixed">📌固定（常に全期間・全店舗）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">生涯のスタンプ押下数（来店回数の目安）が多い会員の上位ランキングです。お礼キャンペーンや優待の対象選定などにご利用ください（下の「要対応」セクションの逆で、特にアクションが必要なわけではなく、良い状態を確認するためのカードです）。</div>
@@ -532,7 +579,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-ticket-validity">
         <h2 class="card-title"><span class="card-title-text">チケット有効性（現在時点）<span class="scope-tag fixed">📌固定（常に「今」の状態）</span></span></h2>
         <div class="card">
           <div class="tile-row" id="ticket-tile-row"></div>
@@ -540,7 +587,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-ticket-trend">
         <h2 class="card-title"><span class="card-title-text">チケットの推移<span class="scope-tag linked">🔗連動</span></span></h2>
         <div class="card">
           <div class="card-sub-title">発行・利用は選択期間内の件数、有効・失効はその日時点でのスナップショットです</div>
@@ -548,7 +595,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-funnel">
         <h2 class="card-title"><span class="card-title-text">スタンプページ閲覧 → 来店（スタンプ押下）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">スタンプページを表示した会員のうち、何人が指定日数以内にスタンプを押しに来たか（人数ベース）</div>
@@ -567,7 +614,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-stamp-page-effect">
         <h2 class="card-title"><span class="card-title-text">スタンプ帳別の効果検証（アクティブ率）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span><span class="help-icon" data-tooltip="登録会員数は、そのスタンプ帳で1回でも押したことがある会員の累計です。アクティブ会員数は、そのうち指定日数以内にも押している会員です。登録者が多くてもアクティブ率が低い場合、「始めたきり続いていない」スタンプ帳である可能性があります。">?</span></span></h2>
         <div class="card">
           <div class="card-sub-title">押下数・登録数だけでは分からない「定着度」を見ます。スタンプ帳ごとに、登録した会員のうちどれだけが今も使い続けているかを表示します。</div>
@@ -586,7 +633,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-message-effect">
         <h2 class="card-title"><span class="card-title-text">メッセージ効果検証<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
         <div class="card">
           <div class="inline-controls no-print">
@@ -605,9 +652,7 @@
         </div>
       </div>
 
-      <div class="report-section-divider"><span class="report-section-divider-label">⚠️ 要対応（アクションが必要な会員・データ）</span></div>
-
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-store-gap">
         <h2 class="card-title"><span class="card-title-text">登録店舗と実利用店舗のギャップ<span class="scope-tag fixed">📌固定（常に全期間）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">会員ごとに「スタンプ押下が一番多い店舗」を実利用店舗とみなし、初回登録した店舗と比較します（例：A店で登録したが、実際はB店でよく利用している、など）</div>
@@ -624,7 +669,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper no-print">
+      <div class="card-wrapper no-print" id="card-ticket-expiry">
         <h2 class="card-title"><span class="card-title-text">チケット利用を後押しできる会員（有効期限が近い／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span><span class="help-icon" data-tooltip="「有効」の判定は「チケット設定」で登録した有効期限ルールに基づきます。ルール未登録のチケットは対象外です。LINE IDが「(不明)」の会員は、LINE連携前に登録した等の理由で配信対象にできません。">?</span></span></h2>
         <div class="card">
           <div class="card-sub-title">「有効」なチケットのうち、指定日数以内に失効するものを抽出します。利用を後押しするご案内（リマインドメッセージなど）の対象にご活用ください。</div>
@@ -656,7 +701,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper no-print">
+      <div class="card-wrapper no-print" id="card-stamp-expiry">
         <h2 class="card-title"><span class="card-title-text">来店を後押しできる会員（スタンプ失効が近い／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">「スタンプ帳設定」で「スタンプ有効期限」を登録したスタンプ帳のうち、指定日数以内に失効する会員を抽出します（まだ失効していない会員のみ）。来店を後押しするご案内の対象にご活用ください。</div>
@@ -679,7 +724,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper no-print">
+      <div class="card-wrapper no-print" id="card-lapsed-regulars">
         <h2 class="card-title"><span class="card-title-text">再来店アプローチ対象（休眠ぎみの常連客／LINE ID抽出）<span class="scope-tag fixed">📌固定（全期間・全店舗が対象）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">以前は頻繁に来店していた常連客のうち、最近来店していない会員を抽出します（来店回数・最終来店日はブランド全体でカウント）。再来店を促すご案内（クーポン配布など）の対象にご活用ください。</div>
@@ -979,7 +1024,12 @@ async function doSync() {
   try {
     clients = await Dashboard.Sync.syncAllClients(rootHandle);
     statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
-    if (!clients.length) { filterCardWrapper.style.display = 'none'; reportArea.style.display = 'none'; return; }
+    if (!clients.length) {
+      filterCardWrapper.style.display = 'none';
+      reportArea.style.display = 'none';
+      document.getElementById('layout-toolbar').style.display = 'none';
+      return;
+    }
 
     clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
     filterCardWrapper.style.display = '';
@@ -1081,6 +1131,7 @@ function selectClient(index) {
   fillDefaultCompareRange();
 
   reportArea.style.display = '';
+  document.getElementById('layout-toolbar').style.display = '';
   renderReport();
 }
 
@@ -2469,6 +2520,149 @@ function maskLineId(lineId) {
   if (s.length <= 8) return s.slice(0, 2) + '...' + s.slice(-2);
   return s.slice(0, 5) + '...' + s.slice(-4);
 }
+
+// 「今月のハイライト」「主要指標」「会員登録者数の推移」「アクティブ率の推移」の4枚は常に上部固定。
+// それ以外のカードは、GoogleAnalyticsの「レポートをカスタマイズ」と同じ考え方で、ドラッグでの
+// 並び替え・チェックでの表示/非表示ができるようにする。設定はこの端末のブラウザだけに保存する
+// (クライアントをまたいで同じ内容を見るツールではないため、クライアントごとに変える必要はない)。
+const CUSTOMIZABLE_CARDS = [
+  { id: 'member-attrs', label: '会員属性サマリー' },
+  { id: 'trend', label: '期間ごとの推移' },
+  { id: 'stamp-page-breakdown', label: 'スタンプ帳ごとの押下数' },
+  { id: 'stamp-trend', label: 'スタンプ押下数の推移' },
+  { id: 'stamp-card-progress', label: 'スタンプ帳の保有状況・ステータスランク' },
+  { id: 'store-breakdown', label: '店舗別内訳' },
+  { id: 'member-store', label: '会員登録された店舗' },
+  { id: 'cohort', label: '1人あたり平均スタンプ押下数' },
+  { id: 'store-repeat', label: '店舗別のリピート来店傾向' },
+  { id: 'top-members', label: '優良顧客ランキング' },
+  { id: 'ticket-validity', label: 'チケット有効性' },
+  { id: 'ticket-trend', label: 'チケットの推移' },
+  { id: 'funnel', label: 'スタンプページ閲覧 → 来店' },
+  { id: 'stamp-page-effect', label: 'スタンプ帳別の効果検証' },
+  { id: 'message-effect', label: 'メッセージ効果検証' },
+  { id: 'store-gap', label: '登録店舗と実利用店舗のギャップ（要対応）' },
+  { id: 'ticket-expiry', label: 'チケット利用を後押しできる会員（要対応）' },
+  { id: 'stamp-expiry', label: '来店を後押しできる会員（要対応）' },
+  { id: 'lapsed-regulars', label: '再来店アプローチ対象（要対応）' },
+];
+const LAYOUT_STORAGE_KEY = 'toretastamp:homeLayout';
+
+function loadLayoutPrefs() {
+  const defaultOrder = CUSTOMIZABLE_CARDS.map(c => c.id);
+  try {
+    const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    if (!raw) return { order: defaultOrder, hidden: [] };
+    const parsed = JSON.parse(raw);
+    const knownIds = new Set(defaultOrder);
+    // 保存後にカードの種類が増減していても壊れないよう、既知のidだけ残し、
+    // 保存時点でまだ無かった新しいカードは末尾に追加する。
+    const order = (parsed.order || []).filter(id => knownIds.has(id));
+    defaultOrder.forEach(id => { if (!order.includes(id)) order.push(id); });
+    const hidden = (parsed.hidden || []).filter(id => knownIds.has(id));
+    return { order, hidden };
+  } catch (e) {
+    return { order: defaultOrder, hidden: [] };
+  }
+}
+
+function saveLayoutPrefs(prefs) {
+  localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(prefs));
+}
+
+let layoutPrefs = loadLayoutPrefs();
+
+// 保存済みの並び順どおりに、実際のカードのDOM要素をappendChildし直す(既存要素の移動であって
+// 複製ではないので、何度呼んでも増殖しない)。固定4枚は触らないので常に先頭に残る。
+function applyLayout() {
+  const reportArea = document.getElementById('report-area');
+  if (!reportArea) return;
+  layoutPrefs.order.forEach(id => {
+    const el = document.getElementById(`card-${id}`);
+    if (!el) return;
+    reportArea.appendChild(el);
+    el.style.display = layoutPrefs.hidden.includes(id) ? 'none' : '';
+  });
+}
+
+let draggedCardId = null;
+
+function renderLayoutPanelList() {
+  const listEl = document.getElementById('layout-panel-list');
+  listEl.innerHTML = layoutPrefs.order.map(id => {
+    const card = CUSTOMIZABLE_CARDS.find(c => c.id === id);
+    if (!card) return '';
+    const isHidden = layoutPrefs.hidden.includes(id);
+    return `
+      <li class="layout-panel-item${isHidden ? ' hidden-card' : ''}" draggable="true" data-card-id="${id}">
+        <span class="drag-handle">⠿</span>
+        <label>
+          <input type="checkbox" class="layout-visibility-check" data-card-id="${id}" ${isHidden ? '' : 'checked'}>
+          ${escapeHtml(card.label)}
+        </label>
+      </li>`;
+  }).join('');
+
+  listEl.querySelectorAll('.layout-panel-item').forEach(item => {
+    item.addEventListener('dragstart', () => {
+      draggedCardId = item.dataset.cardId;
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      listEl.querySelectorAll('.layout-panel-item').forEach(li => li.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (item.dataset.cardId !== draggedCardId) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const targetId = item.dataset.cardId;
+      if (!draggedCardId || draggedCardId === targetId) return;
+      const order = layoutPrefs.order.slice();
+      const fromIdx = order.indexOf(draggedCardId);
+      const toIdx = order.indexOf(targetId);
+      order.splice(fromIdx, 1);
+      order.splice(toIdx, 0, draggedCardId);
+      layoutPrefs.order = order;
+      saveLayoutPrefs(layoutPrefs);
+      applyLayout();
+      renderLayoutPanelList();
+    });
+  });
+
+  listEl.querySelectorAll('.layout-visibility-check').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const id = chk.dataset.cardId;
+      layoutPrefs.hidden = chk.checked ? layoutPrefs.hidden.filter(h => h !== id) : [...layoutPrefs.hidden, id];
+      saveLayoutPrefs(layoutPrefs);
+      applyLayout();
+      chk.closest('.layout-panel-item').classList.toggle('hidden-card', !chk.checked);
+    });
+  });
+}
+
+document.getElementById('customize-layout-btn').addEventListener('click', () => {
+  renderLayoutPanelList();
+  document.getElementById('layout-panel-overlay').style.display = 'flex';
+});
+document.getElementById('layout-panel-close').addEventListener('click', () => {
+  document.getElementById('layout-panel-overlay').style.display = 'none';
+});
+document.getElementById('layout-panel-overlay').addEventListener('click', e => {
+  if (e.target.id === 'layout-panel-overlay') document.getElementById('layout-panel-overlay').style.display = 'none';
+});
+document.getElementById('layout-panel-reset').addEventListener('click', () => {
+  layoutPrefs = { order: CUSTOMIZABLE_CARDS.map(c => c.id), hidden: [] };
+  saveLayoutPrefs(layoutPrefs);
+  applyLayout();
+  renderLayoutPanelList();
+});
+
+applyLayout();
 </script>
 </body>
 </html>
