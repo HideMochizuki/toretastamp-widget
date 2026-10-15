@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会員検索 | トレタスタンプ解析ダッシュボード</title>
+<link rel="icon" href="https://hidemochizuki.github.io/toretastamp-widget/generator/img/favicon.ico">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../generator/style.css">
+<style>
+  .main-wrapper { flex-direction: column; max-width: 1100px; margin: 0 auto; width: 100%; padding: 30px; }
+  .inline-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .inline-controls label { font-size: 0.75rem; font-weight: bold; color: #475569; }
+  .inline-controls input[type="text"] {
+    height: 38px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;
+    font-size: 0.9rem; width: 260px;
+  }
+  .tile-row { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
+  .tile { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px 20px; min-width: 160px; flex: 1; }
+  .tile.accent { background: #fef2f2; border-color: #fecaca; }
+  .tile.ok { background: #f0fdf4; border-color: #bbf7d0; }
+  .tile .tile-label { font-size: 0.75rem; color: #64748b; }
+  .tile .tile-num { font-size: 1.6rem; font-weight: bold; color: #1e293b; margin-top: 4px; }
+  .tile.accent .tile-num { color: #b91c1c; }
+  .tile.ok .tile-num { color: #15803d; }
+  .tile .tile-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 4px; }
+  .section-heading { font-size: 0.95rem; font-weight: bold; color: #1e293b; margin: 26px 0 8px; }
+  .section-heading:first-child { margin-top: 4px; }
+  .profile-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 24px; margin-top: 10px;
+  }
+  .profile-item .profile-label { font-size: 0.72rem; color: #94a3b8; }
+  .profile-item .profile-value { font-size: 0.92rem; color: #1e293b; font-weight: bold; margin-top: 2px; }
+  .profile-value.muted { color: #cbd5e1; font-weight: normal; }
+  .withdrawn-badge { display: inline-block; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 4px; padding: 2px 8px; font-size: 0.8rem; font-weight: bold; }
+  .active-badge { display: inline-block; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 4px; padding: 2px 8px; font-size: 0.8rem; font-weight: bold; }
+  table.data-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 10px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+  table.data-table th { color: #334155; font-size: 0.78rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.02em; }
+  table.data-table tr.other-store-row td { color: #b45309; }
+  table.data-table tr.other-store-row td.store-cell::after { content: '（他店舗）'; font-size: 0.72rem; margin-left: 6px; color: #b45309; }
+  table.data-table tr.fraud-row td { color: #b91c1c; }
+  .empty-note { font-size: 0.85rem; color: #94a3b8; padding: 10px 0; }
+  .status-line { font-size: 0.85rem; color: #64748b; margin-top: 10px; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+    border: 2px solid #cbd5e1; border-top-color: var(--primary-color); border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .warn { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; margin-top: 10px; font-size: 0.85rem; }
+  .not-supported { color: #dc2626; font-weight: bold; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 22px; font-size: 0.85rem; font-weight: bold;
+    border: none; border-radius: 4px; cursor: pointer; color: #fff; white-space: nowrap;
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.primary { background: var(--primary-color); }
+  .action-btn.secondary { background: #475569; }
+</style>
+</head>
+<body>
+
+<header class="generator">
+  <button id="sidebar-toggle" class="sidebar-toggle"><i class="fa fa-bars"></i></button>
+  <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+  <div style="font-weight: bold;">トレタスタンプ 解析ダッシュボード</div>
+  <div class="top-loading-bar" id="top-loading-bar"></div>
+</header>
+
+<div class="app-container">
+  <div class="sidebar" style="width: 200px;">
+    <nav>
+      <a href="index.html" class="nav-item"><i class="fa fa-chart-line"></i> ホーム</a>
+      <a href="tickets.html" class="nav-item"><i class="fa fa-ticket"></i> チケット設定</a>
+      <a href="stamp-pages.html" class="nav-item"><i class="fa fa-stamp"></i> スタンプ帳設定</a>
+      <a href="business-hours.html" class="nav-item"><i class="fa fa-clock"></i> 営業時間設定</a>
+      <a href="test-members.html" class="nav-item"><i class="fa fa-user-slash"></i> テスト会員設定</a>
+      <a href="suspicious-access.html" class="nav-item"><i class="fa fa-triangle-exclamation"></i> 不正アクセス検証</a>
+      <a href="member-lookup.html" class="nav-item active"><i class="fa fa-magnifying-glass"></i> 会員検索</a>
+      <a href="csv-encrypt.html" class="nav-item"><i class="fa fa-lock"></i> CSV暗号化ツール</a>
+      <a href="help.html" class="nav-item"><i class="fa fa-circle-question"></i> 使い方</a>
+    </nav>
+  </div>
+
+<main class="main-wrapper">
+  <div class="card-wrapper">
+    <h2 class="card-title">フォルダを読み込む</h2>
+    <div class="card">
+      <div class="card-sub-title">ログを読み込んだ上で、会員IDを指定してその会員のプロフィールを横断的に確認します</div>
+      <div id="support-check"></div>
+      <div style="display:flex; gap:12px; flex-wrap: wrap;">
+        <button class="action-btn primary" id="pick-btn">
+          <i class="fa fa-folder-open"></i> ① フォルダを選択
+        </button>
+        <button class="action-btn secondary" id="sync-btn" disabled>
+          <i class="fa fa-rotate"></i> ② 読み込み
+        </button>
+        <select id="client-select" style="display:none;"></select>
+      </div>
+      <div class="status-line" id="status">フォルダ未選択です。</div>
+    </div>
+  </div>
+
+  <div class="card-wrapper" id="lookup-card" style="display:none;">
+    <h2 class="card-title">会員ID検索</h2>
+    <div class="card">
+      <div class="card-sub-title">
+        会員一覧CSVの「会員ID」を入力してください。アクセスログ・会員一覧の両方を読み込んでいるほど、表示できる項目が増えます。
+      </div>
+      <div class="inline-controls">
+        <label>会員ID</label>
+        <input type="text" id="member-id-input" placeholder="例: 123456">
+        <button class="action-btn secondary" id="lookup-btn"><i class="fa fa-search"></i> 検索</button>
+      </div>
+      <div class="status-line" id="lookup-status"></div>
+    </div>
+  </div>
+
+  <div class="card-wrapper" id="result-card" style="display:none;">
+    <h2 class="card-title" id="result-title">会員プロフィール</h2>
+    <div class="card">
+
+      <div class="section-heading">基本情報</div>
+      <div class="profile-grid" id="basic-info-grid"></div>
+
+      <div class="section-heading">会員属性</div>
+      <div class="profile-grid" id="attrs-grid"></div>
+
+      <div class="section-heading">来店状況（アクティブ数）</div>
+      <div class="tile-row" id="activity-tile-row"></div>
+      <table class="data-table" id="store-table"></table>
+
+      <div class="section-heading">スタンプ帳ごとの利用</div>
+      <table class="data-table" id="stamp-page-table"></table>
+
+      <div class="section-heading">不正チェック</div>
+      <div class="tile-row" id="fraud-tile-row"></div>
+      <table class="data-table" id="fraud-table"></table>
+      <div class="empty-note" id="fraud-note" style="display:none;"></div>
+
+      <div class="section-heading">チケットの発行・利用</div>
+      <table class="data-table" id="ticket-table"></table>
+
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/csv-parser.js"></script>
+<script src="js/aggregate.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/business-hours.js"></script>
+<script src="js/io/filesystem.js"></script>
+<script src="js/io/crypto.js"></script>
+<script src="js/password-modal.js"></script>
+<script src="js/io/sync.js"></script>
+<script src="js/ui.js"></script>
+<script>
+let rootHandle = null;
+let clients = [];
+let currentClient = null;
+
+const statusEl = document.getElementById('status');
+const topLoadingBar = document.getElementById('top-loading-bar');
+const syncBtn = document.getElementById('sync-btn');
+const clientSelect = document.getElementById('client-select');
+const lookupCard = document.getElementById('lookup-card');
+const resultCard = document.getElementById('result-card');
+const memberIdInput = document.getElementById('member-id-input');
+const lookupStatusEl = document.getElementById('lookup-status');
+
+if (!Dashboard.FS.isSupported()) {
+  document.getElementById('support-check').innerHTML =
+    '<div class="not-supported">⚠️ このブラウザはFile System Access APIに対応していません。Chrome/Edgeで開いてください。</div>';
+}
+
+async function doSync() {
+  statusEl.innerHTML = '<span class="spinner"></span>読み込み中...';
+  topLoadingBar.classList.add('active');
+  try {
+    clients = await Dashboard.Sync.syncAllClients(rootHandle);
+    statusEl.textContent = `読み込み完了（${clients.length}クライアント、フォルダ:「${rootHandle.name}」）`;
+    if (!clients.length) { lookupCard.style.display = 'none'; resultCard.style.display = 'none'; return; }
+    clientSelect.style.display = '';
+    clientSelect.innerHTML = clients.map((c, i) => `<option value="${i}">${escapeHtml(c.name)}</option>`).join('');
+    const initialIndex = Math.max(0, clients.findIndex(c => c.name === Dashboard.Util.getLastClientName()));
+    clientSelect.value = String(initialIndex);
+    selectClient(initialIndex);
+  } catch (e) {
+    statusEl.textContent = 'エラー: ' + e.message;
+  } finally {
+    topLoadingBar.classList.remove('active');
+  }
+}
+
+document.getElementById('pick-btn').addEventListener('click', async () => {
+  try {
+    rootHandle = await Dashboard.FS.pickRootFolder();
+    statusEl.textContent = `選択中のフォルダ: 「${rootHandle.name}」`;
+    syncBtn.disabled = false;
+    await doSync();
+  } catch (e) {
+    statusEl.textContent = 'フォルダ選択がキャンセルされたか、エラーが発生しました: ' + e.message;
+  }
+});
+
+syncBtn.addEventListener('click', doSync);
+clientSelect.addEventListener('change', () => selectClient(Number(clientSelect.value)));
+
+(async () => {
+  if (!Dashboard.FS.isSupported()) return;
+  const saved = await Dashboard.FS.getSavedHandle();
+  if (!saved) return;
+
+  rootHandle = saved;
+  syncBtn.disabled = false;
+
+  if (await Dashboard.FS.hasPermission(saved)) {
+    statusEl.textContent = `前回のフォルダ「${saved.name}」を自動復元しました`;
+    await doSync();
+  } else {
+    statusEl.innerHTML = `前回のフォルダ「${escapeHtml(saved.name)}」の権限が切れています。`
+      + `<button id="resume-btn" class="action-btn secondary" style="height:28px; padding:0 12px; margin-left:8px;">許可して読み込む</button>`;
+    document.getElementById('resume-btn').addEventListener('click', async () => {
+      const granted = await Dashboard.FS.requestPermissionForHandle(saved);
+      if (granted) { await doSync(); }
+      else { statusEl.textContent = '許可されませんでした。①から選び直してください。'; }
+    });
+  }
+})();
+
+function selectClient(index) {
+  currentClient = clients[index];
+  Dashboard.Util.setLastClientName(currentClient.name);
+
+  // 「チケット設定」で「レポートに含めない」にしたチケット種類は、不正アクセス検証ページと同じく
+  // この会員の発行/利用集計からも除外する(デモ用チケットを実績として見せないため)。
+  currentClient.reportTicketLedger = currentClient.ticketLedger.filter(t => {
+    const c = currentClient.ticketConfig[t.ticketNo];
+    return !c || c.included !== false;
+  });
+
+  lookupCard.style.display = '';
+  resultCard.style.display = 'none';
+  memberIdInput.value = '';
+  lookupStatusEl.textContent = '';
+}
+
+function storeLabel(storeKey) {
+  if (!storeKey) return '(店舗未設定)';
+  const parts = String(storeKey).split(':');
+  return parts.slice(1).join(':') || storeKey;
+}
+
+function profileItem(label, value, extraClass) {
+  return `<div class="profile-item"><div class="profile-label">${escapeHtml(label)}</div>`
+    + `<div class="profile-value${extraClass ? ' ' + extraClass : ''}">${value}</div></div>`;
+}
+
+function lookupMember() {
+  if (!currentClient) return;
+  const memberId = memberIdInput.value.trim();
+  if (!memberId) {
+    lookupStatusEl.textContent = '会員IDを入力してください。';
+    return;
+  }
+
+  const members = (currentClient.memberSummary && currentClient.memberSummary.members) || {};
+  const memberInfo = members[memberId] || null;
+  const stampPushes = currentClient.merged.stampPushes || [];
+  const ticketLedger = currentClient.reportTicketLedger || [];
+
+  const profile = Dashboard.Aggregate.buildMemberProfile(memberId, stampPushes, ticketLedger);
+
+  const { results: outOfHoursAll, unconfiguredStores } = Dashboard.BusinessHours.findOutOfHoursPushes(
+    stampPushes, currentClient.businessHoursConfig || {}
+  );
+  const outOfHoursForMember = outOfHoursAll.filter(p => p.memberId === memberId);
+
+  const { results: retouchAll, unconfiguredPages } = Dashboard.Aggregate.findRetouchViolations(
+    stampPushes, currentClient.stampPageConfig || {}
+  );
+  const retouchForMember = retouchAll.filter(p => p.memberId === memberId);
+
+  if (!memberInfo && profile.pushCount === 0 && profile.tickets.length === 0) {
+    resultCard.style.display = 'none';
+    lookupStatusEl.textContent = `会員ID「${memberId}」は見つかりませんでした。スタンプ押下・チケット・会員一覧のいずれにも存在しません。`;
+    return;
+  }
+
+  lookupStatusEl.textContent = '';
+  resultCard.style.display = '';
+  document.getElementById('result-title').textContent = `会員プロフィール（会員ID: ${memberId}）`;
+
+  renderBasicInfo(memberId, memberInfo);
+  renderAttrs(memberInfo);
+  renderActivity(profile, memberInfo);
+  renderStampPages(profile);
+  renderFraud(outOfHoursForMember, retouchForMember, unconfiguredStores, unconfiguredPages);
+  renderTickets(profile.tickets);
+}
+
+function renderBasicInfo(memberId, memberInfo) {
+  const grid = document.getElementById('basic-info-grid');
+  if (!memberInfo) {
+    grid.innerHTML = profileItem('会員一覧データ', '<span class="profile-value muted">見つかりません（会員一覧CSV未読込、または対象外）</span>');
+    return;
+  }
+  const withdrawnHtml = memberInfo.withdrawn
+    ? '<span class="withdrawn-badge">退会済み</span>'
+    : '<span class="active-badge">在籍中</span>';
+  grid.innerHTML = [
+    profileItem('LINE ID', memberInfo.lineId ? escapeHtml(maskLineId(memberInfo.lineId)) : '<span class="profile-value muted">未取得</span>'),
+    profileItem('初回登録日', memberInfo.firstRegisteredAt ? formatLocalDate(memberInfo.firstRegisteredAt) : '<span class="profile-value muted">不明</span>'),
+    profileItem('登録店舗', escapeHtml(storeLabel(memberInfo.storeKey))),
+    profileItem('在籍状況', withdrawnHtml),
+  ].join('');
+}
+
+function renderAttrs(memberInfo) {
+  const grid = document.getElementById('attrs-grid');
+  if (!memberInfo) {
+    grid.innerHTML = '<div class="empty-note">会員一覧データが無いため表示できません。</div>';
+    return;
+  }
+  const ageGroup = memberInfo.birthYearMonth ? Dashboard.Aggregate.calcAgeGroup(memberInfo.birthYearMonth, new Date()) : null;
+  const muted = '<span class="profile-value muted">取得していません</span>';
+  grid.innerHTML = [
+    profileItem('都道府県', memberInfo.prefecture ? escapeHtml(memberInfo.prefecture) : muted),
+    profileItem('性別', memberInfo.gender ? escapeHtml(memberInfo.gender) : muted),
+    profileItem('年代', ageGroup ? escapeHtml(ageGroup) : muted),
+    profileItem('流入経路', memberInfo.referralSource ? escapeHtml(memberInfo.referralSource) : muted),
+  ].join('');
+}
+
+function renderActivity(profile, memberInfo) {
+  const tileRow = document.getElementById('activity-tile-row');
+  const storeCount = profile.byStore.length;
+  tileRow.innerHTML = `
+    <div class="tile">
+      <div class="tile-label">生涯スタンプ押下数</div>
+      <div class="tile-num">${profile.pushCount.toLocaleString()}</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">利用店舗数</div>
+      <div class="tile-num">${storeCount.toLocaleString()}</div>
+      <div class="tile-sub">${storeCount > 1 ? '複数店舗で利用あり' : storeCount === 1 ? '1店舗のみ利用' : '利用履歴なし'}</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">最終来店日</div>
+      <div class="tile-num" style="font-size:1.1rem;">${profile.lastPushAt ? formatLocalDate(profile.lastPushAt) : '―'}</div>
+    </div>
+    <div class="tile">
+      <div class="tile-label">初回来店日</div>
+      <div class="tile-num" style="font-size:1.1rem;">${profile.firstPushAt ? formatLocalDate(profile.firstPushAt) : '―'}</div>
+    </div>
+  `;
+
+  const table = document.getElementById('store-table');
+  if (!profile.byStore.length) {
+    table.innerHTML = '<tbody><tr><td class="empty-note">スタンプ押下の履歴がありません。</td></tr></tbody>';
+    return;
+  }
+
+  const registeredStoreKey = memberInfo ? memberInfo.storeKey : null;
+  table.innerHTML = `
+    <thead><tr><th>店舗</th><th>押下数</th></tr></thead>
+    <tbody>
+      ${profile.byStore.map(s => {
+        const isOther = registeredStoreKey && s.storeKey !== registeredStoreKey;
+        return `<tr class="${isOther ? 'other-store-row' : ''}">`
+          + `<td class="store-cell">${escapeHtml(storeLabel(s.storeKey))}</td>`
+          + `<td>${s.count.toLocaleString()}</td></tr>`;
+      }).join('')}
+    </tbody>
+  `;
+}
+
+function renderStampPages(profile) {
+  const table = document.getElementById('stamp-page-table');
+  if (!profile.byStampPage.length) {
+    table.innerHTML = '<tbody><tr><td class="empty-note">スタンプ帳の利用履歴がありません。</td></tr></tbody>';
+    return;
+  }
+  table.innerHTML = `
+    <thead><tr><th>スタンプ帳</th><th>押下数</th></tr></thead>
+    <tbody>
+      ${profile.byStampPage.map(p => `<tr><td>${escapeHtml(p.stampPage)}</td><td>${p.count.toLocaleString()}</td></tr>`).join('')}
+    </tbody>
+  `;
+}
+
+function renderFraud(outOfHoursForMember, retouchForMember, unconfiguredStores, unconfiguredPages) {
+  const tileRow = document.getElementById('fraud-tile-row');
+  tileRow.innerHTML = `
+    <div class="tile ${outOfHoursForMember.length ? 'accent' : 'ok'}">
+      <div class="tile-label">営業時間外の押下</div>
+      <div class="tile-num">${outOfHoursForMember.length.toLocaleString()}</div>
+      <div class="tile-sub">件</div>
+    </div>
+    <div class="tile ${retouchForMember.length ? 'accent' : 'ok'}">
+      <div class="tile-label">再タッチ許可時間の違反</div>
+      <div class="tile-num">${retouchForMember.length.toLocaleString()}</div>
+      <div class="tile-sub">件</div>
+    </div>
+  `;
+
+  const rows = [];
+  for (const p of outOfHoursForMember) {
+    rows.push({ at: p.at, type: '営業時間外', detail: `店舗: ${storeLabel(p.storeKey)}` });
+  }
+  for (const r of retouchForMember) {
+    rows.push({ at: r.at, type: '再タッチ違反', detail: `前回押下: ${formatLocalDateTime(r.previousAt)}（間隔 ${formatGapDuration(r.gapMs)}）` });
+  }
+  rows.sort((a, b) => new Date(b.at) - new Date(a.at));
+
+  const table = document.getElementById('fraud-table');
+  const noteEl = document.getElementById('fraud-note');
+  const notes = [];
+  if (unconfiguredStores && unconfiguredStores.length) notes.push('営業時間が未設定の店舗が含まれるため、一部は判定できていません。');
+  if (unconfiguredPages && unconfiguredPages.length) notes.push('再タッチ許可時間が未設定のスタンプ帳が含まれるため、一部は判定できていません。');
+  noteEl.style.display = notes.length ? '' : 'none';
+  noteEl.textContent = notes.join(' ');
+
+  if (!rows.length) {
+    table.innerHTML = '<tbody><tr><td class="empty-note">不正の疑いは検出されませんでした。</td></tr></tbody>';
+    return;
+  }
+  table.innerHTML = `
+    <thead><tr><th>日時</th><th>種別</th><th>詳細</th></tr></thead>
+    <tbody>
+      ${rows.map(r => `<tr class="fraud-row"><td>${formatLocalDateTime(r.at)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.detail)}</td></tr>`).join('')}
+    </tbody>
+  `;
+}
+
+function renderTickets(tickets) {
+  const table = document.getElementById('ticket-table');
+  if (!tickets.length) {
+    table.innerHTML = '<tbody><tr><td class="empty-note">チケットの発行・利用履歴がありません。</td></tr></tbody>';
+    return;
+  }
+  table.innerHTML = `
+    <thead><tr><th>チケット名</th><th>発行数</th><th>利用数</th><th>直近発行日</th><th>直近利用日</th></tr></thead>
+    <tbody>
+      ${tickets.map(t => `<tr>`
+        + `<td>${escapeHtml(t.ticketName)}</td>`
+        + `<td>${t.issuedCount.toLocaleString()}</td>`
+        + `<td>${t.usedCount.toLocaleString()}</td>`
+        + `<td>${t.lastIssuedAt ? formatLocalDate(t.lastIssuedAt) : '―'}</td>`
+        + `<td>${t.lastUsedAt ? formatLocalDate(t.lastUsedAt) : '―'}</td>`
+        + `</tr>`).join('')}
+    </tbody>
+  `;
+}
+
+document.getElementById('lookup-btn').addEventListener('click', lookupMember);
+memberIdInput.addEventListener('keydown', e => { if (e.key === 'Enter') lookupMember(); });
+
+function formatLocalDate(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${Dashboard.Util.pad2(d.getMonth() + 1)}-${Dashboard.Util.pad2(d.getDate())}`;
+}
+
+function formatLocalDateTime(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${Dashboard.Util.pad2(d.getMonth() + 1)}-${Dashboard.Util.pad2(d.getDate())} ${Dashboard.Util.pad2(d.getHours())}:${Dashboard.Util.pad2(d.getMinutes())}`;
+}
+
+function formatGapDuration(ms) {
+  const totalMin = Math.max(0, Math.round(ms / 60000));
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  const mins = totalMin % 60;
+  const parts = [];
+  if (days) parts.push(`${days}日`);
+  if (hours) parts.push(`${hours}時間`);
+  if (mins || !parts.length) parts.push(`${mins}分`);
+  return parts.join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 画面表示ではLINE IDを一部伏せる(他ページと同じ方針)。
+function maskLineId(lineId) {
+  if (!lineId || lineId === '(不明)') return lineId || '';
+  const s = String(lineId);
+  if (s.length <= 8) return s.slice(0, 2) + '...' + s.slice(-2);
+  return s.slice(0, 5) + '...' + s.slice(-4);
+}
+</script>
+</body>
+</html>

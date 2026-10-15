@@ -952,6 +952,50 @@ window.Dashboard.Aggregate = (function () {
     return { results, unconfiguredPages: Array.from(unconfiguredPages) };
   }
 
+  // 会員検索ページ用: 1会員IDに絞って、スタンプ押下とチケット台帳をその場で集計する。
+  // 「不正の有無」(営業時間外・再タッチ違反)は別モジュール(business-hours.js)の検出結果を
+  // 呼び出し側でこの会員IDに絞り込む想定で、ここには含めない(モジュールの責務を分けるため)。
+  function buildMemberProfile(memberId, stampPushes, ticketLedger) {
+    const pushes = (stampPushes || []).filter(p => p.memberId === memberId);
+    const sorted = [...pushes].sort((a, b) => new Date(a.at) - new Date(b.at));
+
+    const byStoreMap = {};
+    const byStampPageMap = {};
+    for (const p of pushes) {
+      if (p.storeKey) byStoreMap[p.storeKey] = (byStoreMap[p.storeKey] || 0) + 1;
+      if (p.stampPage) byStampPageMap[p.stampPage] = (byStampPageMap[p.stampPage] || 0) + 1;
+    }
+    const toSortedList = (map, keyName) => Object.entries(map)
+      .map(([key, count]) => ({ [keyName]: key, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const tickets = (ticketLedger || []).filter(t => t.memberId === memberId);
+    const byTicketMap = {};
+    for (const t of tickets) {
+      const key = t.ticketName || t.ticketNo;
+      const entry = byTicketMap[key] = byTicketMap[key] || {
+        ticketName: key, issuedCount: 0, usedCount: 0, lastIssuedAt: null, lastUsedAt: null,
+      };
+      entry.issuedCount += 1;
+      if (!entry.lastIssuedAt || t.issuedAt > entry.lastIssuedAt) entry.lastIssuedAt = t.issuedAt;
+      if (t.usedAt) {
+        entry.usedCount += 1;
+        if (!entry.lastUsedAt || t.usedAt > entry.lastUsedAt) entry.lastUsedAt = t.usedAt;
+      }
+    }
+    const ticketSummary = Object.values(byTicketMap).sort((a, b) => b.issuedCount - a.issuedCount);
+
+    return {
+      memberId,
+      pushCount: pushes.length,
+      firstPushAt: sorted.length ? sorted[0].at : null,
+      lastPushAt: sorted.length ? sorted[sorted.length - 1].at : null,
+      byStore: toSortedList(byStoreMap, 'storeKey'),
+      byStampPage: toSortedList(byStampPageMap, 'stampPage'),
+      tickets: ticketSummary,
+    };
+  }
+
   return {
     aggregateAccessLogRows,
     mergeMonthlyAggregates,
@@ -980,5 +1024,6 @@ window.Dashboard.Aggregate = (function () {
     calcStampPageActiveRate,
     listStampExpiringSoon,
     findRetouchViolations,
+    buildMemberProfile,
   };
 })();

@@ -810,6 +810,50 @@ test('findRetouchViolations: 再タッチ許可時間が未設定のスタンプ
   assertEqual(unconfiguredPages, ['未設定カード'], '未設定ページとして集計される');
 });
 
+// --- buildMemberProfile (会員検索) ---
+test('buildMemberProfile: 指定した会員IDのスタンプ押下だけを店舗別/スタンプ帳別に集計できる', () => {
+  const stampPushes = [
+    { memberId: 'm1', at: '2026-10-01T10:00:00', storeKey: '100:A店', stampPage: 'カード1' },
+    { memberId: 'm1', at: '2026-10-02T10:00:00', storeKey: '100:A店', stampPage: 'カード1' },
+    { memberId: 'm1', at: '2026-10-03T10:00:00', storeKey: '200:B店', stampPage: 'カード2' },
+    { memberId: 'm2', at: '2026-10-03T10:00:00', storeKey: '100:A店', stampPage: 'カード1' },
+  ];
+  const profile = Dashboard.Aggregate.buildMemberProfile('m1', stampPushes, []);
+  assertEqual(profile.pushCount, 3, 'm1の押下だけが数えられる');
+  assertEqual(profile.firstPushAt, '2026-10-01T10:00:00', '最初の押下日時');
+  assertEqual(profile.lastPushAt, '2026-10-03T10:00:00', '最後の押下日時');
+  assertEqual(profile.byStore, [
+    { storeKey: '100:A店', count: 2 },
+    { storeKey: '200:B店', count: 1 },
+  ], '店舗別に件数が多い順で出る(=他店舗利用の有無が分かる)');
+  assertEqual(profile.byStampPage, [
+    { stampPage: 'カード1', count: 2 },
+    { stampPage: 'カード2', count: 1 },
+  ], 'スタンプ帳別に件数が多い順で出る');
+});
+
+test('buildMemberProfile: チケットの発行/利用をチケット名ごとに集計できる', () => {
+  const ticketLedger = [
+    { ticketNo: 't1', ticketName: '500円券', memberId: 'm1', issuedAt: '2026-10-01T10:00:00', usedAt: '2026-10-02T12:00:00' },
+    { ticketNo: 't2', ticketName: '500円券', memberId: 'm1', issuedAt: '2026-10-05T10:00:00', usedAt: null },
+    { ticketNo: 't3', ticketName: '1000円券', memberId: 'm1', issuedAt: '2026-10-06T10:00:00', usedAt: null },
+    { ticketNo: 't4', ticketName: '500円券', memberId: 'm2', issuedAt: '2026-10-01T10:00:00', usedAt: null },
+  ];
+  const profile = Dashboard.Aggregate.buildMemberProfile('m1', [], ticketLedger);
+  assertEqual(profile.tickets, [
+    { ticketName: '500円券', issuedCount: 2, usedCount: 1, lastIssuedAt: '2026-10-05T10:00:00', lastUsedAt: '2026-10-02T12:00:00' },
+    { ticketName: '1000円券', issuedCount: 1, usedCount: 0, lastIssuedAt: '2026-10-06T10:00:00', lastUsedAt: null },
+  ], '発行数が多いチケット名から順に、発行数/利用数/直近日時が出る');
+});
+
+test('buildMemberProfile: 該当する押下もチケットも無い会員IDは空の集計を返す', () => {
+  const profile = Dashboard.Aggregate.buildMemberProfile('nobody', [], []);
+  assertEqual(profile.pushCount, 0, '押下数0');
+  assertEqual(profile.firstPushAt, null, '押下履歴が無いのでnull');
+  assertEqual(profile.byStore, [], '店舗別集計は空配列');
+  assertEqual(profile.tickets, [], 'チケット集計は空配列');
+});
+
 // --- crypto (CSV暗号化) ---
 test('crypto: 正しいパスワードなら暗号化→復号で元のテキストに戻る', async () => {
   const original = '会員ID,日時\nm1,2026-10-05 10:00:00\n';
