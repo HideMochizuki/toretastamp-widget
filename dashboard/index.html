@@ -220,7 +220,6 @@
   .layout-panel-close { background: none; border: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: #94a3b8; padding: 0; }
   .layout-panel-close:hover { color: #475569; }
   .layout-panel-sub { font-size: 0.78rem; color: #64748b; margin-top: -4px; }
-  .layout-panel-fixed-note { font-size: 0.75rem; color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px; }
   .layout-panel-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
   .layout-panel-item {
     display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid #e2e8f0; border-radius: 6px;
@@ -394,7 +393,6 @@
           <button type="button" class="layout-panel-close" id="layout-panel-close">&times;</button>
         </div>
         <div class="layout-panel-sub">チェックで表示/非表示、ドラッグで並び替えができます（この端末のブラウザだけに保存されます）</div>
-        <div class="layout-panel-fixed-note">📌 「今月のハイライト」「主要指標」「会員登録者数の推移」「アクティブ率の推移」は常に上部に固定表示されます</div>
         <ul class="layout-panel-list" id="layout-panel-list"></ul>
         <button type="button" class="layout-panel-reset" id="layout-panel-reset">デフォルトの並び順に戻す</button>
       </div>
@@ -403,7 +401,7 @@
     <div id="report-area" style="display:none;">
       <div id="print-summary"></div>
 
-      <div class="card-wrapper" id="highlights-card-wrapper">
+      <div class="card-wrapper" id="card-highlights">
         <h2 class="card-title"><span class="card-title-text">今月のハイライト<span class="scope-tag fixed">📌固定（全期間・全店舗の実績から算出）</span></span></h2>
         <div class="card">
           <div class="card-sub-title">当月の実績を前月と比べたダイジェストです。上の「絞り込み」の設定には影響されません。</div>
@@ -411,7 +409,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-main-metrics">
         <h2 class="card-title">主要指標</h2>
         <div class="card">
           <div class="card-sub-title">※ 会員数・退会者数は<strong>常に全体</strong>／それ以外は<span class="scope-tag linked" style="margin-left:0;">🔗連動</span>（チケット利用数のみ店舗を選んでも全店舗合計）／アクティブユーザー数＝選択期間内に<strong>スタンプを押した</strong>ユニーク会員数</div>
@@ -419,7 +417,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-registration-trend">
         <h2 class="card-title"><span class="card-title-text">会員登録者数の推移<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
         <div class="card">
           <div class="inline-controls no-print">
@@ -437,7 +435,7 @@
         </div>
       </div>
 
-      <div class="card-wrapper">
+      <div class="card-wrapper" id="card-active-rate-trend">
         <h2 class="card-title"><span class="card-title-text">アクティブ率の推移<span class="scope-tag own">🔀このカード専用の絞り込み</span></span></h2>
         <div class="card">
           <div class="card-sub-title">
@@ -1158,7 +1156,7 @@ function fillDefaultCompareRange() {
 // 要対応系の抽出カードが多いので、見る側(店舗オーナー・マーケ担当)が最初に目にする情報は
 // 「できている・伸びている」話にする。絞り込み(①②)の設定には影響されず、常に当月実績を前月と比べる。
 function renderHighlights() {
-  const wrapperEl = document.getElementById('highlights-card-wrapper');
+  const wrapperEl = document.getElementById('card-highlights');
   const listEl = document.getElementById('highlights-list');
   const ms = currentClient.memberSummary;
   if (!ms) { wrapperEl.style.display = 'none'; return; }
@@ -1210,7 +1208,9 @@ function renderHighlights() {
   }
 
   if (!items.length) { wrapperEl.style.display = 'none'; listEl.innerHTML = ''; return; }
-  wrapperEl.style.display = '';
+  // レポートをカスタマイズでこのカードを非表示にしている場合は、データがあっても出さない
+  // (ここでdisplay=''に戻してしまうと、ユーザーが選んだ非表示設定を毎回上書きしてしまうため)。
+  wrapperEl.style.display = layoutPrefs.hidden.includes('highlights') ? 'none' : '';
 
   listEl.innerHTML = items.map(it => {
     let deltaHtml = '';
@@ -2521,11 +2521,16 @@ function maskLineId(lineId) {
   return s.slice(0, 5) + '...' + s.slice(-4);
 }
 
-// 「今月のハイライト」「主要指標」「会員登録者数の推移」「アクティブ率の推移」の4枚は常に上部固定。
-// それ以外のカードは、GoogleAnalyticsの「レポートをカスタマイズ」と同じ考え方で、ドラッグでの
-// 並び替え・チェックでの表示/非表示ができるようにする。設定はこの端末のブラウザだけに保存する
-// (クライアントをまたいで同じ内容を見るツールではないため、クライアントごとに変える必要はない)。
+// GoogleAnalyticsの「レポートをカスタマイズ」と同じ考え方で、ホームの全カードをドラッグでの
+// 並び替え・チェックでの表示/非表示ができるようにする。初期状態(まだ保存設定が無い時)は
+// defaultVisible:true の4枚だけ表示し、それ以外は事業者が必要に応じて追加していく形にする。
+// 設定はこの端末のブラウザだけに保存する(クライアントをまたいで同じ内容を見るツールではないため、
+// クライアントごとに変える必要はない)。
 const CUSTOMIZABLE_CARDS = [
+  { id: 'highlights', label: '今月のハイライト', defaultVisible: true },
+  { id: 'main-metrics', label: '主要指標', defaultVisible: true },
+  { id: 'registration-trend', label: '会員登録者数の推移', defaultVisible: true },
+  { id: 'active-rate-trend', label: 'アクティブ率の推移', defaultVisible: true },
   { id: 'member-attrs', label: '会員属性サマリー' },
   { id: 'trend', label: '期間ごとの推移' },
   { id: 'stamp-page-breakdown', label: 'スタンプ帳ごとの押下数' },
@@ -2550,9 +2555,10 @@ const LAYOUT_STORAGE_KEY = 'toretastamp:homeLayout';
 
 function loadLayoutPrefs() {
   const defaultOrder = CUSTOMIZABLE_CARDS.map(c => c.id);
+  const defaultHidden = CUSTOMIZABLE_CARDS.filter(c => !c.defaultVisible).map(c => c.id);
   try {
     const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
-    if (!raw) return { order: defaultOrder, hidden: [] };
+    if (!raw) return { order: defaultOrder, hidden: defaultHidden };
     const parsed = JSON.parse(raw);
     const knownIds = new Set(defaultOrder);
     // 保存後にカードの種類が増減していても壊れないよう、既知のidだけ残し、
@@ -2562,7 +2568,7 @@ function loadLayoutPrefs() {
     const hidden = (parsed.hidden || []).filter(id => knownIds.has(id));
     return { order, hidden };
   } catch (e) {
-    return { order: defaultOrder, hidden: [] };
+    return { order: defaultOrder, hidden: defaultHidden };
   }
 }
 
@@ -2656,7 +2662,10 @@ document.getElementById('layout-panel-overlay').addEventListener('click', e => {
   if (e.target.id === 'layout-panel-overlay') document.getElementById('layout-panel-overlay').style.display = 'none';
 });
 document.getElementById('layout-panel-reset').addEventListener('click', () => {
-  layoutPrefs = { order: CUSTOMIZABLE_CARDS.map(c => c.id), hidden: [] };
+  layoutPrefs = {
+    order: CUSTOMIZABLE_CARDS.map(c => c.id),
+    hidden: CUSTOMIZABLE_CARDS.filter(c => !c.defaultVisible).map(c => c.id),
+  };
   saveLayoutPrefs(layoutPrefs);
   applyLayout();
   renderLayoutPanelList();
