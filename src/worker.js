@@ -77,11 +77,7 @@ const ROLE_TO_FIELDS = {
     'cfg-header-bg',
     'cfg-mock-header-bg',
     'cfg-btn1-bg',
-    // cfg-bg（フッター固定メニューの背景色）はここに含めない。
-    // 「予約」のような強調ボタンが実サイトのゴールド等の強い色になった場合、
-    // フッター全体まで同じ色にすると、その強調ボタンの特別感がかえって薄れてしまう。
-    // 実サイトに .footer の指定があればそれを最優先し（下のfooterBgHint）、
-    // 無ければ安全な既定値（白）にする。
+    'cfg-bg', // フッター固定メニューの背景色（他のmainColor項目との一体感を優先）
     'cfg-ticket-title-c',
     'cfg-h3-color',
     'cfg-btn2-txt', // セカンダリボタンの文字色＝メインカラー
@@ -144,12 +140,10 @@ const CONTRAST_PAIRS = [
 
 // 各色は <input type="color"> 本体と、同期表示用の `-val` テキスト欄の
 // 両方に同じ値を入れないと、再読み込み後に表示がずれるため複製する。対象は全色項目。
-// cfg-bg（フッター固定メニュー背景）はROLE_TO_FIELDSに属さず個別に設定するため、ここに明示的に含める。
 const ALL_COLOR_FIELDS = Array.from(
   new Set([
     ...Object.values(ROLE_TO_FIELDS).flat(),
     ...Object.values(TEXT_ON_ROLE_FIELDS).flat(),
-    'cfg-bg',
   ])
 );
 
@@ -211,6 +205,12 @@ async function handleAnalyzeSite(request, env) {
   const cssTextForAnalysis = stripStateRules(cssText);
   const colorCandidates = extractColorCandidates(html + '\n' + cssTextForAnalysis);
 
+  // 「ご予約はこちら」のような実際のアクションボタンの色は、Gemini呼び出し前に検出しておき、
+  // プロンプトで「この色はmainColorに使わないで」と先回りで伝える。後からcfg-pgbtn-org-bg-cを
+  // 上書きするだけだと、mainColorの方がこの色と同じになってしまい、強調ボタンの特別感が
+  // 薄れることがあったため（実例：hyakurakuso.comのゴールド #ceb32b）。
+  const actionButtonColorHint = extractActionButtonColorHint(html + '\n' + cssText);
+
   // ロゴ画像を1枚見つけられれば取得し、Geminiへの入力に画像としてそのまま添える。
   // テキスト（HTML/CSS）だけでは、ロゴ画像の中にしか存在しない色（写真やアイコンの色）は
   // 原理的に拾えないため、画像そのものを判断材料に加える。
@@ -223,7 +223,7 @@ async function handleAnalyzeSite(request, env) {
   const schema = buildResponseSchema();
   // rgb()/rgba()表記も合わせて取り除く。私たちの色抽出（16進数のみ対象）はこの表記を
   // そもそも拾わないので、Geminiにだけその表記が見える非対称を無くすため。
-  const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), stripRgbFunctions(cssTextForAnalysis), colorCandidates, !!logoImage);
+  const prompt = buildPrompt(targetUrl, html.slice(0, MAX_HTML_CHARS), stripRgbFunctions(cssTextForAnalysis), colorCandidates, !!logoImage, actionButtonColorHint);
 
   const parts = [{ text: prompt }];
   if (logoImage) {
@@ -311,17 +311,26 @@ async function handleAnalyzeSite(request, env) {
     settings['cfg-header-bg'] = headerBgHint;
     settings['cfg-mock-header-bg'] = headerBgHint;
   }
-  // cfg-bg（フッター固定メニュー背景）はmainColor役割に含めていないので、
-  // 実サイトの .footer から見つかればその値、見つからなければ安全な既定値（白）にする。
   const footerBgHint = extractElementBgHint(combinedForElementHints, (s) => /(?:^|\s)\.?footer(?:\.[a-z0-9_-]+)*$/i.test(s));
-  settings['cfg-bg'] = footerBgHint || '#ffffff';
+  if (footerBgHint) {
+    settings['cfg-bg'] = footerBgHint;
+  }
 
   // QR読み取り・チケット利用などの強調ボタンも、サイトに「ご予約はこちら」
   // 「お問い合わせ」のような実際のアクションボタンがあれば、その色を直接使う
   // （実例：hyakurakuso.comの `.btn_yoyaku` のゴールド #ceb32b）。
-  const actionButtonColor = extractActionButtonColorHint(combinedForElementHints);
-  if (actionButtonColor) {
-    settings['cfg-pgbtn-org-bg-c'] = actionButtonColor;
+  // actionButtonColorHintはGemini呼び出し前に計算済みのものを再利用する（プロンプトにも伝えている）。
+  if (actionButtonColorHint) {
+    settings['cfg-pgbtn-org-bg-c'] = actionButtonColorHint;
+
+    // プロンプト側でもmainColorに使わないよう指示済みだが、万一Geminiが従わなかった場合の
+    // 最終防衛ライン。フッター固定メニューは基本的にメインカラーに合わせてヘッダー等との
+    // 一体感を保つが、メインカラーがたまたま強調色とちょうど同じ値になってしまった場合だけ、
+    // 強調ボタンの特別感を守るためフッターを濃いニュートラル（textColor役割）に差し替える。
+    // 実サイトに .footer の明確な指定がある場合（footerBgHint）は、そちらを優先する。
+    if (!footerBgHint && settings['cfg-bg'] === actionButtonColorHint) {
+      settings['cfg-bg'] = settings['cfg-list-txt'];
+    }
   }
 
   // メインカラーが明るい色（例：鮮やかな黄色）の場合、ページの背景（bodyBg・cardBg）の
@@ -824,7 +833,7 @@ function buildResponseSchema() {
   };
 }
 
-function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates, hasLogoImage) {
+function buildPrompt(targetUrl, htmlExcerpt, cssText, colorCandidates, hasLogoImage, actionButtonColorHint) {
   const { structural, accent } = colorCandidates;
   let colorHint;
   if (structural.length || accent.length) {
@@ -881,7 +890,7 @@ ${colorHint}${logoHint}
 - すべて16進数カラーコード（例: #ffffff）で回答する
 - bodyBg と cardBg は、重なったときにカードの輪郭が分かる程度に区別できる色にする
 - 上で示した「実際に検出されたカラーコード」（および添付したロゴ画像があればその色）を優先的に活用し、サイトと無関係な色を創作しない
-- とくにmainColorは、必ず【高頻度で検出された色＝構造色の候補】の中から選んでください。【低頻度で検出された色＝アクセントカラーの候補】は出現回数が1〜2回程度のことが多く、サイト全体の基調とは言えないことが多いです。今回の4つの役割にはアクセント用の枠が無いため、低頻度の色をmainColorに採用しないでください
+- とくにmainColorは、必ず【高頻度で検出された色＝構造色の候補】の中から選んでください。【低頻度で検出された色＝アクセントカラーの候補】は出現回数が1〜2回程度のことが多く、サイト全体の基調とは言えないことが多いです。今回の4つの役割にはアクセント用の枠が無いため、低頻度の色をmainColorに採用しないでください${actionButtonColorHint ? `\n- 「ご予約はこちら」のような実際のアクションボタンの色として ${actionButtonColorHint} を検出済みです。この色は別途その強調ボタン専用の色として使うので、mainColorには使わないでください（mainColorと同じ色になると、その強調ボタンの特別感が薄れてしまいます）。構造色の候補の中からこの色を除いて選んでください` : ''}
 - 検出された色だけでは組み合わせが成立しない場合（似た色しかない等）のみ、業態の印象から補う色を追加してよい`;
 }
 
