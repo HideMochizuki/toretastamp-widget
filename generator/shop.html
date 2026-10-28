@@ -208,7 +208,28 @@
                                 </a>
                             </div>
                         </div>
-                
+
+                        <div class="form-row" style="align-items: flex-start;">
+                            <div class="form-label-side" style="padding-top: 10px;">CSVファイル読み込み</div>
+                            <div class="form-input-side">
+                                <div id="csv-drop-zone"
+                                     style="border: 2px dashed #94a3b8; border-radius: 8px; padding: 18px; text-align: center; background: #f8fafc; cursor: pointer; transition: 0.2s;">
+                                    <i class="fa fa-file-csv" style="font-size: 24px; color: #64748b;"></i>
+                                    <p style="margin: 6px 0 0; font-size: 13px; color: #334155; font-weight: bold;">
+                                        ブランド・店舗のCSV／Excelファイルをここにドラッグ＆ドロップ
+                                    </p>
+                                    <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">
+                                        またはクリックしてファイルを選択（2つまとめて選べます）
+                                    </p>
+                                </div>
+                                <input type="file" id="csv-file-input" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv" multiple style="display: none;">
+                                <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">
+                                    ※1行目の項目名から、ブランドデータか店舗データかを自動で見分けて下の欄に入れます。両方そろうとプレビューに自動で反映します。<br>
+                                    ※CSV（Shift_JIS／UTF-8どちらも可）と、Excelファイル（.xlsx）をそのまま読み込めます。シートが複数ある場合は、項目名が合う最初のシートを使います。Numbersファイルは、先にCSVかExcel形式で書き出してください。
+                                </p>
+                            </div>
+                        </div>
+
                         <div class="sub-config-box">
                             <div class="form-row" style="align-items: flex-start;">
                                 <div class="form-label-side" style="padding-top: 10px;">ブランドデータ</div>
@@ -270,6 +291,11 @@
                                               class="data-input-area"
                                               style="width: 100%; height: 160px; font-family: monospace; line-height: 1.6;"
                                               placeholder="name,pref,lat,lng"></textarea>
+                                    <button type="button" class="btn" id="station-file-btn"
+                                            style="background-color: #64748b; color: #fff; font-size: 12px; padding: 6px 14px; margin-top: 6px;">
+                                        <i class="fa fa-file-csv"></i> CSVファイルから読み込む
+                                    </button>
+                                    <input type="file" id="station-file-input" accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv" style="display: none;">
                                     <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">
                                         ※CSV形式（1行目はヘッダー: name,pref,lat,lng）。prefは「東京都」「大阪府」「北海道」のように都道府県名で入力してください。
                                     </p>
@@ -636,6 +662,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStationMasterData();
     document.getElementById('cfg-station-data').addEventListener('input', saveStationMasterData);
 
+    // CSVファイルの読み込み（開いてコピー＆ペーストする手間を省く）
+    setupCsvFileImport();
+
     document.getElementById('shop-reset-btn').onclick = () => {
         if (confirm("すべての設定（CSVデータ含む）を初期状態にリセットしますか？")) {
             localStorage.removeItem(SHOP_LOCAL_KEY);
@@ -880,6 +909,186 @@ function loadStationMasterData() {
         el.value = DEFAULT_STATION_CSV;
         saveStationMasterData();
     }
+}
+
+/**
+ * CSVファイルを読み込んで貼り付け欄に入れる。
+ * Excelの「CSV（コンマ区切り）」保存はShift_JISになるため、UTF-8として読めなければShift_JISで読み直す。
+ */
+async function readCsvFileText(file) {
+    const buf = await file.arrayBuffer();
+    let text;
+    try {
+        text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+    } catch (e) {
+        text = new TextDecoder('shift_jis').decode(buf);
+    }
+    return text.replace(/^﻿/, '');
+}
+
+// 1行目の項目名から、どの貼り付け欄に入れるデータかを判定する
+function detectCsvTarget(text) {
+    const headerLine = (text.split(/\r?\n/)[0] || '');
+    const delimiter = headerLine.includes('\t') ? '\t' : ',';
+    const headers = headerLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+    if (headers.includes('slug')) return 'cfg-brand-data';
+    if (headers.includes('id') && headers.includes('brand_id')) return 'cfg-shop-data';
+    if (headers.includes('pref') && headers.includes('lat')) return 'cfg-station-data';
+    return null;
+}
+
+const CSV_TARGET_LABELS = {
+    'cfg-brand-data': 'ブランドデータ',
+    'cfg-shop-data': '店舗データ',
+    'cfg-station-data': '駅データ'
+};
+
+// 貼り付け欄へ値を入れ、手入力と同じ input イベントを流して自動保存させる
+function fillCsvTextarea(id, text) {
+    const el = document.getElementById(id);
+    el.value = text.trim();
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// Excelファイル（.xlsx）を読むためのSheetJSを、必要になった時だけ読み込む
+let sheetJsPromise = null;
+function loadSheetJs() {
+    if (window.XLSX) return Promise.resolve();
+    if (!sheetJsPromise) {
+        sheetJsPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            s.onload = resolve;
+            s.onerror = () => { sheetJsPromise = null; reject(new Error('SheetJSの読み込みに失敗')); };
+            document.head.appendChild(s);
+        });
+    }
+    return sheetJsPromise;
+}
+
+// ファイル名ではなく中身で判定する（スプレッドシートからExcel形式で落とし、拡張子だけ.csvにしたファイルがあるため）
+async function isExcelFile(file) {
+    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const isZip = head[0] === 0x50 && head[1] === 0x4B;                       // .xlsx
+    const isOle = head[0] === 0xD0 && head[1] === 0xCF && head[2] === 0x11;   // 古い .xls
+    return isZip || isOle;
+}
+
+/**
+ * Excelファイルの各シートをCSVテキストにして返す。
+ * セル内改行は<br>に置き換える（貼り付け欄の解析は1行=1件のため、改行が残ると列がずれる）。
+ */
+async function readExcelSheetsAsCsv(file) {
+    await loadSheetJs();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    return wb.SheetNames.map(name => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false, blankrows: false });
+        const header = rows[0] || [];
+        let width = header.length;
+        while (width > 0 && String(header[width - 1]).trim() === '') width--;   // 右端の空列を落とす
+        const csv = rows
+            .map(r => r.slice(0, width).map(v => String(v).replace(/\r?\n/g, '<br>')))
+            .filter(r => r.some(v => v.trim() !== ''))
+            .map(r => r.map(csvEscape).join(','))
+            .join('\n');
+        return { name, csv };
+    });
+}
+
+async function importCsvFiles(files, forcedTarget) {
+    const loaded = [];
+    const errors = [];
+    for (const file of files) {
+        if (/\.numbers$/i.test(file.name)) {
+            errors.push(`「${file.name}」はNumbersファイルのため読めません。CSVかExcel形式で書き出してから読み込んでください。`);
+            continue;
+        }
+
+        // 読み込み候補（CSVなら1つ、Excelならシートの数だけ）
+        let candidates;
+        if (await isExcelFile(file)) {
+            try {
+                candidates = await readExcelSheetsAsCsv(file);
+            } catch (e) {
+                console.error(e);
+                errors.push(`「${file.name}」をExcelファイルとして読めませんでした。CSV形式で書き出してから読み込んでください。`);
+                continue;
+            }
+        } else {
+            candidates = [{ name: null, csv: await readCsvFileText(file) }];
+        }
+
+        // 項目名で判別できた最初のシートを使う
+        const hit = candidates
+            .map(c => ({ ...c, target: forcedTarget || detectCsvTarget(c.csv) }))
+            .find(c => c.target);
+        if (!hit) {
+            errors.push(`「${file.name}」は1行目の項目名からブランド／店舗データを判別できませんでした。`);
+            continue;
+        }
+        fillCsvTextarea(hit.target, hit.csv);
+        const sheetNote = hit.name && candidates.length > 1 ? `・シート「${hit.name}」` : '';
+        loaded.push(`${CSV_TARGET_LABELS[hit.target]}（${file.name}${sheetNote}）`);
+    }
+
+    if (errors.length) alert(errors.join('\n'));
+    if (!loaded.length) return;
+
+    const brandReady = document.getElementById('cfg-brand-data').value.trim();
+    const shopReady = document.getElementById('cfg-shop-data').value.trim();
+    const touchedShopData = loaded.some(l => !l.startsWith('駅データ'));
+    if (touchedShopData && brandReady && shopReady) {
+        applyDataToPreview();
+        // 複数シートから選んだ場合は、どのシートを使ったかを残す（applyDataToPreviewのトーストより後に出す）
+        if (loaded.some(l => l.includes('シート「'))) {
+            setTimeout(() => showToast(`${loaded.join('、')}を読み込みました`), 1500);
+        }
+    } else {
+        showToast(`${loaded.join('、')}を読み込みました`);
+    }
+}
+
+function setupCsvFileImport() {
+    const dropZone = document.getElementById('csv-drop-zone');
+    const fileInput = document.getElementById('csv-file-input');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+        importCsvFiles([...fileInput.files]);
+        fileInput.value = ''; // 同じファイルを続けて選んでも反応するように
+    });
+
+    const highlight = (on) => {
+        dropZone.style.borderColor = on ? '#3b82f6' : '#94a3b8';
+        dropZone.style.background = on ? '#eff6ff' : '#f8fafc';
+    };
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); highlight(true); });
+    dropZone.addEventListener('dragleave', () => highlight(false));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        highlight(false);
+        importCsvFiles([...e.dataTransfer.files]);
+    });
+
+    // 各貼り付け欄に直接ファイルを落とした場合は、その欄に入れる
+    ['cfg-brand-data', 'cfg-shop-data', 'cfg-station-data'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('dragover', (e) => {
+            if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+        });
+        el.addEventListener('drop', (e) => {
+            if (!e.dataTransfer.files.length) return;
+            e.preventDefault();
+            importCsvFiles([...e.dataTransfer.files].slice(0, 1), id);
+        });
+    });
+
+    const stationInput = document.getElementById('station-file-input');
+    document.getElementById('station-file-btn').addEventListener('click', () => stationInput.click());
+    stationInput.addEventListener('change', () => {
+        importCsvFiles([...stationInput.files], 'cfg-station-data');
+        stationInput.value = '';
+    });
 }
 
 function extractPreviewCity(address) {
