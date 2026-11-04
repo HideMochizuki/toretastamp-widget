@@ -106,7 +106,7 @@ body {
 .badge.ticket { background-color: #fff0f0; color: #f44336; }  /* チケット(予定) */
 .badge.article { background-color: #f5f5f5; color: #666666; } /* 記事ページ(予定) */
 
-.main-wrapper { flex: 1; display: flex; margin-top: 50px; padding: 30px; gap: 30px; overflow-y: auto; }
+.main-wrapper { flex: 1; display: flex; padding: 30px; gap: 30px; overflow-y: auto; }
 .config-side { flex: 1; min-width: 0; }
 .preview-side { width: 320px; position: sticky; top: 0; height: fit-content; }
 
