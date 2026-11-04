@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スタンプ帳表示設定 | オプション機能ジェネレーター</title>
+    <link rel="icon" href="img/favicon.ico">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .id-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .id-row input { flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: monospace; }
+        .id-row input.is-error { border-color: #dc2626; background: #fef2f2; }
+        .id-row input.is-warn { border-color: #f59e0b; background: #fffbeb; }
+        .id-row .id-del { background: #fff; border: 1px solid #cbd5e1; color: #64748b; border-radius: 6px; width: 36px; height: 36px; cursor: pointer; }
+        .id-row .id-del:hover { color: #dc2626; border-color: #dc2626; }
+        .id-msg { font-size: 11px; margin: -4px 0 8px; }
+        .id-msg.error { color: #dc2626; }
+        .id-msg.warn { color: #b45309; }
+        .id-msg.ok { color: #16a34a; }
+        .id-guide { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #475569; }
+        .id-guide summary { cursor: pointer; font-weight: bold; color: #1e293b; }
+        .id-guide ol { margin: 10px 0 8px; padding-left: 20px; line-height: 1.9; }
+        .id-guide-url { font-family: monospace; font-size: 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; word-break: break-all; color: #64748b; }
+        .id-guide-id { background: #fef08a; color: #1e293b; font-weight: bold; padding: 1px 3px; border-radius: 3px; }
+        .id-guide-note { margin: 8px 0 0; line-height: 1.7; }
+        .help-list { font-size: 12px; color: #475569; line-height: 1.8; padding-left: 18px; margin: 0; }
+    </style>
+</head>
+<body>
+
+<header class="generator">
+    <button id="sidebar-toggle" class="sidebar-toggle">
+        <i class="fa fa-bars"></i>
+    </button>
+    <img src="https://toretastamp-prod.s3.amazonaws.com/static/management/img/brand/logo_bass.png" alt="Logo">
+    <div style="font-weight: bold;">スタンプ帳表示設定ジェネレーター</div>
+</header>
+
+
+<div class="app-container">
+    <div class="sidebar" style="width: 200px; background-color: #1e293b; color: #fff; height: 100vh; padding: 20px 0; box-shadow: 4px 0 10px rgba(0,0,0,0.1);">
+        <div style="padding: 0 20px 30px; border-bottom: 1px solid #334155; margin-bottom: 20px;">
+            <p style="font-size: 11px; color: #94a3b8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Widget Generator</p>
+        </div>
+
+        <nav>
+            <a href="home.html" class="nav-item">
+                <i class="fa fa-home" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ホーム
+            </a>
+
+            <a href="index.html" class="nav-item">
+                <i class="fa fa-paint-brush" style="width: 20px; margin-right: 10px;"></i> UIデザイン設定
+            </a>
+
+            <a href="shop.html" class="nav-item">
+                <i class="fa fa-store" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> 店舗情報設定
+            </a>
+
+            <a href="status.html" class="nav-item">
+                <i class="fa fa-medal" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> ステータス設定
+            </a>
+
+            <a href="stampbook.html" class="nav-item active">
+                <i class="fa fa-eye-slash" style="width: 20px; margin-right: 10px; opacity: 0.7;"></i> スタンプ帳表示設定
+            </a>
+        </nav>
+
+        <div style="position: absolute; bottom: 20px; left: 20px; color: #475569; font-size: 10px;">
+            ver 2.0.0
+        </div>
+    </div>
+
+    <main class="main-wrapper">
+        <div class="config-side">
+
+            <div class="card-wrapper">
+                <h2 class="card-title">1. 対象のスタンプ帳</h2>
+                <div class="card">
+                    <div class="card-sub-title">スタンプが0のときに隠すスタンプ帳</div>
+                    <p style="font-size: 12px; color: #64748b; margin: 0 0 14px;">
+                        スタンプ帳ID、またはURLをそのまま貼り付けてください（URLの場合は、最後の部分のIDを自動で取り出します）。
+                    </p>
+
+                    <details class="id-guide" open>
+                        <summary><i class="fa fa-search"></i> スタンプ帳IDの探し方</summary>
+                        <ol>
+                            <li>トレタスタンプの<b>管理画面</b>にログインします。</li>
+                            <li>左メニューの <b>［コンテンツ設定］</b> → <b>［スタンプページ一覧］</b> を開きます。</li>
+                            <li>対象のスタンプページを開きます（<b>「スタンプページ更新」</b>の画面になります）。</li>
+                            <li>ブラウザ上部の<b>アドレスバーのURL</b>を見ます。<b>最後の <code>/</code> より後ろ</b>がスタンプ帳IDです。</li>
+                        </ol>
+                        <div class="id-guide-url">
+                            admin.toreta-stamp.com/measure/stamp_edit/<span class="id-guide-id">VU49cHQiQdz35ZmKRNfoCR</span>
+                        </div>
+                        <p class="id-guide-note">
+                            <i class="fa fa-lightbulb"></i> アドレスバーのURLを<b>まるごとコピーして貼り付けてもOK</b>です。IDの部分だけを自動で取り出します。<br>
+                            ※ ページ上に出ている「コード」（4桁ほどの数字）はスタンプ帳IDではありません。
+                        </p>
+                    </details>
+
+                    <div id="id-list"></div>
+
+                    <button type="button" class="btn-add" id="add-id-btn" style="padding: 10px; border-radius: 6px; cursor: pointer;">
+                        <i class="fa fa-plus"></i> スタンプ帳を追加
+                    </button>
+                </div>
+            </div>
+
+            <div class="button-group" style="display: flex; gap: 10px; margin-top: 40px; margin-bottom: 20px;">
+                <button class="btn btn-generate" id="generate-btn"
+                        style="flex: 1; padding: 18px; font-size: 16px; font-weight: bold; background: #1e293b; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                    <i class="fa fa-magic" style="margin-right: 8px;"></i> 配布用コードを生成する
+                </button>
+            </div>
+
+            <div style="margin-top: 50px; border-top: 2px solid #e2e8f0; padding-top: 30px;">
+                <div class="sub-config-box" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: #1e293b; font-size: 14px;">
+                            <i class="fab fa-js-square" style="color: #f7df1e; margin-right: 5px;"></i> JavaScriptコード
+                        </label>
+                        <button class="btn" onclick="copyText('out-js')" style="background: #475569; color: #fff; padding: 6px 16px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fa fa-copy"></i> コピー
+                        </button>
+                    </div>
+                    <textarea id="out-js" class="output-area data-input-area" readonly
+                            style="height: 250px; background-color: #0f172a; color: #cbd5e1; border: none;"
+                            placeholder="生成ボタンを押してください"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-side">
+            <div class="card" style="padding: 18px;">
+                <div class="card-sub-title" style="margin-bottom: 10px;"><i class="fa fa-info-circle"></i> このコードの動き</div>
+                <ul class="help-list">
+                    <li><b>ここに登録したスタンプ帳</b>は、スタンプが<b>1つ以上</b>あるときだけスタンプ帳一覧に表示されます。</li>
+                    <li>カードが複数枚ある場合は、<b>どれか1枚でも1以上</b>なら表示します。</li>
+                    <li><b>登録していないスタンプ帳</b>は、これまでどおり常に表示されます。</li>
+                    <li>公開前に、<b>スタンプ0のアカウント</b>と<b>1つ以上あるアカウント</b>の両方で表示を確かめてください。</li>
+                </ul>
+            </div>
+
+            <div style="margin: 10px auto; display: flex; justify-content: center; gap: 10px; padding: 15px; border-radius: 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">
+                <button class="btn" id="reset-btn" style="background-color: #94a3b8; color: #fff; flex: 1; height: 36px; font-size: 10px; font-weight: bold; border-radius: 6px;">
+                    <i class="fa fa-undo"></i> リセット
+                </button>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+
+<div id="custom-toast" class="toast-hidden">
+    <div class="toast-content"><span id="toast-message"></span></div>
+</div>
+
+<script src="common-ui.js"></script>
+<script>
+// --- 0. 変数定義 ---
+const STORAGE_KEY = 'stampbookSettingsData';
+// スタンプ帳IDに使われる文字（英数字・ハイフン・アンダースコア）
+const ID_CHARS = /^[A-Za-z0-9_-]+$/;
+// 既存のスタンプ帳IDは22文字。違う長さは「念のため確認」の警告に留める
+const ID_LENGTH = 22;
+
+// --- 1. 初期化 ---
+window.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    // この画面は項目が1つだけなので、カードは最初から開いておく
+    document.querySelectorAll('.card-wrapper').forEach(w => w.classList.remove('collapsed'));
+    const savedJs = localStorage.getItem('generated_stampbook_js');
+    if (savedJs) document.getElementById('out-js').value = savedJs;
+});
+
+document.getElementById('add-id-btn').addEventListener('click', () => {
+    addIdRow('');
+    const inputs = document.querySelectorAll('#id-list input');
+    inputs[inputs.length - 1].focus();
+});
+
+document.getElementById('reset-btn').onclick = () => {
+    if (confirm("スタンプ帳表示設定を初期状態にリセットしますか？")) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('generated_stampbook_js');
+        localStorage.removeItem('generated_stampbook_at');
+        location.reload();
+    }
+};
+
+// --- 2. 入力行 ---
+function addIdRow(value) {
+    const list = document.getElementById('id-list');
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+        <div class="id-row">
+            <input type="text" placeholder="例）VU49cHQiQdz35ZmKRNfoCR または管理画面のURL">
+            <button type="button" class="id-del" title="この行を削除"><i class="fa fa-trash"></i></button>
+        </div>
+        <div class="id-msg"></div>
+    `;
+    const input = wrap.querySelector('input');
+    input.value = value;
+    input.addEventListener('input', () => { validateAll(); saveData(); });
+    // 貼り付け・入力を終えたタイミングで、URLや余分な文字をIDだけに整える
+    input.addEventListener('change', () => {
+        const id = normalizeId(input.value);
+        if (id && id !== input.value) input.value = id;
+        validateAll();
+        saveData();
+    });
+    wrap.querySelector('.id-del').addEventListener('click', () => {
+        wrap.remove();
+        if (!document.querySelector('#id-list input')) addIdRow('');
+        validateAll();
+        saveData();
+    });
+    list.appendChild(wrap);
+    validateAll();
+}
+
+// URL・全角文字・前後のスペースや引用符を取り除き、IDだけにする
+function normalizeId(raw) {
+    let s = (raw || '').normalize('NFKC').trim();
+    // 管理画面（stamp_edit/ID）・お客様側（stamp_card/ID）どちらのURLからでも取り出す
+    const m = s.match(/(?:stamp_edit|stamp_card)\/([A-Za-z0-9_-]+)/);
+    if (m) return m[1];
+    s = s.replace(/^[\s'"‘’“”`,]+|[\s'"‘’“”`,]+$/g, '');
+    return s;
+}
+
+// 各行をチェックし、メッセージを出す。正しいIDの一覧（重複なし）を返す
+function validateAll() {
+    const rows = document.querySelectorAll('#id-list > div');
+    const seen = new Set();
+    const ids = [];
+    rows.forEach(row => {
+        const input = row.querySelector('input');
+        const msg = row.querySelector('.id-msg');
+        input.classList.remove('is-error', 'is-warn');
+        msg.className = 'id-msg';
+        msg.textContent = '';
+
+        const id = normalizeId(input.value);
+        if (!id) return;
+
+        if (!ID_CHARS.test(id)) {
+            input.classList.add('is-error');
+            msg.classList.add('error');
+            msg.textContent = '⚠️ IDに使えない文字が含まれています（英数字・ハイフン・アンダースコアのみ）。この行はコードに入りません。';
+            return;
+        }
+        if (seen.has(id)) {
+            input.classList.add('is-warn');
+            msg.classList.add('warn');
+            msg.textContent = '⚠️ 上の行と同じIDです。コードには1回だけ入ります。';
+            return;
+        }
+        seen.add(id);
+        ids.push(id);
+        if (id.length !== ID_LENGTH) {
+            input.classList.add('is-warn');
+            msg.classList.add('warn');
+            msg.textContent = `⚠️ スタンプ帳IDは通常${ID_LENGTH}文字です（いまは${id.length}文字）。コピー漏れがないか確認してください。`;
+        }
+    });
+    return ids;
+}
+
+// --- 3. 保存・読み込み ---
+function saveData() {
+    const values = [...document.querySelectorAll('#id-list input')].map(i => i.value);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ids: values }));
+}
+
+function loadData() {
+    let values = [];
+    try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (Array.isArray(data.ids)) values = data.ids;
+    } catch (e) { /* 壊れたデータは無視して空から始める */ }
+    if (values.length === 0) values = [''];
+    values.forEach(v => addIdRow(v));
+}
+
+// --- 4. コード生成 ---
+document.getElementById('generate-btn').addEventListener('click', generateCode);
+
+function generateCode() {
+    const ids = validateAll();
+    if (ids.length === 0) {
+        showToast("スタンプ帳IDを1つ以上入力してください");
+        return;
+    }
+    if (document.querySelector('#id-list input.is-error')) {
+        if (!confirm("使えない文字を含む行があります。その行を除いてコードを生成しますか？")) return;
+    }
+
+    const idLines = ids.map(id => `        '${id}',`).join('\n');
+
+    const jsTemplate = `<script>
+$(document).ready(function () {
+    if (!$('body').hasClass('stamp')) return;
+
+    // ▼ スタンプが1つ以上あるときだけ表示するスタンプ帳のID
+    const targetIds = [
+${idLines}
+    ];
+
+    $('.stamp_set').each(function () {
+        const $set = $(this);
+        const href = $set.find('a').attr('href') || '';
+        const isTarget = targetIds.some(id => href.includes(id));
+
+        if (isTarget) {
+            // カードが複数枚あっても1枚ずつ判定し、どれか1枚でも1以上なら表示
+            let hasStamp = false;
+            $set.find('.stamp_card').each(function () {
+                const text = $(this).find('.stamp_num').text().replace(/\\s+/g, '');
+                const match = text.match(/(\\d+)(?:\\/\\d+)?獲得/);
+                if (match && parseInt(match[1], 10) >= 1) {
+                    hasStamp = true;
+                    return false; // 見つかったら打ち切り
+                }
+            });
+
+            // 1以上のカードがあれば表示、すべて0なら非表示
+            $set.toggle(hasStamp);
+
+        } else {
+            $set.show();
+        }
+    });
+});
+<\/script>`;
+
+    document.getElementById('out-js').value = jsTemplate;
+    localStorage.setItem('generated_stampbook_js', jsTemplate);
+    localStorage.setItem('generated_stampbook_at', new Date().toLocaleString('ja-JP'));
+    showToast(`配布用コードを生成しました！（対象のスタンプ帳 ${ids.length}件）`);
+}
+</script>
+</body>
+</html>
