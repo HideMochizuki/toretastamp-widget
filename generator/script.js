@@ -1387,7 +1387,8 @@ function relabelItems() {
             }
             if(headerH1) {
                 headerH1.style.setProperty('margin', '0 auto', 'important');
-                headerH1.style.setProperty('width', '100px', 'important');
+                // 配布CSSと同じく幅は固定しない（横長ロゴがはみ出さないように）
+                headerH1.style.removeProperty('width');
             }
             
             // スライダー枠の生成
@@ -2913,10 +2914,12 @@ function getHeaderCSS() {
 
         return `/* パターンB専用：ヘッダー＆スライダーCSS */
 body.top header.top { height: 50px !important; display: flex !important; justify-content: flex-start !important; align-items: center !important; background-color: ${headerBg} !important; z-index: 20; box-shadow: 1px 5px 5px 0 #0000001a; }
-/* ロゴの縮小（width:100px/height:50px）はTOPページのスライド用コンパクトヘッダーのみに適用する。
+/* ロゴの縮小（height:50px）はTOPページのスライド用コンパクトヘッダーのみに適用する。
    ここをbody.topで絞らないと、ログイン画面など他ページのロゴまで一緒に小さくなってしまう。
-   ログイン画面側はこのルールが効かなくなる分、実機側の標準スタイル（パターンAと同じ丸ロゴ）がそのまま出る。 */
-body.top header.top h1.top { margin: 0 auto !important; width: 100px !important; }
+   ログイン画面側はこのルールが効かなくなる分、実機側の標準スタイル（パターンAと同じ丸ロゴ）がそのまま出る。
+   h1の幅は固定しない（以前はwidth:100pxだったが、横長ロゴだとはみ出して中央からずれたため）。
+   header.topがflexなので、h1はロゴ画像の幅に自動で縮み、margin:0 autoで中央に置かれる。 */
+body.top header.top h1.top { margin: 0 auto !important; }
 header.top h1.top span { display: none !important; }
 body.top header.top h1.top img { border-radius: unset; height: 50px; width: auto; }
 /* ログイン画面はフッター固定メニューが不要なため非表示にする */
@@ -4845,6 +4848,12 @@ function loadFromLocal() {
         }
     });
 
+    // お知らせ画像の高さ設定が無い＝追加前に保存したデータ。見た目が勝手に変わらないよう従来の「固定」で扱う
+    if (!('cfg-notice-img-height' in settings)) {
+        const noticeImgHeight = document.getElementById('cfg-notice-img-height');
+        if (noticeImgHeight) noticeImgHeight.value = 'fixed';
+    }
+
     // (B) フッターメニューの復元
     if (settings['saved_menu_items'] && menuList) {
         menuList.innerHTML = ''; 
@@ -4957,17 +4966,23 @@ ${prefix} .notice_list > a > dl > dt {
 `;
 
     if (pattern === 'B') {
+        // 画像の高さ：auto=画像の比率のまま全体を表示／fixed=170px（スマホ130px）で切り取り
+        const isFixedImgHeight = document.getElementById('cfg-notice-img-height')?.value === 'fixed';
+        const noticeImgCss = isFixedImgHeight
+            ? `${prefix} .notice_list p { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 170px !important; overflow: hidden !important; display: block !important; position: relative !important; background: #f2f2f2 !important; }
+${prefix} .notice_list p img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+@media (max-width: 480px) { ${prefix} .notice_list p { height: 130px !important; } }`
+            : `${prefix} .notice_list p { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; overflow: hidden !important; display: block !important; position: relative !important; background: #f2f2f2 !important; line-height: 0 !important; }
+${prefix} .notice_list p img { width: 100% !important; height: auto !important; object-fit: initial !important; display: block !important; }`;
         css += `
 /* パターンB：カード風 */
 ${prefix} .notice_set { margin: 10px 20px 20px !important; box-shadow: none !important; background: transparent !important; }
 ${prefix} .notice_list { border-radius: 16px !important; overflow: hidden !important; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08) !important; margin-bottom: 20px !important; background: #fff !important; transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease !important; border: none !important; opacity: 0 !important; visibility: hidden !important; }
 ${prefix} .notice_list:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 14px rgba(0,0,0,0.15) !important; }
 ${prefix} .notice_list > a { display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important; text-decoration: none !important; color: inherit !important; padding: 0 !important; }
-${prefix} .notice_list p { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 170px !important; overflow: hidden !important; display: block !important; position: relative !important; background: #f2f2f2 !important; }
-${prefix} .notice_list p img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+${noticeImgCss}
 ${prefix} .notice_list > a > dl { width: 100% !important; background: #fff !important; margin: 0 !important; padding: 15px 20px 15px !important; box-sizing: border-box !important; }
 ${prefix} .notice_list > a > dl > dt { line-height: 1.7 !important; margin: 0 !important; text-align: left !important; font-weight: 700 !important; }
-@media (max-width: 480px) { ${prefix} .notice_list p { height: 130px !important; } }
 ${prefix} .notice_list.show { opacity: 1 !important; visibility: visible !important; }
 `;
     } 
@@ -5130,6 +5145,11 @@ fileInput.onchange = (e) => {
                 // 　読み込んだ際に、フッターメニューやフォント・画像など
                 // 　ファイルに含まれていない項目まで消えてしまうため。
                 const current = JSON.parse(localStorage.getItem('generator_backup') || '{}');
+                // お知らせ画像の高さ設定が無い＝追加前に書き出したファイル。今の画面の値（初期値は「自動」）が
+                // 残ってしまわないよう、従来の「固定」で扱う。※色だけのAIトンマナ解析結果は対象外
+                if (data['notice-pattern'] && !('cfg-notice-img-height' in data)) {
+                    data['cfg-notice-img-height'] = 'fixed';
+                }
                 const merged = { ...current, ...data };
                 localStorage.setItem('generator_backup', JSON.stringify(merged));
 
