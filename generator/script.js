@@ -1382,7 +1382,7 @@ function relabelItems() {
 
                 const headerImg = headerTop.querySelector('img');
                 if (headerImg) {
-                    headerImg.style.setProperty('max-width', '35%', 'important');
+                    headerImg.style.setProperty('max-width', '25%', 'important');
                 }
             }
             if(headerH1) {
@@ -1453,7 +1453,7 @@ function relabelItems() {
 
                 const headerImg = headerTop.querySelector('img');
                 if (headerImg) {
-                    headerImg.style.removeProperty('max-width');
+                    headerImg.style.setProperty('max-width', '25%', 'important');
                 }
                 headerTop.style.removeProperty('box-shadow');
             }
