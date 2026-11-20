@@ -157,6 +157,7 @@
                             <th>Class名</th>
                             <th>下限（自動）</th>
                             <th>上限（設定）</th>
+                            <th>1行の個数<br><span style="font-weight:normal; font-size:10px;">（空欄＝変更なし）</span></th>
                             <th>お得な情報URL</th>
                             <th>デザイン</th>
                             <th>操作</th>
@@ -311,7 +312,7 @@
                             padding: 3px 0 0 20px; position: relative; vertical-align: bottom;
                         }
                         .mock-screen .status_ticket img {
-                            width: 14px; filter: invert(100%) sepia(80%) saturate(0%) hue-rotate(182deg) brightness(100%) contrast(360%);
+                            width: 14px; filter: brightness(0) invert(1);
                             margin: 0; position: absolute; top: 4px; left: 0px; padding: 0;
                         }
                         .mock-screen .status_ticket span {
@@ -476,7 +477,8 @@ function saveData() {
             name: row.querySelector('.rank-name').value,
             max: row.querySelector('.rank-max').value,
             className: row.dataset.className,
-            infoUrl: row.querySelector('.rank-info-url')?.value || ''
+            infoUrl: row.querySelector('.rank-info-url')?.value || '',
+            cols: row.querySelector('.rank-cols')?.value || ''
         });
     });
 
@@ -517,10 +519,12 @@ function loadData() {
                 document.getElementById('loading-gif-url').value = data.basic.loadingGifUrl || 'https://toretastamp-prod.s3.amazonaws.com/media/upload/lp/BmDrEPGf02aOPrRjyo1h.gif';
             }
             rankDesignSettings = data.designs || {};
+            // 旧データの「白」(invert(100%)) は元画像がグレーのため真っ白にならない → brightness(0) invert(1) に置き換える
+            Object.values(rankDesignSettings).forEach(d => { if (d && d.filter === 'invert(100%)') d.filter = 'brightness(0) invert(1)'; });
             const tbody = document.getElementById('rank-tbody');
             tbody.innerHTML = '';
             data.ranks.forEach(r => {
-                tbody.appendChild(createRowElement(r.id, r.name, r.max, r.className, r.infoUrl));
+                tbody.appendChild(createRowElement(r.id, r.name, r.max, r.className, r.infoUrl, r.cols));
             });
         } catch (e) {
             console.error("データ読み込みエラー:", e);
@@ -531,7 +535,7 @@ function loadData() {
 }
 
 // --- 4. 行生成 ---
-function createRowElement(id, name = '', max = '', className = '', infoUrl = '') {
+function createRowElement(id, name = '', max = '', className = '', infoUrl = '', cols = '') {
     const tr = document.createElement('tr');
     tr.id = id;
     tr.dataset.className = className;
@@ -548,6 +552,7 @@ function createRowElement(id, name = '', max = '', className = '', infoUrl = '')
             <div class="error-msg" style="color:#ef4444; font-size:10px; margin-top:4px;"></div>
             <span class="rank-max-display">〜</span>
         </td>
+        <td><input type="number" class="data-input rank-cols" placeholder="例: 4" min="1" max="10" style="width:60px" value="${cols}" oninput="saveData()"></td>
         <td><input type="text" class="data-input rank-info-url" placeholder="任意" style="width:140px" value="${infoUrl}" oninput="saveData()"></td>
         <td><button class="btn btn-sm" onclick="openDesignModal('${id}')" style="background:#64748b; color:white;"><i class="fa fa-palette"></i> 設定</button></td>
         <td><button class="btn btn-sm" onclick="removeRow('${id}')" style="background:#ef4444; color:white;"><i class="fa fa-trash"></i></button></td>
@@ -719,8 +724,9 @@ function generateCode() {
         const maxVal = row.querySelector('.rank-max').value;
         const max = maxVal ? parseInt(maxVal) : null;
         const infoUrl = row.querySelector('.rank-info-url')?.value || '';
+        const cols = parseInt(row.querySelector('.rank-cols')?.value) || 0;
         const design = rankDesignSettings[row.id] || {};
-        ranks.push({ name, className, min: nextMin, max, infoUrl, design });
+        ranks.push({ name, className, min: nextMin, max, infoUrl, cols, design });
         if (max !== null) nextMin = max + 1;
     });
 
@@ -791,6 +797,22 @@ function generateCode() {
 #stamp-list > .stamp_set > .stamp_card.d-normal .stampicon > b { border: 2px solid ${topDesign.border || '#FFFFFF'} !important; }
 #stamp-list > .stamp_set > .stamp_card.d-normal .stampicon > b > span { filter: ${topDesign.filter || 'none'} !important; }
 `;
+    }
+
+    // スタンプ帳詳細ページのスタンプの並び（「1行の個数」を入れたランクだけ、横N個のマス目にする）
+    const gridRanks = ranks.filter(r => r.cols > 0);
+    if (gridRanks.length) {
+        cssOutput += `
+/* =========================================
+    スタンプ帳詳細 スタンプの並び（ランクごとの1行の個数）
+========================================= */
+`;
+        gridRanks.forEach(r => {
+            cssOutput += `/* ${r.name}：1行に${r.cols}個 */
+.stamp_set.${r.className} ul.stamp_image-list2 { display: grid !important; grid-template-columns: repeat(${r.cols}, 1fr); gap: 10px 8px; justify-items: center; }
+.stamp_set.${r.className} li.stamp_image-wrapper2 { flex: none; width: 100%; max-width: 56px; }
+`;
+        });
     }
 
     cssOutput += `
@@ -905,7 +927,7 @@ body.change .titleh3 { position: relative; margin: 0 0 10px 0; }
     padding: 3px 0 0 25px; position: relative; vertical-align: bottom;
 }
 .status_ticket img {
-    width: 19px; filter: invert(100%) sepia(80%) saturate(0%) hue-rotate(182deg) brightness(100%) contrast(360%);
+    width: 19px; filter: brightness(0) invert(1);
     margin: 0 0px 0 0px; position: absolute; top: 5.5px; left: 0px; padding: 0 0px 0 0;
 }
 .status_ticket span {
@@ -1839,7 +1861,7 @@ function renderStampListPreview() {
             <label>アイコン色</label>
             <select id="modal-filter" class="data-input">
                 <option value="none">そのまま（デフォルト）</option>
-                <option value="invert(100%)">白</option>
+                <option value="brightness(0) invert(1)">白</option>
                 <option value="invert(0%)">黒</option>
             </select>
         </div>

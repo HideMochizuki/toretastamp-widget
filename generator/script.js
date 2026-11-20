@@ -2153,7 +2153,7 @@ function applyCurrentDesignToMock() {
         const stShopColor = getV('cfg-st-shop-c-val');
         const stDueTxtColor = getV('cfg-st-due-txt-c-val');
         const stIconChoice = document.getElementById('cfg-st-icon-choice')?.value;
-        const stIconFilter = stIconChoice === 'black' ? 'brightness(0)' : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
+        const stIconFilter = stIconChoice === 'black' ? 'brightness(0)' : 'brightness(0) invert(1)';
 
         // ロゴの形状設定を取得
         const wmShape = document.getElementById('cfg-st-watermark-shape')?.value || 'landscape';
@@ -3039,7 +3039,7 @@ function getStampPageCSS() {
     // 4. 一つでも変更がある場合はCSSを組み立てる
     const stIconFilter = stIconChoice === 'black'
         ? 'brightness(0)' 
-        : 'invert(100%) sepia(100%) saturate(62%) hue-rotate(329deg) brightness(92%) contrast(260%)';
+        : 'brightness(0) invert(1)';
 
     const wmWidth = (wmShape === 'square') ? '75px' : '100px';
     const wmHeight = (wmShape === 'square') ? '75px' : '40px';
