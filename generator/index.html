@@ -188,6 +188,14 @@
                     </div>
 
                     <div class="form-row">
+                        <div class="form-label-side">TOP以外のロゴの高さ</div>
+                        <div class="form-input-side">
+                            <input type="number" id="cfg-sub-logo-height" min="10" max="50" placeholder="空欄＝変更なし" style="width: 140px;" oninput="updatePreview()"> px
+                            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">TOPとそれ以外のページでロゴの大きさがそろわないときに入力します（ヘッダーの高さは50px）。ロゴ画像の余白によって合う数字が変わるので、実際のページで見比べて決めてください。TOPと同じロゴ画像を登録している場合は 50 でそろいます。</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-label-side">ログイン画面のロゴ</div>
                         <div class="form-input-side">
                             <select id="cfg-login-logo-shape" onchange="updatePreview()" style="width: 240px;">

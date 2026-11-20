@@ -3768,6 +3768,12 @@ opacity: 1;
     if (mockHeaderBg !== "#FFFFFF" || mockLogoAlign !== "center") {
         subPageHeaderCSS = `header { background-color: ${mockHeaderBg} !important; display: flex !important; justify-content: ${mockLogoAlign} !important; ${mockLogoAlign === 'flex-start' ? 'padding-left: 15px !important;' : ''} ${mockLogoAlign === 'flex-end' ? 'padding-right: 15px !important;' : ''} }`;
     }
+    // TOP以外のロゴの高さ：TOPと別のロゴ画像（余白の量が違う）が使われ、見た目の大きさがそろわないことがあるため、高さを指定できるようにする
+    // ※TOP（body.top）とログイン画面（body.login_page）はそれぞれ別の設定があるので対象外
+    const subLogoHeight = parseInt(getV('cfg-sub-logo-height')) || 0;
+    if (subLogoHeight > 0) {
+        subPageHeaderCSS += `\n/* TOP以外のページのロゴの高さ */\nbody:not(.top):not(.login_page) header h1 img { height: ${subLogoHeight}px !important; width: auto !important; max-width: none !important; }`;
+    }
 
     // --- フッターリストメニュー（.menu-sublist）の判定と生成 ---
     const listBg = (getV('cfg-list-bg-val') || "").trim().toUpperCase();
