@@ -3690,6 +3690,16 @@ document.getElementById('generate-btn').onclick = () => {
             snsInsertJS = `const footerUl = document.querySelector(".menu-sublist ul"); if(footerUl) { footerUl.insertAdjacentHTML('afterend', \`${snsFinalHtml}\`); }`;
         }
     }
+    // ログイン画面ではSNSアイコンを出さない（ジェネレーターで追加したものも、店舗設定で標準表示されるものも両方隠す）
+    snsCSS += `\n/* ログイン画面はSNSアイコンが不要なため非表示にする */\nbody.login_page .sns_btn { display: none !important; }`;
+
+    // ログイン画面のロゴ：標準は175px四方の丸に切り抜かれ、横長ロゴがつぶれる。「元の形のまま」なら縦横比を保って中央に収める
+    let loginLogoCSS = "";
+    if ((document.getElementById('cfg-login-logo-shape')?.value || 'fit') === 'fit') {
+        loginLogoCSS = `/* ログイン画面：ロゴを元の縦横比のまま中央に表示する（横幅80%・高さ120pxまで） */
+body.login_page header.top h1.top { width: auto !important; height: auto !important; max-width: 80%; display: flex; justify-content: center; align-items: center; }
+body.login_page header.top h1.top img { width: auto !important; height: auto !important; max-width: 100% !important; max-height: 120px !important; border-radius: 0 !important; object-fit: contain !important; }`;
+    }
 
 
 let officialModalCSS = "";
@@ -4451,6 +4461,7 @@ ${htmlBodyOutput}
 ${h3Output}
 ${headerCSS}
 ${snsCSS}
+${loginLogoCSS}
 ${subPageHeaderCSS}
 ${btnAreaOutput}
 ${patternCSS}
@@ -4847,6 +4858,12 @@ function loadFromLocal() {
             el.value = settings[key];
         }
     });
+
+    // ログイン画面のロゴ設定が無い＝追加前に保存したデータ。見た目が勝手に変わらないよう従来の「丸く切り抜く」で扱う
+    if (!('cfg-login-logo-shape' in settings)) {
+        const loginLogoShape = document.getElementById('cfg-login-logo-shape');
+        if (loginLogoShape) loginLogoShape.value = 'circle';
+    }
 
     // お知らせ画像の高さ設定が無い＝追加前に保存したデータ。見た目が勝手に変わらないよう従来の「固定」で扱う
     if (!('cfg-notice-img-height' in settings)) {

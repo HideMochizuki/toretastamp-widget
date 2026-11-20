@@ -187,6 +187,17 @@
                         </div>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-label-side">ログイン画面のロゴ</div>
+                        <div class="form-input-side">
+                            <select id="cfg-login-logo-shape" onchange="updatePreview()" style="width: 240px;">
+                                <option value="fit" selected>元の形のまま中央に収める</option>
+                                <option value="circle">丸く切り抜く（標準のまま）</option>
+                            </select>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">標準では正方形・丸に切り抜かれるため、横長のロゴがつぶれます。「元の形のまま」は横幅80%・高さ120pxまでに収めます。</div>
+                        </div>
+                    </div>
+
                     <div class="sub-config-box">
                         <p style="font-size: 12px; font-weight: bold; margin-bottom: 15px; color: #64748b;">パターンとメイン画像</p>
                         <div class="form-row">
@@ -390,6 +401,17 @@
                                     <input type="color" id="cfg-notice-color" value="#222222">
                                     <input type="text" id="cfg-notice-color-val" value="#222222">
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row" id="notice-pattern-b-settings" style="margin-top: 16px; margin-bottom: 0; display: none;">
+                            <div class="form-label-side">画像の高さ<br><span style="font-size: 10px; color: #64748b;">(パターンB専用)</span></div>
+                            <div class="form-input-side">
+                                <select id="cfg-notice-img-height" style="width: 240px;" onchange="updatePreview()">
+                                    <option value="auto" selected>自動（画像全体を表示）</option>
+                                    <option value="fixed">固定（170px／スマホ130px・切り取り）</option>
+                                </select>
+                                <div style="font-size: 11px; color: #64748b; margin-top: 6px;">文字入りの画像やバナーを使う場合は「自動」がおすすめです。「固定」は高さが揃う代わりに、画像の上下左右が切り取られます。</div>
                             </div>
                         </div>
                     </div>
@@ -1307,7 +1329,7 @@
                 <div class="mock-screen" style="height: 600px; overflow-y: auto; background-color: #f8fafc;">
                     <header class="top">
                         <h1 class="top">
-                            <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/zm2ed83b7qCenF0pxuRC.png" alt="Logo">
+                            <img src="https://toretastamp-stg.s3.amazonaws.com/media/upload/lp/zm2ed83b7qCenF0pxuRC.png" alt="Logo" style="max-width: 25% !important;">
                             <span>レストラントレタ</span>
                         </h1>
                     </header>
