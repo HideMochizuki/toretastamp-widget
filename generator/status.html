@@ -801,12 +801,15 @@ function generateCode() {
 
     // スタンプ帳詳細ページのスタンプの並び（「1行の個数」を入れたランクだけ、横N個のマス目にする）
     const gridRanks = ranks.filter(r => r.cols > 0);
-    if (gridRanks.length) {
-        cssOutput += `
+    // スタンプの上の余白は、ランク・「1行の個数」の有無に関係なく全ランク共通で付ける
+    cssOutput += `
 /* =========================================
-    スタンプ帳詳細 スタンプの並び（ランクごとの1行の個数）
+    スタンプ帳詳細 スタンプの並び
 ========================================= */
+/* 全ランク共通：スタンプの上の余白 */
+.stamp_set ul.stamp_image-list2 { margin: 15px 0 0 0; }
 `;
+    if (gridRanks.length) {
         gridRanks.forEach(r => {
             cssOutput += `/* ${r.name}：1行に${r.cols}個 */
 .stamp_set.${r.className} ul.stamp_image-list2 { display: grid !important; grid-template-columns: repeat(${r.cols}, 1fr); gap: 10px 8px; justify-items: center; }
