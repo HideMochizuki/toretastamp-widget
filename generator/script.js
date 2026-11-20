@@ -5061,7 +5061,7 @@ function switchNoticePattern() {
     
     if (target) {
         // Bなら表示、それ以外(A)なら非表示にする
-        target.style.display = (pattern === 'B') ? 'block' : 'none';
+        target.style.display = (pattern === 'B') ? 'flex' : 'none'; // 'block' だとラベルと入力欄が横並びにならず左に寄るため flex
     }
 }
 
